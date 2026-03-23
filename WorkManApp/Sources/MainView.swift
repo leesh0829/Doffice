@@ -7,6 +7,8 @@ struct MainView: View {
     @State private var showSettings = false
     @State private var showClaudeNotInstalledAlert = false
     @State private var showBugReport = false
+    @State private var showUpdateSheet = false
+    @ObservedObject private var updater = UpdateChecker.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -40,6 +42,7 @@ struct MainView: View {
         }
         .sheet(isPresented: $showSettings) { SettingsView() }
         .sheet(isPresented: $showBugReport) { BugReportView() }
+        .sheet(isPresented: $showUpdateSheet) { UpdateSheet() }
         .alert("Claude Code 미설치", isPresented: $showClaudeNotInstalledAlert) {
             Button("설치 방법 보기") {
                 if let url = URL(string: "https://docs.anthropic.com/en/docs/claude-code/overview") {
@@ -60,6 +63,10 @@ struct MainView: View {
                 if !ClaudeInstallChecker.shared.isInstalled {
                     showClaudeNotInstalledAlert = true
                 }
+            }
+            // 업데이트 확인
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                updater.checkForUpdates()
             }
         }
         .onDisappear { manager.stopScanning() }
@@ -102,6 +109,18 @@ struct MainView: View {
             }
 
             Spacer()
+
+            if updater.hasUpdate {
+                Button(action: { showUpdateSheet = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.down.circle.fill").font(.system(size: 10)).foregroundColor(Theme.green)
+                        Text("v\(updater.latestVersion)").font(Theme.mono(9, weight: .bold)).foregroundColor(Theme.green)
+                    }
+                    .padding(.horizontal, 7).padding(.vertical, 3)
+                    .background(Theme.green.opacity(0.1)).cornerRadius(5)
+                    .overlay(RoundedRectangle(cornerRadius: 5).stroke(Theme.green.opacity(0.3), lineWidth: 1))
+                }.buttonStyle(.plain).help("업데이트 가능")
+            }
 
             if ClaudeInstallChecker.shared.isInstalled {
                 Text("Claude \(ClaudeInstallChecker.shared.version)")

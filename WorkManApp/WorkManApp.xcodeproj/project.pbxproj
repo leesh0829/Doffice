@@ -16,7 +16,9 @@
 		A10007 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10007; };
 		A10008 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10008; };
 		A10009 /* MenuBarWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10009; };
-		A10010 /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10010; };
+		A10010 /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; 
+fileRef = B10010; };
+		9141A180C2CDC4F91C87AA78 /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FB8028B43E80A3835392CA /* UpdateChecker.swift */; };
 		A10011 /* GameSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10011; };
 		A10012 /* CharacterSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10012; };
 		A10013 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B10013; };
@@ -33,7 +35,9 @@
 		B10007 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		B10008 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		B10009 /* MenuBarWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarWidget.swift; sourceTree = "<group>"; };
-		B10010 /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
+		B10010 /* SessionStore.swift */ = {isa = PBXFileReference; 
+lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
+		01FB8028B43E80A3835392CA /* UpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChecker.swift; sourceTree = "<group>"; };
 		B10011 /* GameSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameSystem.swift; sourceTree = "<group>"; };
 		B10012 /* CharacterSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CharacterSystem.swift; sourceTree = "<group>"; };
 		D10001 /* WorkManApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WorkManApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -88,6 +92,7 @@
 				B10007 /* SidebarView.swift */,
 				B10009 /* MenuBarWidget.swift */,
 				B10010 /* SessionStore.swift */,
+				01FB8028B43E80A3835392CA /* UpdateChecker.swift */,
 				B10011 /* GameSystem.swift */,
 				B10012 /* CharacterSystem.swift */,
 			);
@@ -176,6 +181,7 @@
 				A10007 /* SidebarView.swift in Sources */,
 				A10009 /* MenuBarWidget.swift in Sources */,
 				A10010 /* SessionStore.swift in Sources */,
+				9141A180C2CDC4F91C87AA78 /* UpdateChecker.swift in Sources */,
 				A10011 /* GameSystem.swift in Sources */,
 				A10012 /* CharacterSystem.swift in Sources */,
 			);
@@ -204,7 +210,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.junha.workman;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -232,7 +238,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.junha.workman;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
