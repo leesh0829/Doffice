@@ -477,15 +477,37 @@ class TerminalTab: ObservableObject, Identifiable {
 
             let proc = Process()
             let outPipe = Pipe()
+            let errPipe = Pipe()
             proc.executableURL = URL(fileURLWithPath: "/bin/zsh")
-            proc.arguments = ["-c", cmd]
+            // -l (login shell) 로 실행해야 ~/.zprofile, ~/.zshrc 의 PATH 설정이 로드됨
+            proc.arguments = ["-l", "-c", cmd]
             proc.currentDirectoryURL = URL(fileURLWithPath: path)
             var env = ProcessInfo.processInfo.environment
+            // GUI 앱에서 homebrew PATH가 누락될 수 있으므로 보장
+            let existingPath = env["PATH"] ?? "/usr/bin:/bin"
+            let extraPaths = ["/opt/homebrew/bin", "/usr/local/bin", "/opt/homebrew/sbin",
+                              NSHomeDirectory() + "/.nvm/versions/node/*/bin",
+                              NSHomeDirectory() + "/.local/bin",
+                              "/usr/local/opt/node/bin"]
+            env["PATH"] = (extraPaths + [existingPath]).joined(separator: ":")
             env["TERM"] = "dumb"; env["NO_COLOR"] = "1"
             proc.environment = env
             proc.standardOutput = outPipe
-            proc.standardError = Pipe() // ignore stderr
+            proc.standardError = errPipe
             self.currentProcess = proc
+
+            // stderr 캡처 (에러 진단용)
+            errPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
+                let data = handle.availableData
+                guard !data.isEmpty, let text = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                      !text.isEmpty else { return }
+                DispatchQueue.main.async {
+                    // JSON 스트림이 아닌 진짜 에러만 표시
+                    if !text.hasPrefix("{") && !text.contains("node:") {
+                        self?.appendBlock(.error(message: "stderr"), content: text)
+                    }
+                }
+            }
 
             var jsonBuffer = ""
 
@@ -518,6 +540,7 @@ class TerminalTab: ObservableObject, Identifiable {
             }
 
             outPipe.fileHandleForReading.readabilityHandler = nil
+            errPipe.fileHandleForReading.readabilityHandler = nil
 
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
