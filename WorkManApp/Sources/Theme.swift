@@ -537,10 +537,9 @@ struct SettingsView: View {
     enum SecretKeyResult { case none, success, wrong }
 
     private static let validKeys: Set<String> = [
-        "workman-unlock-all",
-        "WORKMAN-UNLOCK-ALL",
-        "unlock-all-characters",
-        "전체해금",
+        "I don't like Snatch",
+        "I don't like snatch",
+        "i don't like snatch",
     ]
 
     private func applySecretKey() {
