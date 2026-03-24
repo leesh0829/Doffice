@@ -231,6 +231,16 @@ struct MainView: View {
                 }
             }
 
+            // 뷰 모드 전환 (항상 보이도록 앱 이름 바로 옆에 배치)
+            HStack(spacing: 1) {
+                viewModeButton(icon: "rectangle.split.1x2", mode: .split, label: "분할")
+                viewModeButton(icon: "building.2", mode: .office, label: "오피스")
+                viewModeButton(icon: "person.2.fill", mode: .strip, label: "스트립")
+                viewModeButton(icon: "terminal", mode: .terminal, label: "터미널")
+            }
+            .background(RoundedRectangle(cornerRadius: 5).fill(Theme.bgSurface))
+            .overlay(RoundedRectangle(cornerRadius: 5).stroke(Theme.border.opacity(0.3), lineWidth: 0.5))
+
             Spacer()
 
             if updater.hasUpdate {
@@ -265,16 +275,6 @@ struct MainView: View {
                 .font(Theme.mono(9, weight: .bold)).foregroundColor(Theme.yellow)
                 .padding(.horizontal, 6).padding(.vertical, 2)
                 .background(Theme.yellow.opacity(0.1)).cornerRadius(3)
-
-            // 뷰 모드 전환
-            HStack(spacing: 1) {
-                viewModeButton(icon: "rectangle.split.1x2", mode: .split, label: "분할")
-                viewModeButton(icon: "building.2", mode: .office, label: "오피스")
-                viewModeButton(icon: "person.2.fill", mode: .strip, label: "스트립")
-                viewModeButton(icon: "terminal", mode: .terminal, label: "터미널")
-            }
-            .background(RoundedRectangle(cornerRadius: 5).fill(Theme.bgSurface))
-            .overlay(RoundedRectangle(cornerRadius: 5).stroke(Theme.border.opacity(0.3), lineWidth: 0.5))
 
             // 오피스 별도 창 열기 (듀얼 모니터)
             Button(action: { openOfficeWindow() }) {

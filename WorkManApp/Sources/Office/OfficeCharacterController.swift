@@ -588,6 +588,7 @@ class OfficeCharacterController: ObservableObject {
             ch.state = .error
             ch.dir = facingForPurpose(.error, from: target)
         case .breakSpot:
+            rememberBreakTarget(target, for: &ch)
             ch.state = .onBreak
         }
     }
@@ -595,17 +596,10 @@ class OfficeCharacterController: ObservableObject {
     private func startWander(_ ch: inout OfficeCharacter) {
         guard !walkableTiles.isEmpty else { return }
 
-        let preferredPool: [TileCoord]
-        if !ch.isActive && !socialHotspotTiles.isEmpty {
-            preferredPool = socialHotspotTiles
-        } else if !pantryAndMeetingTiles.isEmpty {
-            preferredPool = pantryAndMeetingTiles
-        } else {
-            preferredPool = walkableTiles
+        guard let target = bestBreakTarget(for: ch) else {
+            ch.wanderTimer = wanderPauseDuration()
+            return
         }
-
-        let candidatePool = preferredPool.filter { $0 != ch.tileCoord }
-        guard let target = candidatePool.randomElement() ?? preferredPool.randomElement() else { return }
         let path = map.findPath(from: ch.tileCoord, to: target)
         if !path.isEmpty {
             ch.path = path
@@ -704,21 +698,30 @@ class OfficeCharacterController: ObservableObject {
         }
     }
 
-    private func bestInteractionTile(for types: [FurnitureType], from origin: TileCoord) -> TileCoord? {
-        // Collect candidates with heuristic score (no pathfinding)
-        var candidates: [(tile: TileCoord, score: Int)] = []
+    private func bestInteractionTile(for types: [FurnitureType], from origin: TileCoord, avoiding recentTiles: [TileCoord] = []) -> TileCoord? {
+        var bestScores: [TileCoord: Int] = [:]
         for (priority, type) in types.enumerated() {
             for furniture in map.furniture where furniture.type == type {
                 for tile in interactionTiles(for: furniture) where map.isWalkable(tile) {
-                    let dist = origin.distance(to: tile)
-                    let score = priority * 100 + dist
-                    candidates.append((tile, score))
+                    let score = interactionScore(
+                        for: tile,
+                        from: origin,
+                        priority: priority,
+                        recentTiles: recentTiles
+                    )
+                    bestScores[tile] = min(bestScores[tile] ?? score, score)
                 }
             }
         }
-        // Sort by score, try pathfinding on best candidates first
-        candidates.sort { $0.score < $1.score }
-        for candidate in candidates.prefix(5) {
+
+        let candidates = bestScores
+            .map { (tile: $0.key, score: $0.value) }
+            .sorted { lhs, rhs in
+                if lhs.score != rhs.score { return lhs.score < rhs.score }
+                return lhs.tile.distance(to: origin) < rhs.tile.distance(to: origin)
+            }
+
+        for candidate in candidates {
             if candidate.tile == origin { return candidate.tile }
             let path = map.findPath(from: origin, to: candidate.tile)
             if !path.isEmpty { return candidate.tile }
@@ -939,9 +942,10 @@ class OfficeCharacterController: ObservableObject {
     }
 
     private func idleRosterFallbackTile(for index: Int) -> TileCoord {
-        let preferredTiles = pantryAndMeetingTiles.isEmpty ? walkableTiles : pantryAndMeetingTiles
+        let preferredTiles = mergedTiles(socialHotspotTiles, pantryAndMeetingTiles, walkableTiles)
         guard !preferredTiles.isEmpty else { return fallbackSpawnTile(for: index) }
-        return preferredTiles[index % preferredTiles.count]
+        let stride = max(3, preferredTiles.count / 4)
+        return preferredTiles[(index * stride) % preferredTiles.count]
     }
 
     private func orderedHiredRoster() -> [WorkerCharacter] {
@@ -1137,6 +1141,9 @@ class OfficeCharacterController: ObservableObject {
         ch.socialTimer = duration
         ch.socialPartnerKey = partnerId
         ch.socialFocusTile = focusTile
+        if let focusTile {
+            rememberBreakTarget(focusTile, for: &ch)
+        }
         if ch.state != .onBreak {
             ch.state = .wanderPause
             ch.wanderTimer = duration
@@ -1145,15 +1152,16 @@ class OfficeCharacterController: ObservableObject {
 
     private func socialScenario(for lhs: OfficeCharacter, _ rhs: OfficeCharacter) -> (mode: OfficeSocialMode, focusTile: TileCoord?) {
         let zone = map.zoneAt(lhs.tileCoord) ?? map.zoneAt(rhs.tileCoord)
+        let recentTiles = lhs.recentBreakTargets + rhs.recentBreakTargets
 
         if zone == .pantry,
-           let focusTile = bestInteractionTile(for: [.coffeeMachine, .waterCooler], from: lhs.tileCoord),
+           let focusTile = bestInteractionTile(for: [.coffeeMachine, .waterCooler], from: lhs.tileCoord, avoiding: recentTiles),
            max(lhs.tileCoord.distance(to: focusTile), rhs.tileCoord.distance(to: focusTile)) <= 5 {
             return (.coffee, focusTile)
         }
 
         if zone == .meetingRoom,
-           let focusTile = bestInteractionTile(for: [.roundTable, .whiteboard], from: lhs.tileCoord),
+           let focusTile = bestInteractionTile(for: [.roundTable, .whiteboard], from: lhs.tileCoord, avoiding: recentTiles),
            max(lhs.tileCoord.distance(to: focusTile), rhs.tileCoord.distance(to: focusTile)) <= 5 {
             return (.brainstorming, focusTile)
         }
@@ -1217,5 +1225,111 @@ class OfficeCharacterController: ObservableObject {
         default:
             return false
         }
+    }
+
+    private func bestBreakTarget(for character: OfficeCharacter) -> TileCoord? {
+        let preferredTiles: [TileCoord]
+        if !character.isActive {
+            preferredTiles = mergedTiles(socialHotspotTiles, pantryAndMeetingTiles, walkableTiles)
+        } else if !pantryAndMeetingTiles.isEmpty {
+            preferredTiles = mergedTiles(pantryAndMeetingTiles, walkableTiles)
+        } else {
+            preferredTiles = walkableTiles
+        }
+
+        let candidates = preferredTiles
+            .filter { $0 != character.tileCoord }
+            .map { tile in
+                (
+                    tile: tile,
+                    score: breakTargetScore(for: tile, character: character)
+                )
+            }
+            .sorted { lhs, rhs in
+                if lhs.score != rhs.score { return lhs.score < rhs.score }
+                return lhs.tile.distance(to: character.tileCoord) < rhs.tile.distance(to: character.tileCoord)
+            }
+
+        for candidate in candidates {
+            let path = map.findPath(from: character.tileCoord, to: candidate.tile)
+            if !path.isEmpty {
+                return candidate.tile
+            }
+        }
+        return nil
+    }
+
+    private func breakTargetScore(for tile: TileCoord, character: OfficeCharacter) -> Int {
+        let distance = character.tileCoord.distance(to: tile)
+        let congestionPenalty = tileCongestion(at: tile) * 24
+        let recentPenalty = recentTilePenalty(for: tile, recentTiles: character.recentBreakTargets)
+        let zoneBonus = preferredBreakZoneBonus(for: tile)
+        let hotspotBonus = socialHotspotTiles.contains(tile) ? -4 : 0
+        let jitter = Int.random(in: 0...9)
+        return distance * 2 + congestionPenalty + recentPenalty + zoneBonus + hotspotBonus + jitter
+    }
+
+    private func interactionScore(for tile: TileCoord,
+                                  from origin: TileCoord,
+                                  priority: Int,
+                                  recentTiles: [TileCoord]) -> Int {
+        let distance = origin.distance(to: tile)
+        let congestionPenalty = tileCongestion(at: tile) * 18
+        let recentPenalty = recentTilePenalty(for: tile, recentTiles: recentTiles)
+        let jitter = Int.random(in: 0...4)
+        return priority * 100 + distance * 3 + congestionPenalty + recentPenalty + jitter
+    }
+
+    private func preferredBreakZoneBonus(for tile: TileCoord) -> Int {
+        guard let zone = map.zoneAt(tile) else { return 0 }
+        switch zone {
+        case .pantry:
+            return -8
+        case .meetingRoom:
+            return -6
+        case .hallway:
+            return -2
+        case .mainOffice:
+            return 0
+        }
+    }
+
+    private func recentTilePenalty(for tile: TileCoord, recentTiles: [TileCoord]) -> Int {
+        guard let index = recentTiles.lastIndex(of: tile) else { return 0 }
+        let recency = recentTiles.count - index
+        return recency * 22
+    }
+
+    private func tileCongestion(at tile: TileCoord) -> Int {
+        characters.values.reduce(into: 0) { partial, character in
+            if character.tileCoord == tile {
+                partial += 1
+            }
+            if character.targetTile == tile, character.tileCoord != tile {
+                partial += 1
+            }
+            if character.socialFocusTile == tile {
+                partial += 1
+            }
+        }
+    }
+
+    private func rememberBreakTarget(_ tile: TileCoord, for ch: inout OfficeCharacter) {
+        ch.recentBreakTargets.removeAll { $0 == tile }
+        ch.recentBreakTargets.append(tile)
+        if ch.recentBreakTargets.count > OfficeConstants.recentBreakTargetLimit {
+            ch.recentBreakTargets.removeFirst(ch.recentBreakTargets.count - OfficeConstants.recentBreakTargetLimit)
+        }
+    }
+
+    private func mergedTiles(_ groups: [TileCoord]...) -> [TileCoord] {
+        var seen: Set<TileCoord> = []
+        var merged: [TileCoord] = []
+        for group in groups {
+            for tile in group where seen.insert(tile).inserted {
+                merged.append(tile)
+            }
+        }
+        return merged
     }
 }

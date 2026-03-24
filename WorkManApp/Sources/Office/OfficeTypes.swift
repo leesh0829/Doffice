@@ -236,6 +236,7 @@ struct OfficeCharacter {
     var socialCooldown: Double = 0
     var socialPartnerKey: String? = nil
     var socialFocusTile: TileCoord? = nil
+    var recentBreakTargets: [TileCoord] = []
 
     var tileCoord: TileCoord { TileCoord(col: tileCol, row: tileRow) }
 
@@ -276,6 +277,7 @@ enum OfficeConstants {
     static let socialEventCooldownMin: Double = 1.4
     static let socialEventCooldownMax: Double = 3.2
     static let socialScanInterval: Double = 0.75
+    static let recentBreakTargetLimit: Int = 3
     static let fps: Double = 8.0
     static let charSittingOffset: CGFloat = 3    // 앉을 때 Y 오프셋
 }
