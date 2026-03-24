@@ -1499,286 +1499,129 @@ class SessionManager: ObservableObject {
         }
     }
 
+    private func templateValue(_ text: String, fallback: String) -> String {
+        text.isEmpty ? fallback : text
+    }
+
+    private func templateFileList(_ paths: [String], fallback: String) -> String {
+        let unique = Array(Set(paths)).sorted()
+        return unique.isEmpty ? fallback : unique.map { "- \($0)" }.joined(separator: "\n")
+    }
+
     private func buildPlannerPrompt(for tab: TerminalTab, request: String) -> String {
-        """
-        당신은 WorkMan의 기획자입니다.
-        아래 사용자 요구사항을 보고 개발자가 바로 구현할 수 있게 정리하세요.
-
-        프로젝트: \(tab.projectName)
-        경로: \(tab.projectPath)
-
-        사용자 요구사항:
-        \(request)
-
-        해야 할 일:
-        1. 요구사항을 짧게 요약하세요.
-        2. 반드시 구현해야 할 핵심 항목을 정리하세요.
-        3. 수용 기준과 주의할 점을 정리하세요.
-        4. 디자이너와 개발자가 바로 참고할 수 있게 구체적으로 써주세요.
-        5. 응답 마지막에 아래 한 줄을 정확히 남기세요.
-           PLANNER_STATUS: READY
-        """
+        AutomationTemplateStore.shared.render(
+            .planner,
+            context: [
+                "project_name": tab.projectName,
+                "project_path": tab.projectPath,
+                "request": templateValue(request, fallback: "요구사항 정보가 없습니다.")
+            ]
+        )
     }
 
     private func buildDesignerPrompt(for tab: TerminalTab) -> String {
-        let requestText = tab.workflowRequirementText.isEmpty ? "요구사항 정보가 없습니다." : tab.workflowRequirementText
-        let planSummary = tab.workflowPlanSummary.isEmpty ? "기획 요약 없음" : tab.workflowPlanSummary
-
-        return """
-        당신은 WorkMan의 디자이너입니다.
-        아래 요구사항과 기획 요약을 바탕으로 UI/UX, 상호작용, 화면 흐름 관점의 정리본을 만들어 주세요.
-
-        프로젝트: \(tab.projectName)
-        경로: \(tab.projectPath)
-
-        원래 요구사항:
-        \(requestText)
-
-        기획 요약:
-        \(planSummary)
-
-        해야 할 일:
-        1. 화면/상태 흐름을 정리하세요.
-        2. 사용자 경험상 주의할 점과 edge case를 적으세요.
-        3. 개발자가 바로 구현할 수 있는 구체적인 디자인 메모를 남기세요.
-        4. 응답 마지막에 아래 한 줄을 정확히 남기세요.
-           DESIGN_STATUS: READY
-        """
+        AutomationTemplateStore.shared.render(
+            .designer,
+            context: [
+                "project_name": tab.projectName,
+                "project_path": tab.projectPath,
+                "request": templateValue(tab.workflowRequirementText, fallback: "요구사항 정보가 없습니다."),
+                "plan_summary": templateValue(tab.workflowPlanSummary, fallback: "기획 요약 없음")
+            ]
+        )
     }
 
     private func buildDeveloperExecutionPrompt(for tab: TerminalTab) -> String {
-        let requestText = tab.workflowRequirementText.isEmpty ? "요구사항 정보가 없습니다." : tab.workflowRequirementText
-        let planSection = tab.workflowPlanSummary.isEmpty ? "" : """
-
-        기획 요약:
-        \(tab.workflowPlanSummary)
-        """
-        let designSection = tab.workflowDesignSummary.isEmpty ? "" : """
-
-        디자인/경험 메모:
-        \(tab.workflowDesignSummary)
-        """
-
-        return """
-        아래 요구사항을 구현하세요.
-
-        프로젝트: \(tab.projectName)
-        경로: \(tab.projectPath)
-
-        원래 요구사항:
-        \(requestText)
-        \(planSection)
-        \(designSection)
-
-        구현 지침:
-        1. 필요한 코드를 직접 수정하세요.
-        2. 변경 파일과 검증 결과를 명확히 남기세요.
-        3. 작업을 마치면 완료 요약을 짧게 정리하세요.
-        """
+        AutomationTemplateStore.shared.render(
+            .developerExecution,
+            context: [
+                "project_name": tab.projectName,
+                "project_path": tab.projectPath,
+                "request": templateValue(tab.workflowRequirementText, fallback: "요구사항 정보가 없습니다."),
+                "plan_summary": templateValue(tab.workflowPlanSummary, fallback: "기획 요약 없음"),
+                "design_summary": templateValue(tab.workflowDesignSummary, fallback: "디자인/경험 메모 없음")
+            ]
+        )
     }
 
     private func buildDeveloperRevisionPrompt(for tab: TerminalTab, feedback: String, from role: WorkerJob) -> String {
-        let basePrompt = buildDeveloperExecutionPrompt(for: tab)
-        return """
-        \(basePrompt)
-
-        추가 수정 피드백 (\(role.displayName)):
-        \(feedback.isEmpty ? "구체적인 피드백 없음" : feedback)
-
-        위 피드백을 반영해 다시 구현하고, 어떤 점을 수정했는지 완료 요약에 포함하세요.
-        """
+        AutomationTemplateStore.shared.render(
+            .developerRevision,
+            context: [
+                "project_name": tab.projectName,
+                "project_path": tab.projectPath,
+                "request": templateValue(tab.workflowRequirementText, fallback: "요구사항 정보가 없습니다."),
+                "plan_summary": templateValue(tab.workflowPlanSummary, fallback: "기획 요약 없음"),
+                "design_summary": templateValue(tab.workflowDesignSummary, fallback: "디자인/경험 메모 없음"),
+                "feedback_role": role.displayName,
+                "feedback": templateValue(feedback, fallback: "구체적인 피드백 없음")
+            ]
+        )
     }
 
     private func buildReviewPrompt(for tab: TerminalTab) -> String {
-        let recentFiles = Array(Set(tab.fileChanges.suffix(10).map(\.path))).sorted()
-        let filesSection = recentFiles.isEmpty ? "- 변경 파일 정보 없음" : recentFiles.map { "- \($0)" }.joined(separator: "\n")
-        let requestText = tab.workflowRequirementText.isEmpty ? "요구사항 정보가 없습니다. 변경 파일과 최근 완료 요약을 기준으로 검토하세요." : tab.workflowRequirementText
-        let completionSummary = tab.lastCompletionSummary.isEmpty ? "개발 완료 메시지 없음" : tab.lastCompletionSummary
-        let planSection = tab.workflowPlanSummary.isEmpty ? "" : """
-
-        기획 요약:
-        \(tab.workflowPlanSummary)
-        """
-        let designSection = tab.workflowDesignSummary.isEmpty ? "" : """
-
-        디자인 요약:
-        \(tab.workflowDesignSummary)
-        """
-
-        return """
-        당신은 WorkMan의 코드 리뷰어입니다.
-        아래 개발 작업이 완료되었고 코드 수정도 발생했습니다. 코드는 수정하지 말고, 변경 내용과 리스크를 검토하세요.
-
-        프로젝트: \(tab.projectName)
-        경로: \(tab.projectPath)
-        최근 요구사항:
-        \(requestText)
-        \(planSection)
-        \(designSection)
-
-        개발 완료 요약:
-        \(completionSummary)
-
-        변경된 파일:
-        \(filesSection)
-
-        해야 할 일:
-        1. 변경 파일을 읽고 요구사항 대비 구현 누락, 위험, 회귀 가능성을 찾으세요.
-        2. 테스트 부족, 예외 처리 누락, 상태 동기화 문제를 우선적으로 보세요.
-        3. 코드는 수정하지 말고, 리뷰 코멘트처럼 짧고 명확하게 정리하세요.
-        4. 응답 마지막에 반드시 아래 중 하나를 정확히 한 줄로 남기세요.
-           REVIEW_STATUS: PASS
-           REVIEW_STATUS: FAIL
-           REVIEW_STATUS: BLOCKED
-        """
+        AutomationTemplateStore.shared.render(
+            .reviewer,
+            context: [
+                "project_name": tab.projectName,
+                "project_path": tab.projectPath,
+                "request": templateValue(tab.workflowRequirementText, fallback: "요구사항 정보가 없습니다. 변경 파일과 최근 완료 요약을 기준으로 검토하세요."),
+                "plan_summary": templateValue(tab.workflowPlanSummary, fallback: "기획 요약 없음"),
+                "design_summary": templateValue(tab.workflowDesignSummary, fallback: "디자인 요약 없음"),
+                "dev_summary": templateValue(tab.lastCompletionSummary, fallback: "개발 완료 메시지 없음"),
+                "changed_files": templateFileList(tab.fileChanges.suffix(10).map(\.path), fallback: "- 변경 파일 정보 없음")
+            ]
+        )
     }
 
     private func buildQAPrompt(for tab: TerminalTab, reviewSummary: String?) -> String {
-        let recentFiles = Array(Set(tab.fileChanges.suffix(8).map(\.path))).sorted()
-        let filesSection = recentFiles.isEmpty ? "- 변경 파일 정보 없음" : recentFiles.map { "- \($0)" }.joined(separator: "\n")
-        let requestText = tab.workflowRequirementText.isEmpty ? "요구사항 정보가 없습니다. 최근 변경 사항과 결과를 기준으로 검증하세요." : tab.workflowRequirementText
-        let completionSummary = tab.lastCompletionSummary.isEmpty ? "개발 완료 메시지 없음" : tab.lastCompletionSummary
-        let planSection = tab.workflowPlanSummary.isEmpty ? "" : """
-
-        기획 요약:
-        \(tab.workflowPlanSummary)
-        """
-        let designSection = tab.workflowDesignSummary.isEmpty ? "" : """
-
-        디자인 요약:
-        \(tab.workflowDesignSummary)
-        """
-        let reviewSection = reviewSummary?.isEmpty == false ? """
-
-        코드 리뷰 요약:
-        \(reviewSummary!)
-        """ : ""
-
-        return """
-        당신은 WorkMan의 QA 담당자입니다.
-        아래 개발 작업이 완료되었습니다. 코드 수정이 실제로 발생한 경우에만 테스트를 진행하며, 이번 작업은 이미 코드 수정이 발생한 상태입니다.
-
-        프로젝트: \(tab.projectName)
-        경로: \(tab.projectPath)
-        최근 요구사항:
-        \(requestText)
-        \(planSection)
-        \(designSection)
-
-        개발 완료 요약:
-        \(completionSummary)
-        \(reviewSection)
-
-        변경된 파일:
-        \(filesSection)
-
-        해야 할 일:
-        1. 변경된 파일과 관련 흐름을 읽고 직접 실행/테스트하세요.
-        2. 가능한 경우 테스트 명령, 앱 실행, 브라우저 확인 등을 통해 실제 동작을 검증하세요.
-        3. 기본적으로 코드는 수정하지 말고, 발견한 이슈는 명확히 적으세요.
-        4. 응답 마지막에 반드시 아래 중 하나를 정확히 한 줄로 남기세요.
-           QA_STATUS: PASS
-           QA_STATUS: FAIL
-           QA_STATUS: BLOCKED
-        """
+        AutomationTemplateStore.shared.render(
+            .qa,
+            context: [
+                "project_name": tab.projectName,
+                "project_path": tab.projectPath,
+                "request": templateValue(tab.workflowRequirementText, fallback: "요구사항 정보가 없습니다. 최근 변경 사항과 결과를 기준으로 검증하세요."),
+                "plan_summary": templateValue(tab.workflowPlanSummary, fallback: "기획 요약 없음"),
+                "design_summary": templateValue(tab.workflowDesignSummary, fallback: "디자인 요약 없음"),
+                "dev_summary": templateValue(tab.lastCompletionSummary, fallback: "개발 완료 메시지 없음"),
+                "review_summary": templateValue(reviewSummary ?? "", fallback: "코드 리뷰 요약 없음"),
+                "changed_files": templateFileList(tab.fileChanges.suffix(8).map(\.path), fallback: "- 변경 파일 정보 없음")
+            ]
+        )
     }
 
     private func buildReporterPrompt(for sourceTab: TerminalTab, qaSummary: String?, validationSummary: String?, reportPath: String) -> String {
-        let requestText = sourceTab.workflowRequirementText.isEmpty ? "요구사항 정보가 없습니다." : sourceTab.workflowRequirementText
-        let changedFiles = Array(Set(sourceTab.fileChanges.map(\.path))).sorted()
-        let filesSection = changedFiles.isEmpty ? "- 변경 파일 없음" : changedFiles.map { "- \($0)" }.joined(separator: "\n")
-        let devSummary = sourceTab.lastCompletionSummary.isEmpty ? "개발 완료 요약 없음" : sourceTab.lastCompletionSummary
-        let reviewSummary = sourceTab.workflowReviewSummary.isEmpty ? "리뷰 요약 없음" : sourceTab.workflowReviewSummary
-        let qaSummaryText = qaSummary?.isEmpty == false ? qaSummary! : "QA 요약 없음"
-        let sreHint = validationSummary?.isEmpty == false ? validationSummary! : "추가 검증 요약 없음"
-        let planSection = sourceTab.workflowPlanSummary.isEmpty ? "" : """
-
-        기획 요약:
-        \(sourceTab.workflowPlanSummary)
-        """
-        let designSection = sourceTab.workflowDesignSummary.isEmpty ? "" : """
-
-        디자인 요약:
-        \(sourceTab.workflowDesignSummary)
-        """
-
-        return """
-        당신은 WorkMan의 보고자입니다.
-        QA가 통과한 프로젝트에 대해 최종 Markdown 보고서를 작성하세요.
-
-        프로젝트: \(sourceTab.projectName)
-        저장 경로: \(reportPath)
-
-        원래 요구사항:
-        \(requestText)
-        \(planSection)
-        \(designSection)
-
-        개발 결과 요약:
-        \(devSummary)
-
-        코드 리뷰 요약:
-        \(reviewSummary)
-
-        QA 결과:
-        \(qaSummaryText)
-
-        추가 검증 요약:
-        \(sreHint)
-
-        변경 파일:
-        \(filesSection)
-
-        해야 할 일:
-        1. \(reportPath) 파일을 Markdown으로 작성하거나 갱신하세요.
-        2. 반드시 아래 섹션을 포함하세요.
-           - 요구사항
-           - 구현 결과
-           - QA 검증 결과
-           - 변경 파일
-           - 남은 리스크 및 다음 단계
-        3. 응답 마지막에는 아래 두 줄을 정확히 남기세요.
-           REPORT_STATUS: WRITTEN
-           REPORT_PATH: \(reportPath)
-        """
+        AutomationTemplateStore.shared.render(
+            .reporter,
+            context: [
+                "project_name": sourceTab.projectName,
+                "project_path": sourceTab.projectPath,
+                "report_path": reportPath,
+                "request": templateValue(sourceTab.workflowRequirementText, fallback: "요구사항 정보가 없습니다."),
+                "plan_summary": templateValue(sourceTab.workflowPlanSummary, fallback: "기획 요약 없음"),
+                "design_summary": templateValue(sourceTab.workflowDesignSummary, fallback: "디자인 요약 없음"),
+                "dev_summary": templateValue(sourceTab.lastCompletionSummary, fallback: "개발 완료 요약 없음"),
+                "review_summary": templateValue(sourceTab.workflowReviewSummary, fallback: "리뷰 요약 없음"),
+                "qa_summary": templateValue(qaSummary ?? "", fallback: "QA 요약 없음"),
+                "validation_summary": templateValue(validationSummary ?? "", fallback: "추가 검증 요약 없음"),
+                "changed_files": templateFileList(sourceTab.fileChanges.map(\.path), fallback: "- 변경 파일 없음")
+            ]
+        )
     }
 
     private func buildSREPrompt(for sourceTab: TerminalTab, qaSummary: String?, validationSummary: String?) -> String {
-        let requestText = sourceTab.workflowRequirementText.isEmpty ? "요구사항 정보가 없습니다." : sourceTab.workflowRequirementText
-        let changedFiles = Array(Set(sourceTab.fileChanges.map(\.path))).sorted()
-        let filesSection = changedFiles.isEmpty ? "- 변경 파일 없음" : changedFiles.map { "- \($0)" }.joined(separator: "\n")
-        let devSummary = sourceTab.lastCompletionSummary.isEmpty ? "개발 완료 요약 없음" : sourceTab.lastCompletionSummary
-        let qaSection = qaSummary?.isEmpty == false ? qaSummary! : "QA 요약 없음"
-        let validationSection = validationSummary?.isEmpty == false ? validationSummary! : "추가 검증 요약 없음"
-
-        return """
-        당신은 WorkMan의 SRE입니다.
-        아래 구현 결과를 운영/배포/실행 안정성 관점에서 점검하세요.
-
-        프로젝트: \(sourceTab.projectName)
-        경로: \(sourceTab.projectPath)
-
-        원래 요구사항:
-        \(requestText)
-
-        개발 결과 요약:
-        \(devSummary)
-
-        QA 요약:
-        \(qaSection)
-
-        추가 검증 요약:
-        \(validationSection)
-
-        변경 파일:
-        \(filesSection)
-
-        해야 할 일:
-        1. 실행 환경, 배포, 운영 리스크를 점검하세요.
-        2. 모니터링, 롤백, 환경 변수, 수동 점검 포인트를 정리하세요.
-        3. 응답 마지막에 아래 한 줄을 정확히 남기세요.
-           SRE_STATUS: CHECKED
-        """
+        AutomationTemplateStore.shared.render(
+            .sre,
+            context: [
+                "project_name": sourceTab.projectName,
+                "project_path": sourceTab.projectPath,
+                "request": templateValue(sourceTab.workflowRequirementText, fallback: "요구사항 정보가 없습니다."),
+                "dev_summary": templateValue(sourceTab.lastCompletionSummary, fallback: "개발 완료 요약 없음"),
+                "qa_summary": templateValue(qaSummary ?? "", fallback: "QA 요약 없음"),
+                "validation_summary": templateValue(validationSummary ?? "", fallback: "추가 검증 요약 없음"),
+                "changed_files": templateFileList(sourceTab.fileChanges.map(\.path), fallback: "- 변경 파일 없음")
+            ]
+        )
     }
 
     private func makeReportPath(for tab: TerminalTab) -> String {

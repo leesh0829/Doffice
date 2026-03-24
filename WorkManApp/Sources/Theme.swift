@@ -110,6 +110,465 @@ class AppSettings: ObservableObject {
     }
 }
 
+enum AutomationTemplateKind: String, CaseIterable, Identifiable {
+    case planner
+    case designer
+    case developerExecution
+    case developerRevision
+    case reviewer
+    case qa
+    case reporter
+    case sre
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .planner: return "기획자"
+        case .designer: return "디자이너"
+        case .developerExecution: return "개발자 구현"
+        case .developerRevision: return "개발자 재작업"
+        case .reviewer: return "코드 리뷰어"
+        case .qa: return "QA"
+        case .reporter: return "보고자"
+        case .sre: return "SRE"
+        }
+    }
+
+    var shortLabel: String {
+        switch self {
+        case .developerExecution: return "구현"
+        case .developerRevision: return "재작업"
+        default: return displayName
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .planner: return "list.bullet.rectangle.portrait.fill"
+        case .designer: return "paintbrush.pointed.fill"
+        case .developerExecution: return "hammer.fill"
+        case .developerRevision: return "arrow.triangle.2.circlepath"
+        case .reviewer: return "checklist.checked"
+        case .qa: return "checkmark.seal.fill"
+        case .reporter: return "doc.text.fill"
+        case .sre: return "server.rack"
+        }
+    }
+
+    var summary: String {
+        switch self {
+        case .planner: return "사용자 요구사항을 개발 가능한 실행 계획으로 정리합니다."
+        case .designer: return "UI/UX 흐름과 상호작용 메모를 정리합니다."
+        case .developerExecution: return "개발자가 처음 구현할 때 받는 지시문입니다."
+        case .developerRevision: return "리뷰/QA 피드백을 반영할 때 쓰는 재작업 지시문입니다."
+        case .reviewer: return "변경 파일과 리스크를 검토하는 리뷰 양식입니다."
+        case .qa: return "실행/테스트 관점에서 검증하는 QA 양식입니다."
+        case .reporter: return "최종 Markdown 보고서 구조와 작성 지침입니다."
+        case .sre: return "배포/운영 안정성 점검 양식입니다."
+        }
+    }
+
+    var placeholderTokens: [String] {
+        switch self {
+        case .planner:
+            return ["{{project_name}}", "{{project_path}}", "{{request}}"]
+        case .designer:
+            return ["{{project_name}}", "{{project_path}}", "{{request}}", "{{plan_summary}}"]
+        case .developerExecution:
+            return ["{{project_name}}", "{{project_path}}", "{{request}}", "{{plan_summary}}", "{{design_summary}}"]
+        case .developerRevision:
+            return ["{{project_name}}", "{{project_path}}", "{{request}}", "{{plan_summary}}", "{{design_summary}}", "{{feedback_role}}", "{{feedback}}"]
+        case .reviewer:
+            return ["{{project_name}}", "{{project_path}}", "{{request}}", "{{plan_summary}}", "{{design_summary}}", "{{dev_summary}}", "{{changed_files}}"]
+        case .qa:
+            return ["{{project_name}}", "{{project_path}}", "{{request}}", "{{plan_summary}}", "{{design_summary}}", "{{dev_summary}}", "{{review_summary}}", "{{changed_files}}"]
+        case .reporter:
+            return ["{{project_name}}", "{{report_path}}", "{{request}}", "{{plan_summary}}", "{{design_summary}}", "{{dev_summary}}", "{{review_summary}}", "{{qa_summary}}", "{{validation_summary}}", "{{changed_files}}"]
+        case .sre:
+            return ["{{project_name}}", "{{project_path}}", "{{request}}", "{{dev_summary}}", "{{qa_summary}}", "{{validation_summary}}", "{{changed_files}}"]
+        }
+    }
+
+    var pinnedLines: [String] {
+        switch self {
+        case .planner:
+            return ["PLANNER_STATUS: READY"]
+        case .designer:
+            return ["DESIGN_STATUS: READY"]
+        case .reviewer:
+            return ["REVIEW_STATUS: PASS", "REVIEW_STATUS: FAIL", "REVIEW_STATUS: BLOCKED"]
+        case .qa:
+            return ["QA_STATUS: PASS", "QA_STATUS: FAIL", "QA_STATUS: BLOCKED"]
+        case .reporter:
+            return ["REPORT_STATUS: WRITTEN", "REPORT_PATH: {{report_path}}"]
+        case .sre:
+            return ["SRE_STATUS: CHECKED"]
+        case .developerExecution, .developerRevision:
+            return []
+        }
+    }
+
+    var defaultTemplate: String {
+        switch self {
+        case .planner:
+            return """
+당신은 WorkMan의 기획자입니다.
+아래 사용자 요구사항을 보고 개발자가 바로 구현할 수 있게 정리하세요.
+
+프로젝트: {{project_name}}
+경로: {{project_path}}
+
+사용자 요구사항:
+{{request}}
+
+정리 양식:
+- 요구사항 한 줄 요약
+- 반드시 구현할 핵심 항목
+- 수용 기준
+- 주의할 점
+- 디자이너/개발자 메모
+"""
+        case .designer:
+            return """
+당신은 WorkMan의 디자이너입니다.
+아래 요구사항과 기획 요약을 바탕으로 UI/UX, 상호작용, 화면 흐름 관점의 정리본을 만들어 주세요.
+
+프로젝트: {{project_name}}
+경로: {{project_path}}
+
+원래 요구사항:
+{{request}}
+
+기획 요약:
+{{plan_summary}}
+
+정리 양식:
+- 화면/상태 흐름
+- 사용자 경험상 주의할 점
+- edge case
+- 개발 메모
+"""
+        case .developerExecution:
+            return """
+아래 요구사항을 구현하세요.
+
+프로젝트: {{project_name}}
+경로: {{project_path}}
+
+원래 요구사항:
+{{request}}
+
+기획 요약:
+{{plan_summary}}
+
+디자인/경험 메모:
+{{design_summary}}
+
+구현 지침:
+1. 필요한 코드를 직접 수정하세요.
+2. 변경 파일과 검증 결과를 명확히 남기세요.
+3. 작업을 마치면 완료 요약을 짧게 정리하세요.
+"""
+        case .developerRevision:
+            return """
+아래 요구사항을 다시 구현하세요.
+
+프로젝트: {{project_name}}
+경로: {{project_path}}
+
+원래 요구사항:
+{{request}}
+
+기획 요약:
+{{plan_summary}}
+
+디자인/경험 메모:
+{{design_summary}}
+
+추가 수정 피드백 ({{feedback_role}}):
+{{feedback}}
+
+재작업 지침:
+1. 피드백을 반영해 필요한 코드를 직접 수정하세요.
+2. 어떤 점을 고쳤는지 완료 요약에 꼭 포함하세요.
+3. 검증 결과까지 함께 남기세요.
+"""
+        case .reviewer:
+            return """
+당신은 WorkMan의 코드 리뷰어입니다.
+아래 개발 작업이 완료되었고 코드 수정도 발생했습니다. 코드는 수정하지 말고, 변경 내용과 리스크를 검토하세요.
+
+프로젝트: {{project_name}}
+경로: {{project_path}}
+
+최근 요구사항:
+{{request}}
+
+기획 요약:
+{{plan_summary}}
+
+디자인 요약:
+{{design_summary}}
+
+개발 완료 요약:
+{{dev_summary}}
+
+변경된 파일:
+{{changed_files}}
+
+검토 양식:
+- 핵심 findings
+- 테스트/검증 부족
+- 오픈 질문 또는 우려점
+- 최종 판단
+"""
+        case .qa:
+            return """
+당신은 WorkMan의 QA 담당자입니다.
+아래 개발 작업이 완료되었습니다. 변경된 흐름을 직접 실행/테스트해 검증하세요.
+
+프로젝트: {{project_name}}
+경로: {{project_path}}
+
+최근 요구사항:
+{{request}}
+
+기획 요약:
+{{plan_summary}}
+
+디자인 요약:
+{{design_summary}}
+
+개발 완료 요약:
+{{dev_summary}}
+
+코드 리뷰 요약:
+{{review_summary}}
+
+변경된 파일:
+{{changed_files}}
+
+검증 양식:
+- 실제로 실행/테스트한 항목
+- 확인 결과
+- 재현 단계 또는 관찰 내용
+- 남은 리스크
+- 최종 판단
+"""
+        case .reporter:
+            return """
+당신은 WorkMan의 보고자입니다.
+최종 Markdown 보고서를 작성하세요.
+
+프로젝트: {{project_name}}
+저장 경로: {{report_path}}
+
+원래 요구사항:
+{{request}}
+
+기획 요약:
+{{plan_summary}}
+
+디자인 요약:
+{{design_summary}}
+
+개발 결과 요약:
+{{dev_summary}}
+
+코드 리뷰 요약:
+{{review_summary}}
+
+QA 결과:
+{{qa_summary}}
+
+추가 검증 요약:
+{{validation_summary}}
+
+변경 파일:
+{{changed_files}}
+
+보고서 기본 구조:
+# 작업 보고서
+## 요구사항
+## 구현 결과
+## QA 검증 결과
+## 변경 파일
+## 남은 리스크 및 다음 단계
+"""
+        case .sre:
+            return """
+당신은 WorkMan의 SRE입니다.
+아래 구현 결과를 운영/배포/실행 안정성 관점에서 점검하세요.
+
+프로젝트: {{project_name}}
+경로: {{project_path}}
+
+원래 요구사항:
+{{request}}
+
+개발 결과 요약:
+{{dev_summary}}
+
+QA 요약:
+{{qa_summary}}
+
+추가 검증 요약:
+{{validation_summary}}
+
+변경 파일:
+{{changed_files}}
+
+점검 양식:
+- 배포/실행 리스크
+- 환경 변수/설정 포인트
+- 모니터링/알람 제안
+- 롤백/수동 점검 포인트
+- 최종 안정성 메모
+"""
+        }
+    }
+
+    var automationContract: String {
+        switch self {
+        case .planner:
+            return """
+자동화 상태 계약:
+- 응답 마지막 줄에 정확히 아래 한 줄을 남기세요.
+PLANNER_STATUS: READY
+"""
+        case .designer:
+            return """
+자동화 상태 계약:
+- 응답 마지막 줄에 정확히 아래 한 줄을 남기세요.
+DESIGN_STATUS: READY
+"""
+        case .reviewer:
+            return """
+자동화 상태 계약:
+- 응답 마지막 줄에는 아래 셋 중 하나만 정확히 한 줄로 남기세요.
+REVIEW_STATUS: PASS
+REVIEW_STATUS: FAIL
+REVIEW_STATUS: BLOCKED
+"""
+        case .qa:
+            return """
+자동화 상태 계약:
+- 응답 마지막 줄에는 아래 셋 중 하나만 정확히 한 줄로 남기세요.
+QA_STATUS: PASS
+QA_STATUS: FAIL
+QA_STATUS: BLOCKED
+"""
+        case .reporter:
+            return """
+자동화 상태 계약:
+- {{report_path}} 파일을 Markdown으로 작성하거나 갱신하세요.
+- 응답 마지막 두 줄을 정확히 아래처럼 남기세요.
+REPORT_STATUS: WRITTEN
+REPORT_PATH: {{report_path}}
+"""
+        case .sre:
+            return """
+자동화 상태 계약:
+- 응답 마지막 줄에 정확히 아래 한 줄을 남기세요.
+SRE_STATUS: CHECKED
+"""
+        case .developerExecution, .developerRevision:
+            return ""
+        }
+    }
+}
+
+final class AutomationTemplateStore: ObservableObject {
+    static let shared = AutomationTemplateStore()
+
+    private let saveKey = "workman.automation.templates.v1"
+    private let persistenceQueue = DispatchQueue(label: "workman.automation-template-store", qos: .utility)
+    private var saveWorkItem: DispatchWorkItem?
+    @Published private(set) var revision: Int = 0
+
+    private var overrides: [String: String] = [:]
+
+    private init() {
+        load()
+    }
+
+    func template(for kind: AutomationTemplateKind) -> String {
+        overrides[kind.rawValue] ?? kind.defaultTemplate
+    }
+
+    func binding(for kind: AutomationTemplateKind) -> Binding<String> {
+        Binding(
+            get: { self.template(for: kind) },
+            set: { self.setTemplate($0, for: kind) }
+        )
+    }
+
+    func isCustomized(_ kind: AutomationTemplateKind) -> Bool {
+        overrides[kind.rawValue] != nil
+    }
+
+    func setTemplate(_ text: String, for kind: AutomationTemplateKind) {
+        if text == kind.defaultTemplate {
+            overrides.removeValue(forKey: kind.rawValue)
+        } else {
+            overrides[kind.rawValue] = text
+        }
+        revision &+= 1
+        scheduleSave()
+    }
+
+    func reset(_ kind: AutomationTemplateKind) {
+        overrides.removeValue(forKey: kind.rawValue)
+        revision &+= 1
+        scheduleSave()
+    }
+
+    func resetAll() {
+        overrides.removeAll()
+        revision &+= 1
+        scheduleSave()
+    }
+
+    func render(_ kind: AutomationTemplateKind, context: [String: String]) -> String {
+        let body = renderText(template(for: kind), context: context)
+        let contract = renderText(kind.automationContract, context: context)
+        guard !contract.isEmpty else { return body }
+        return body + "\n\n" + contract
+    }
+
+    private func renderText(_ template: String, context: [String: String]) -> String {
+        var rendered = template
+        for (key, value) in context {
+            rendered = rendered.replacingOccurrences(of: "{{\(key)}}", with: value)
+        }
+        return rendered
+    }
+
+    private func scheduleSave(delay: TimeInterval = 0.25) {
+        saveWorkItem?.cancel()
+        let snapshot = overrides
+        let key = saveKey
+        let workItem = DispatchWorkItem {
+            if snapshot.isEmpty {
+                UserDefaults.standard.removeObject(forKey: key)
+            } else if let data = try? JSONEncoder().encode(snapshot) {
+                UserDefaults.standard.set(data, forKey: key)
+            }
+        }
+        saveWorkItem = workItem
+        persistenceQueue.asyncAfter(deadline: .now() + delay, execute: workItem)
+    }
+
+    private func load() {
+        guard let data = UserDefaults.standard.data(forKey: saveKey),
+              let decoded = try? JSONDecoder().decode([String: String].self, from: data) else {
+            return
+        }
+        overrides = decoded
+    }
+}
+
 // ═══════════════════════════════════════════════════════
 // MARK: - Background Theme
 // ═══════════════════════════════════════════════════════
@@ -344,14 +803,17 @@ struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
 
     @ObservedObject private var tokenTracker = TokenTracker.shared
+    @ObservedObject private var templateStore = AutomationTemplateStore.shared
     @State private var editingAppName: String = ""
     @State private var editingCompanyName: String = ""
 
     @State private var selectedSettingsTab = 0
+    @State private var selectedTemplateKind: AutomationTemplateKind = .planner
     @State private var cacheSize: String = "계산 중..."
     @State private var showClearConfirm = false
     @State private var clearAllMode = false
     @State private var showTokenResetConfirm = false
+    @State private var showTemplateResetConfirm = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -383,6 +845,7 @@ struct SettingsView: View {
                 settingsTabButton("오피스", icon: "building.2.fill", tab: 2)
                 settingsTabButton("토큰", icon: "bolt.fill", tab: 3)
                 settingsTabButton("데이터", icon: "externaldrive.fill", tab: 4)
+                settingsTabButton("양식", icon: "doc.text.fill", tab: 5)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
@@ -398,13 +861,14 @@ struct SettingsView: View {
                     case 2: officeTab
                     case 3: tokenTab
                     case 4: dataTab
+                    case 5: templateTab
                     default: generalTab
                     }
                 }
                 .padding(18)
             }
         }
-        .frame(width: 480, height: 560)
+        .frame(width: 560, height: 660)
         .background(Theme.bg)
         .onAppear {
             editingAppName = settings.appDisplayName
@@ -428,6 +892,14 @@ struct SettingsView: View {
             Button("취소", role: .cancel) {}
         } message: {
             Text("오늘/주간 토큰 사용량 기록을 바로 비웁니다. 보호 모드가 잘못 걸렸을 때 즉시 다시 입력할 수 있습니다.")
+        }
+        .alert("양식 전체 초기화", isPresented: $showTemplateResetConfirm) {
+            Button("초기화", role: .destructive) {
+                templateStore.resetAll()
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("사용자가 수정한 기획자/디자이너/리뷰어/QA/보고자/SRE 양식을 모두 기본값으로 되돌립니다.")
         }
     }
 
@@ -728,6 +1200,123 @@ struct SettingsView: View {
                         RoundedRectangle(cornerRadius: 10)
                             .fill(Theme.orange.opacity(0.08))
                     )
+                }
+            }
+        }
+    }
+
+    private var templateTab: some View {
+        let selectedKind = selectedTemplateKind
+        let templateBinding = templateStore.binding(for: selectedKind)
+
+        return VStack(spacing: 14) {
+            settingsSection(title: "워크플로 양식", subtitle: selectedKind.displayName) {
+                VStack(alignment: .leading, spacing: 10) {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 2), spacing: 8) {
+                        ForEach(AutomationTemplateKind.allCases) { kind in
+                            templateKindButton(kind)
+                        }
+                    }
+
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: selectedKind.icon)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(Theme.cyan)
+                        Text(selectedKind.summary)
+                            .font(Theme.mono(8))
+                            .foregroundColor(Theme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+
+            settingsSection(title: "편집기", subtitle: "바로 저장") {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 8) {
+                        statusHint(
+                            icon: templateStore.isCustomized(selectedKind) ? "slider.horizontal.3" : "checkmark.circle.fill",
+                            text: templateStore.isCustomized(selectedKind) ? "사용자 수정본 사용 중" : "기본 양식 사용 중",
+                            tint: templateStore.isCustomized(selectedKind) ? Theme.orange : Theme.green
+                        )
+                        Spacer()
+                        Button(action: {
+                            templateStore.reset(selectedKind)
+                        }) {
+                            Text("현재 양식 초기화")
+                                .font(Theme.mono(9, weight: .bold))
+                                .foregroundColor(Theme.orange)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(RoundedRectangle(cornerRadius: 8).fill(Theme.orange.opacity(0.1)))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Theme.orange.opacity(0.25), lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(.plain)
+
+                        Button(action: {
+                            showTemplateResetConfirm = true
+                        }) {
+                            Text("전체 초기화")
+                                .font(Theme.mono(9, weight: .bold))
+                                .foregroundColor(Theme.red)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(RoundedRectangle(cornerRadius: 8).fill(Theme.red.opacity(0.1)))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Theme.red.opacity(0.25), lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    TextEditor(text: templateBinding)
+                        .scrollContentBackground(.hidden)
+                        .font(Theme.mono(10))
+                        .foregroundColor(Theme.textPrimary)
+                        .frame(minHeight: 260)
+                        .padding(10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Theme.bgSurface)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Theme.border.opacity(0.35), lineWidth: 1)
+                        )
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("사용 가능한 플레이스홀더")
+                            .font(Theme.mono(9, weight: .bold))
+                            .foregroundColor(Theme.textDim)
+
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 8)], spacing: 8) {
+                            ForEach(selectedKind.placeholderTokens, id: \.self) { token in
+                                templateTokenPill(token, tint: Theme.cyan)
+                            }
+                        }
+                    }
+
+                    if !selectedKind.pinnedLines.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("고정 자동화 상태 줄")
+                                .font(Theme.mono(9, weight: .bold))
+                                .foregroundColor(Theme.textDim)
+                            Text("아래 줄은 워크플로우가 끊기지 않도록 앱이 뒤에서 자동으로 덧붙입니다. 본문 양식은 자유롭게 바꾸셔도 됩니다.")
+                                .font(Theme.mono(8))
+                                .foregroundColor(Theme.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 8)], spacing: 8) {
+                                ForEach(selectedKind.pinnedLines, id: \.self) { line in
+                                    templateTokenPill(line, tint: Theme.purple)
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1161,6 +1750,63 @@ struct SettingsView: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    private func templateKindButton(_ kind: AutomationTemplateKind) -> some View {
+        let selected = selectedTemplateKind == kind
+        return Button(action: {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                selectedTemplateKind = kind
+            }
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: kind.icon)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(selected ? Theme.cyan : Theme.textDim)
+                    .frame(width: 18)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(kind.shortLabel)
+                        .font(Theme.mono(9, weight: .bold))
+                        .foregroundColor(selected ? Theme.textPrimary : Theme.textSecondary)
+                    Text(kind.summary)
+                        .font(Theme.mono(7))
+                        .foregroundColor(Theme.textDim)
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 9)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(selected ? Theme.cyan.opacity(0.12) : Theme.bgSurface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(selected ? Theme.cyan.opacity(0.34) : Theme.border.opacity(0.28), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func templateTokenPill(_ text: String, tint: Color) -> some View {
+        Text(text)
+            .font(Theme.mono(8, weight: .semibold))
+            .foregroundColor(tint)
+            .lineLimit(1)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 9)
+                    .fill(tint.opacity(0.09))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 9)
+                    .stroke(tint.opacity(0.22), lineWidth: 1)
+            )
     }
 
     private func heroPill(title: String, subtitle: String, tint: Color) -> some View {
