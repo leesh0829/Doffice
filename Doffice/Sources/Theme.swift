@@ -62,6 +62,32 @@ class AppSettings: ObservableObject {
         return false
     }
 
+    // ── 언어 설정 ──
+    // "auto" = 시스템 언어 따르기, "ko"/"en"/"ja" = 강제 지정
+    @AppStorage("appLanguage") var appLanguage: String = "auto" {
+        didSet {
+            objectWillChange.send()
+            applyLanguage()
+        }
+    }
+
+    func applyLanguage() {
+        if appLanguage == "auto" {
+            UserDefaults.standard.removeObject(forKey: "AppleLanguages")
+        } else {
+            UserDefaults.standard.set([appLanguage], forKey: "AppleLanguages")
+        }
+    }
+
+    var currentLanguageLabel: String {
+        switch appLanguage {
+        case "ko": return "한국어"
+        case "en": return "English"
+        case "ja": return "日本語"
+        default: return "시스템 기본"
+        }
+    }
+
     // ── 터미널 모드 ──
     @AppStorage("rawTerminalMode") var rawTerminalMode: Bool = false {
         didSet { objectWillChange.send() }
@@ -2007,7 +2033,23 @@ struct SettingsView: View {
                 }
             }
 
-            settingsSection(title: "터미널", subtitle: settings.rawTerminalMode ? "일반 터미널" : "워크맨 터미널") {
+            settingsSection(title: "언어", subtitle: settings.currentLanguageLabel) {
+                VStack(spacing: 10) {
+                    securityRow(label: "앱 언어") {
+                        Picker("", selection: $settings.appLanguage) {
+                            Text("시스템 기본").tag("auto")
+                            Text("한국어").tag("ko")
+                            Text("English").tag("en")
+                            Text("日本語").tag("ja")
+                        }
+                        .pickerStyle(.menu)
+                        .frame(maxWidth: 150)
+                    }
+                    statusHint(icon: "info.circle", text: "언어 변경 후 앱을 재시작하면 적용됩니다.", tint: Theme.accent)
+                }
+            }
+
+            settingsSection(title: "터미널", subtitle: settings.rawTerminalMode ? "일반 터미널" : "도피스 터미널") {
                 VStack(spacing: 10) {
                     securityRow(label: "일반 터미널 (iTerm)") {
                         Toggle("", isOn: $settings.rawTerminalMode)

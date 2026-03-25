@@ -147,6 +147,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // 번들 ID 변경 시 이전 데이터 마이그레이션
         migrateFromOldBundleIfNeeded()
 
+        // 사용자 언어 설정 적용
+        AppSettings.shared.applyLanguage()
+
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
         menuBarManager.setup()
 
