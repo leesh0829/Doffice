@@ -10,16 +10,14 @@
 		07A2B801437FFDA42534AA17 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AADE3B5D98B955B0C80A5DE3 /* Cocoa.framework */; };
 		273023032BF912399A803AEC /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F35199C3D3E258D53AF607EA /* XCTest.framework */; };
 		28ABC1238F8EE87369BBC7EF /* AuditLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D1AE3CB99EAC879DE06BC9 /* AuditLog.swift */; };
+		3CB39BC52F73FB3E0004E716 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = DEP001 /* SwiftTerm */; };
 		8EAB07DCD8A5717B584AE381 /* SessionPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B57D61AE58AAA182FF626C15 /* SessionPersistenceTests.swift */; };
+		CORETEST01 /* CoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CORETEST02 /* CoreTests.swift */; };
 		9141A180C2CDC4F91C87AA78 /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FB8028B43E80A3835392CA /* UpdateChecker.swift */; };
 		A10001 /* WorkManApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001 /* WorkManApp.swift */; };
 		A10002 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002 /* Models.swift */; };
 		A10003 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10003 /* SessionManager.swift */; };
 		A10004 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10004 /* MainView.swift */; };
-		A10030 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10030 /* OnboardingView.swift */; };
-		A10098 /* SwiftTermBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10098 /* SwiftTermBridge.swift */; };
-		A10099 /* VT100Terminal.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10099 /* VT100Terminal.swift */; };
-		A10031 /* OverlayComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10031 /* OverlayComponents.swift */; };
 		A10005 /* PixelStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10005 /* PixelStripView.swift */; };
 		A10006 /* TerminalAreaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10006 /* TerminalAreaView.swift */; };
 		A10007 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10007 /* SidebarView.swift */; };
@@ -31,6 +29,10 @@
 		A10013 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B10013 /* Assets.xcassets */; };
 		A10014 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = B10014 /* AppIcon.icns */; };
 		A10020 /* OfficeWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10020 /* OfficeWindowView.swift */; };
+		A10030 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10030 /* OnboardingView.swift */; };
+		A10031 /* OverlayComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10031 /* OverlayComponents.swift */; };
+		A10098 /* SwiftTermBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10098 /* SwiftTermBridge.swift */; };
+		A10099 /* VT100Terminal.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10099 /* VT100Terminal.swift */; };
 		A20001 /* OfficeTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20001 /* OfficeTypes.swift */; };
 		A20002 /* OfficeMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20002 /* OfficeMap.swift */; };
 		A20003 /* OfficeCharacterController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20003 /* OfficeCharacterController.swift */; };
@@ -65,10 +67,6 @@
 		B10002 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		B10003 /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
 		B10004 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
-		B10030 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
-		B10098 /* SwiftTermBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftTermBridge.swift; sourceTree = "<group>"; };
-		B10099 /* VT100Terminal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VT100Terminal.swift; sourceTree = "<group>"; };
-		B10031 /* OverlayComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayComponents.swift; sourceTree = "<group>"; };
 		B10005 /* PixelStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelStripView.swift; sourceTree = "<group>"; };
 		B10006 /* TerminalAreaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalAreaView.swift; sourceTree = "<group>"; };
 		B10007 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
@@ -80,6 +78,10 @@
 		B10013 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B10014 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 		B10020 /* OfficeWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfficeWindowView.swift; sourceTree = "<group>"; };
+		B10030 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		B10031 /* OverlayComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayComponents.swift; sourceTree = "<group>"; };
+		B10098 /* SwiftTermBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftTermBridge.swift; sourceTree = "<group>"; };
+		B10099 /* VT100Terminal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VT100Terminal.swift; sourceTree = "<group>"; };
 		B20001 /* OfficeTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfficeTypes.swift; sourceTree = "<group>"; };
 		B20002 /* OfficeMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfficeMap.swift; sourceTree = "<group>"; };
 		B20003 /* OfficeCharacterController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfficeCharacterController.swift; sourceTree = "<group>"; };
@@ -90,12 +92,19 @@
 		B20008 /* OfficeLayoutStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfficeLayoutStore.swift; sourceTree = "<group>"; };
 		B30001 /* GitDataProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitDataProvider.swift; sourceTree = "<group>"; };
 		B30002 /* GitPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitPanelView.swift; sourceTree = "<group>"; };
+		CORETEST02 /* CoreTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CoreTests.swift; sourceTree = "<group>"; };
 		B57D61AE58AAA182FF626C15 /* SessionPersistenceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SessionPersistenceTests.swift; sourceTree = "<group>"; };
 		BCDF8262B8C09E5CB418BA0D /* SensitiveFileShield.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SensitiveFileShield.swift; sourceTree = "<group>"; };
 		D10001 /* Doffice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Doffice.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E10001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		E10002 /* WorkManApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WorkManApp.entitlements; sourceTree = "<group>"; };
 		F35199C3D3E258D53AF607EA /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = "<group>"; };
+		V10001_EN /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		V10001_JA /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/Localizable.strings; sourceTree = "<group>"; };
+		V10001_KO /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/Localizable.strings; sourceTree = "<group>"; };
+		V10002_EN /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		V10002_JA /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		V10002_KO /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,6 +121,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3CB39BC52F73FB3E0004E716 /* SwiftTerm in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -130,8 +140,8 @@
 			isa = PBXGroup;
 			children = (
 				B57D61AE58AAA182FF626C15 /* SessionPersistenceTests.swift */,
+				CORETEST02 /* CoreTests.swift */,
 			);
-			name = Tests;
 			path = Tests;
 			sourceTree = "<group>";
 		};
@@ -193,6 +203,8 @@
 				E10002 /* WorkManApp.entitlements */,
 				B10013 /* Assets.xcassets */,
 				B10014 /* AppIcon.icns */,
+				V10001 /* Localizable.strings */,
+				V10002 /* InfoPlist.strings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -279,14 +291,15 @@
 			knownRegions = (
 				en,
 				ko,
+				ja,
 			);
 			mainGroup = G10001;
-			productRefGroup = G10004 /* Products */;
-			projectDirPath = "";
-			projectRoot = "";
 			packageReferences = (
 				PKG001 /* XCRemoteSwiftPackageReference "SwiftTerm" */,
 			);
+			productRefGroup = G10004 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
 			targets = (
 				T10001 /* Doffice */,
 				A9860837A40F0A1058CE29F7 /* DofficeTests */,
@@ -308,6 +321,8 @@
 			files = (
 				A10013 /* Assets.xcassets in Resources */,
 				A10014 /* AppIcon.icns in Resources */,
+				A10015 /* Localizable.strings in Resources */,
+				A10016 /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -319,6 +334,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8EAB07DCD8A5717B584AE381 /* SessionPersistenceTests.swift in Sources */,
+				CORETEST01 /* CoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -371,6 +387,29 @@
 		};
 /* End PBXTargetDependency section */
 
+/* Begin PBXVariantGroup section */
+		V10001 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				V10001_KO /* ko */,
+				V10001_EN /* en */,
+				V10001_JA /* ja */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+		V10002 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				V10002_KO /* ko */,
+				V10002_EN /* en */,
+				V10002_JA /* ja */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
 /* Begin XCBuildConfiguration section */
 		32F69323DFAEB0E07ABC7D54 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -413,7 +452,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 3.0.4;
+				MARKETING_VERSION = 3.0.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.junha.doffice;
 				PRODUCT_NAME = Doffice;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -441,7 +480,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 3.0.4;
+				MARKETING_VERSION = 3.0.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.junha.doffice;
 				PRODUCT_NAME = Doffice;
 				SWIFT_EMIT_LOC_STRINGS = YES;

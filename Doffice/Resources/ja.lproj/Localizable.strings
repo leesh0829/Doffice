@@ -1,0 +1,67 @@
+/* Common UI */
+"app.name" = "ドフィス";
+"sessions" = "セッション";
+"new.session" = "新規セッション";
+"settings" = "設定";
+"cancel" = "キャンセル";
+"delete" = "削除";
+"confirm" = "確認";
+"close" = "閉じる";
+"search" = "検索";
+"retry" = "リトライ";
+
+/* Session states */
+"status.processing" = "処理中";
+"status.completed" = "完了";
+"status.idle" = "待機中";
+"status.active" = "アクティブ";
+"status.attention" = "確認必要";
+"status.thinking" = "思考中";
+"status.reading" = "読取中";
+"status.writing" = "書込中";
+"status.searching" = "検索中";
+"status.running" = "実行中";
+"status.error" = "エラー";
+
+/* Git panel */
+"git.commit" = "コミット";
+"git.push" = "プッシュ";
+"git.pull" = "プル";
+"git.branch" = "ブランチ";
+"git.stash" = "スタッシュ";
+"git.merge" = "マージ";
+"git.stage" = "ステージ";
+"git.unstage" = "アンステージ";
+"git.discard" = "破棄";
+"git.staged" = "ステージ済み";
+"git.changes" = "変更";
+"git.commit.message" = "コミットメッセージ";
+"git.working.directory" = "作業ディレクトリ";
+"git.conflict" = "コンフリクト";
+"git.tags" = "タグ";
+"git.remotes" = "リモート";
+"git.no.git" = "Gitがインストールされていません";
+
+/* Sidebar & Reports */
+"sidebar.characters" = "キャラクター管理";
+"sidebar.accessories" = "アクセサリー";
+"sidebar.reports" = "レポート";
+"sidebar.achievements" = "実績";
+"report.delete" = "レポート削除";
+"report.delete.confirm" = "レポートを削除しますか？\nこの操作は元に戻せません。";
+
+/* Toast messages */
+"toast.commit.success" = "コミット完了";
+"toast.commit.failed" = "コミット失敗";
+"toast.staged" = "ステージ: %@";
+"toast.unstaged" = "アンステージ: %@";
+"toast.all.staged" = "全ファイルステージ済み";
+"toast.push.requested" = "プッシュリクエスト済み";
+"toast.pull.requested" = "プルリクエスト済み";
+
+/* Claude */
+"claude.not.installed" = "Claude Code未インストール";
+"claude.install.guide" = "以下のコマンドでインストールしてください:";
+
+/* Office view */
+"office.title" = "ドフィスオフィス";

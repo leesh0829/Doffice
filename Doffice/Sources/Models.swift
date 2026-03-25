@@ -343,6 +343,12 @@ class TokenTracker: ObservableObject {
 
     @Published var history: [DayRecord] = []
 
+    private var cachedWeekTokens: Int = 0
+    private var cachedWeekCost: Double = 0
+    private var cachedBillingTokens: Int = 0
+    private var cachedBillingCost: Double = 0
+    private var cacheTimestamp: Date = .distantPast
+
     // 사용자 설정 한도
     @AppStorage("dailyTokenLimit") var dailyTokenLimit: Int = TokenTracker.recommendedDailyLimit
     @AppStorage("weeklyTokenLimit") var weeklyTokenLimit: Int = TokenTracker.recommendedWeeklyLimit
@@ -361,6 +367,7 @@ class TokenTracker: ObservableObject {
 
     func recordTokens(input: Int, output: Int) {
         guard input > 0 || output > 0 else { return }
+        cacheTimestamp = .distantPast
         let key = todayKey
         if let idx = history.firstIndex(where: { $0.date == key }) {
             history[idx].inputTokens += input
@@ -369,11 +376,14 @@ class TokenTracker: ObservableObject {
             history.append(DayRecord(date: key, inputTokens: input, outputTokens: output, cost: 0))
         }
         scheduleSave()
+        #if DEBUG
         print("[TokenTracker] +\(input)in +\(output)out → today: \(todayTokens), week: \(weekTokens)")
+        #endif
     }
 
     func recordCost(_ cost: Double) {
         guard cost > 0 else { return }
+        cacheTimestamp = .distantPast
         let key = todayKey
         if let idx = history.firstIndex(where: { $0.date == key }) {
             history[idx].cost += cost
@@ -381,7 +391,9 @@ class TokenTracker: ObservableObject {
             history.append(DayRecord(date: key, inputTokens: 0, outputTokens: 0, cost: cost))
         }
         scheduleSave()
+        #if DEBUG
         print("[TokenTracker] cost +$\(String(format: "%.4f", cost)) → today: $\(String(format: "%.4f", todayCost))")
+        #endif
     }
 
     // MARK: - Queries
@@ -394,17 +406,13 @@ class TokenTracker: ObservableObject {
     var todayCost: Double { todayRecord.cost }
 
     var weekTokens: Int {
-        let cal = Calendar.current
-        let now = Date()
-        let weekAgo = cal.date(byAdding: .day, value: -7, to: now)!
-        return history.filter { dateFormatter.date(from: $0.date).map { $0 >= weekAgo } ?? false }.reduce(0) { $0 + $1.totalTokens }
+        refreshCacheIfNeeded()
+        return cachedWeekTokens
     }
 
     var weekCost: Double {
-        let cal = Calendar.current
-        let now = Date()
-        let weekAgo = cal.date(byAdding: .day, value: -7, to: now)!
-        return history.filter { dateFormatter.date(from: $0.date).map { $0 >= weekAgo } ?? false }.reduce(0) { $0 + $1.cost }
+        refreshCacheIfNeeded()
+        return cachedWeekCost
     }
 
     // ── 결제 기간 (Billing Period) 사용량 ──
@@ -436,13 +444,30 @@ class TokenTracker: ObservableObject {
     }
 
     var billingPeriodTokens: Int {
-        let start = billingPeriodStart
-        return history.filter { dateFormatter.date(from: $0.date).map { $0 >= start } ?? false }.reduce(0) { $0 + $1.totalTokens }
+        refreshCacheIfNeeded()
+        return cachedBillingTokens
     }
 
     var billingPeriodCost: Double {
-        let start = billingPeriodStart
-        return history.filter { dateFormatter.date(from: $0.date).map { $0 >= start } ?? false }.reduce(0) { $0 + $1.cost }
+        refreshCacheIfNeeded()
+        return cachedBillingCost
+    }
+
+    private func refreshCacheIfNeeded() {
+        let now = Date()
+        guard now.timeIntervalSince(cacheTimestamp) > 30 else { return }
+        cacheTimestamp = now
+
+        let cal = Calendar.current
+        let weekAgo = cal.date(byAdding: .day, value: -7, to: now)!
+        let weekRecords = history.filter { dateFormatter.date(from: $0.date).map { $0 >= weekAgo } ?? false }
+        cachedWeekTokens = weekRecords.reduce(0) { $0 + $1.totalTokens }
+        cachedWeekCost = weekRecords.reduce(0) { $0 + $1.cost }
+
+        let bStart = billingPeriodStart
+        let billingRecords = history.filter { dateFormatter.date(from: $0.date).map { $0 >= bStart } ?? false }
+        cachedBillingTokens = billingRecords.reduce(0) { $0 + $1.totalTokens }
+        cachedBillingCost = billingRecords.reduce(0) { $0 + $1.cost }
     }
 
     var billingPeriodDays: Int {
@@ -735,6 +760,25 @@ class TerminalTab: ObservableObject, Identifiable {
     @Published var completedPromptCount: Int = 0
     @Published var parallelTasks: [ParallelTaskRecord] = []
 
+    // 세션 타임라인
+    struct TimelineEvent: Identifiable {
+        let id = UUID()
+        let timestamp: Date
+        let type: TimelineEventType
+        let detail: String
+    }
+
+    enum TimelineEventType: String {
+        case started = "시작"
+        case prompt = "명령"
+        case toolUse = "도구"
+        case fileChange = "파일"
+        case error = "에러"
+        case completed = "완료"
+    }
+
+    @Published var timeline: [TimelineEvent] = []
+
     struct PendingApproval: Identifiable {
         let id = UUID()
         let command: String
@@ -1026,6 +1070,7 @@ class TerminalTab: ObservableObject, Identifiable {
 
         appendBlock(.sessionStart(model: selectedModel.displayName, sessionId: ""),
                      content: sessionStartSummary())
+        timeline.append(TimelineEvent(timestamp: Date(), type: .started, detail: projectName))
         refreshGitInfo()
 
         // 초기 프롬프트가 있으면 자동 실행
@@ -1094,6 +1139,7 @@ class TerminalTab: ObservableObject, Identifiable {
         budgetStopIssued = false
 
         appendBlock(.userPrompt, content: prompt)
+        timeline.append(TimelineEvent(timestamp: Date(), type: .prompt, detail: String(prompt.prefix(50)) + (prompt.count > 50 ? "..." : "")))
         initialPrompt = nil
         lastPromptText = prompt
         isProcessing = true
@@ -1399,6 +1445,7 @@ class TerminalTab: ObservableObject, Identifiable {
                         let desc = toolInput["description"] as? String
                         let header = desc != nil ? "\(cmd)  // \(desc!)" : cmd
                         appendBlock(.toolUse(name: "Bash", input: cmd), content: header)
+                        timeline.append(TimelineEvent(timestamp: Date(), type: .toolUse, detail: "Bash: \(String(cmd.prefix(40)))"))
                     case "Read":
                         claudeActivity = .reading
                         let file = toolInput["file_path"] as? String ?? ""
@@ -1421,6 +1468,7 @@ class TerminalTab: ObservableObject, Identifiable {
                         AuditLog.shared.log(.fileWrite, tabId: id, projectName: projectName, detail: file)
                         recordFileChange(path: file, action: "Write")
                         appendBlock(.fileChange(path: file, action: "Write"), content: (file as NSString).lastPathComponent)
+                        timeline.append(TimelineEvent(timestamp: Date(), type: .fileChange, detail: "Write: \((file as NSString).lastPathComponent)"))
                         AchievementManager.shared.recordFileEdit()
                     case "Edit":
                         claudeActivity = .writing
@@ -1432,6 +1480,7 @@ class TerminalTab: ObservableObject, Identifiable {
                         AuditLog.shared.log(.fileEdit, tabId: id, projectName: projectName, detail: file)
                         recordFileChange(path: file, action: "Edit")
                         appendBlock(.fileChange(path: file, action: "Edit"), content: (file as NSString).lastPathComponent)
+                        timeline.append(TimelineEvent(timestamp: Date(), type: .fileChange, detail: "Edit: \((file as NSString).lastPathComponent)"))
                         AchievementManager.shared.recordFileEdit()
                     case "Grep":
                         claudeActivity = .searching
@@ -1501,6 +1550,7 @@ class TerminalTab: ObservableObject, Identifiable {
 
             appendBlock(.completion(cost: cost, duration: duration),
                         content: "완료")
+            timeline.append(TimelineEvent(timestamp: Date(), type: .completed, detail: "작업 완료"))
 
             // 슬립워크 완료 체크
             if sleepWorkTask != nil {
@@ -1559,10 +1609,12 @@ class TerminalTab: ObservableObject, Identifiable {
             if !cleanedStderr.isEmpty {
                 errorCount += 1
                 appendBlock(.toolError, content: cleanedStderr)
+                timeline.append(TimelineEvent(timestamp: Date(), type: .error, detail: String(cleanedStderr.prefix(50))))
             } else if isError, let message = extractToolResultText(from: json) {
                 let cleanedMessage = sanitizeTerminalText(message)
                 errorCount += 1
                 appendBlock(.toolError, content: cleanedMessage)
+                timeline.append(TimelineEvent(timestamp: Date(), type: .error, detail: String(cleanedMessage.prefix(50))))
                 recordPermissionDenialIfNeeded(message: cleanedMessage, toolUseId: toolUseId)
             }
 
@@ -1586,6 +1638,7 @@ class TerminalTab: ObservableObject, Identifiable {
             if isError {
                 errorCount += 1
                 appendBlock(.toolError, content: cleanedMessage)
+                timeline.append(TimelineEvent(timestamp: Date(), type: .error, detail: String(cleanedMessage.prefix(50))))
                 recordPermissionDenialIfNeeded(message: cleanedMessage, toolUseId: toolUseId)
                 appendBlock(.toolEnd(success: false))
             } else if !cleanedMessage.isEmpty {
@@ -2598,6 +2651,11 @@ enum ClaudeUsageFetcher {
         }
         close(slaveFD)
 
+        defer {
+            process.terminate()
+            close(masterFD)
+        }
+
         // 시작 대기
         Thread.sleep(forTimeInterval: 5.0)
         drainFD(masterFD)
@@ -2634,8 +2692,6 @@ enum ClaudeUsageFetcher {
         Thread.sleep(forTimeInterval: 0.3)
         writeSlow(masterFD, "/exit\r")
         Thread.sleep(forTimeInterval: 0.5)
-        process.terminate()
-        close(masterFD)
 
         let raw = String(data: allData, encoding: .utf8) ?? ""
         return parseUsageOutput(raw)

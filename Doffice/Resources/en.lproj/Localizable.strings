@@ -1,0 +1,67 @@
+/* Common UI */
+"app.name" = "Doffice";
+"sessions" = "Sessions";
+"new.session" = "New Session";
+"settings" = "Settings";
+"cancel" = "Cancel";
+"delete" = "Delete";
+"confirm" = "OK";
+"close" = "Close";
+"search" = "Search";
+"retry" = "Retry";
+
+/* Session states */
+"status.processing" = "Processing";
+"status.completed" = "Completed";
+"status.idle" = "Idle";
+"status.active" = "Active";
+"status.attention" = "Needs Attention";
+"status.thinking" = "Thinking";
+"status.reading" = "Reading";
+"status.writing" = "Writing";
+"status.searching" = "Searching";
+"status.running" = "Running";
+"status.error" = "Error";
+
+/* Git panel */
+"git.commit" = "Commit";
+"git.push" = "Push";
+"git.pull" = "Pull";
+"git.branch" = "Branch";
+"git.stash" = "Stash";
+"git.merge" = "Merge";
+"git.stage" = "Stage";
+"git.unstage" = "Unstage";
+"git.discard" = "Discard";
+"git.staged" = "Staged";
+"git.changes" = "Changes";
+"git.commit.message" = "Commit message";
+"git.working.directory" = "Working Directory";
+"git.conflict" = "Conflict";
+"git.tags" = "Tags";
+"git.remotes" = "Remotes";
+"git.no.git" = "Git is not installed";
+
+/* Sidebar & Reports */
+"sidebar.characters" = "Characters";
+"sidebar.accessories" = "Accessories";
+"sidebar.reports" = "Reports";
+"sidebar.achievements" = "Achievements";
+"report.delete" = "Delete Report";
+"report.delete.confirm" = "Delete this report?\nThis cannot be undone.";
+
+/* Toast messages */
+"toast.commit.success" = "Commit successful";
+"toast.commit.failed" = "Commit failed";
+"toast.staged" = "Staged: %@";
+"toast.unstaged" = "Unstaged: %@";
+"toast.all.staged" = "All files staged";
+"toast.push.requested" = "Push requested";
+"toast.pull.requested" = "Pull requested";
+
+/* Claude */
+"claude.not.installed" = "Claude Code Not Installed";
+"claude.install.guide" = "Install with the following command:";
+
+/* Office view */
+"office.title" = "Doffice Office";

@@ -386,9 +386,10 @@ struct EventStreamView: View {
         },
         SlashCommand("usage", "Claude 플랜 사용량 표시 (API에서 직접 조회)", category: "화면") { tab, _, _ in
             tab.appendBlock(.status(message: "⏳ Claude 사용량 조회 중..."))
-            DispatchQueue.global(qos: .userInitiated).async {
+            DispatchQueue.global(qos: .userInitiated).async { [weak tab] in
                 let result = ClaudeUsageFetcher.fetch()
                 DispatchQueue.main.async {
+                    guard let tab = tab else { return }
                     // 마지막 "조회 중" 블록 제거
                     if let lastIdx = tab.blocks.indices.last,
                        tab.blocks[lastIdx].content.contains("조회 중") {
@@ -478,6 +479,144 @@ struct EventStreamView: View {
             if n.isEmpty { tab.appendBlock(.status(message: "📛 현재 이름: \(tab.sessionName.isEmpty ? "(없음)" : tab.sessionName)")); return }
             tab.sessionName = n
             tab.appendBlock(.status(message: "📛 세션 이름: \(n)"))
+        },
+        SlashCommand("compare", "두 세션 비교", usage: "<세션1이름> <세션2이름>", category: "세션") { tab, manager, args in
+            let allTabs = manager.userVisibleTabs
+
+            if allTabs.count < 2 {
+                tab.appendBlock(.status(message: "비교하려면 최소 2개 세션이 필요합니다."))
+                return
+            }
+
+            let tab1: TerminalTab
+            let tab2: TerminalTab
+
+            if args.count >= 2 {
+                let name1 = args[0].lowercased()
+                let name2 = args[1].lowercased()
+                guard let t1 = allTabs.first(where: { $0.workerName.lowercased().contains(name1) }),
+                      let t2 = allTabs.first(where: { $0.workerName.lowercased().contains(name2) && $0.id != t1.id }) else {
+                    tab.appendBlock(.status(message: "세션을 찾을 수 없습니다. 이름을 확인하세요.\n사용 가능: " + allTabs.map(\.workerName).joined(separator: ", ")))
+                    return
+                }
+                tab1 = t1; tab2 = t2
+            } else {
+                // 인자 없으면 처음 2개 비교
+                tab1 = allTabs[0]; tab2 = allTabs[1]
+            }
+
+            let dur1 = Int(Date().timeIntervalSince(tab1.startTime))
+            let dur2 = Int(Date().timeIntervalSince(tab2.startTime))
+
+            func fmtDur(_ s: Int) -> String {
+                if s < 60 { return "\(s)초" }
+                if s < 3600 { return "\(s/60)분 \(s%60)초" }
+                return "\(s/3600)시간 \(s%3600/60)분"
+            }
+
+            func fmtTokens(_ n: Int) -> String {
+                if n >= 1000 { return String(format: "%.1fK", Double(n)/1000) }
+                return "\(n)"
+            }
+
+            let lines = [
+                "⚖️ 세션 비교",
+                "══════════════════════════════════════════════════",
+                "",
+                String(format: "%-20s │ %-20s │ %-20s", "항목", tab1.workerName, tab2.workerName),
+                "─────────────────────┼──────────────────────┼──────────────────────",
+                String(format: "%-20s │ %-20s │ %-20s", "프로젝트", String(tab1.projectName.prefix(18)), String(tab2.projectName.prefix(18))),
+                String(format: "%-20s │ %-20s │ %-20s", "상태", tab1.isProcessing ? "진행 중" : (tab1.isCompleted ? "완료" : "대기"), tab2.isProcessing ? "진행 중" : (tab2.isCompleted ? "완료" : "대기")),
+                String(format: "%-20s │ %-20s │ %-20s", "모델", tab1.selectedModel.rawValue, tab2.selectedModel.rawValue),
+                String(format: "%-20s │ %-20s │ %-20s", "토큰 (입력)", fmtTokens(tab1.inputTokensUsed), fmtTokens(tab2.inputTokensUsed)),
+                String(format: "%-20s │ %-20s │ %-20s", "토큰 (출력)", fmtTokens(tab1.outputTokensUsed), fmtTokens(tab2.outputTokensUsed)),
+                String(format: "%-20s │ %-20s │ %-20s", "토큰 (총)", fmtTokens(tab1.tokensUsed), fmtTokens(tab2.tokensUsed)),
+                String(format: "%-20s │ %-20s │ %-20s", "비용", String(format: "$%.4f", tab1.totalCost), String(format: "$%.4f", tab2.totalCost)),
+                String(format: "%-20s │ %-20s │ %-20s", "명령 수", "\(tab1.commandCount)", "\(tab2.commandCount)"),
+                String(format: "%-20s │ %-20s │ %-20s", "파일 변경", "\(tab1.fileChanges.count)개", "\(tab2.fileChanges.count)개"),
+                String(format: "%-20s │ %-20s │ %-20s", "에러", "\(tab1.errorCount)", "\(tab2.errorCount)"),
+                String(format: "%-20s │ %-20s │ %-20s", "경과 시간", fmtDur(dur1), fmtDur(dur2)),
+                "",
+                "══════════════════════════════════════════════════",
+            ]
+
+            tab.appendBlock(.status(message: lines.joined(separator: "\n")))
+        },
+        SlashCommand("timeline", "세션 타임라인 보기", category: "세션") { tab, _, _ in
+            if tab.timeline.isEmpty {
+                tab.appendBlock(.status(message: "타임라인이 비어있습니다."))
+                return
+            }
+            let df = DateFormatter()
+            df.dateFormat = "HH:mm:ss"
+            var lines = ["📋 세션 타임라인", "═══════════════════════════════"]
+            for event in tab.timeline.suffix(30) {
+                let time = df.string(from: event.timestamp)
+                let icon: String
+                switch event.type {
+                case .started: icon = "🟢"
+                case .prompt: icon = "💬"
+                case .toolUse: icon = "🔧"
+                case .fileChange: icon = "📝"
+                case .error: icon = "❌"
+                case .completed: icon = "✅"
+                }
+                lines.append("\(time) \(icon) \(event.type.rawValue): \(event.detail)")
+            }
+            tab.appendBlock(.status(message: lines.joined(separator: "\n")))
+        },
+        SlashCommand("sleepwork", "슬립워크 모드 시작", usage: "<작업내용> [토큰예산]", category: "세션") { tab, _, args in
+            if args.isEmpty {
+                tab.appendBlock(.status(message: "사용법: /sleepwork <작업내용> [토큰예산]\n예: /sleepwork \"버그 수정해줘\" 10k\n\n또는 🌙 버튼을 눌러 설정 화면을 사용하세요."))
+                return
+            }
+            let taskText = args.dropLast().joined(separator: " ")
+            let budgetText = args.last ?? ""
+            var budget: Int? = nil
+            let bt = budgetText.lowercased()
+            if bt.hasSuffix("k"), let n = Double(bt.dropLast()) { budget = Int(n * 1000) }
+            else if bt.hasSuffix("m"), let n = Double(bt.dropLast()) { budget = Int(n * 1_000_000) }
+            else if let n = Int(bt) { budget = n }
+
+            let task = taskText.isEmpty ? budgetText : taskText  // if only 1 arg, treat as task
+            if task.isEmpty {
+                tab.appendBlock(.status(message: "작업 내용을 입력하세요."))
+                return
+            }
+            tab.startSleepWork(task: task, tokenBudget: budget)
+        },
+        SlashCommand("search", "전체 세션에서 검색", usage: "<검색어>", category: "화면") { tab, manager, args in
+            let query = args.joined(separator: " ").trimmingCharacters(in: .whitespaces)
+            guard !query.isEmpty else {
+                tab.appendBlock(.status(message: "사용법: /search <검색어>"))
+                return
+            }
+            let allTabs = manager.userVisibleTabs
+            var results: [(tabName: String, blockContent: String, lineNum: Int)] = []
+
+            for t in allTabs {
+                for (idx, block) in t.blocks.enumerated() {
+                    if block.content.localizedCaseInsensitiveContains(query) {
+                        let snippet = block.content.components(separatedBy: "\n")
+                            .first(where: { $0.localizedCaseInsensitiveContains(query) }) ?? String(block.content.prefix(80))
+                        results.append((t.workerName, String(snippet.prefix(80)), idx))
+                    }
+                }
+            }
+
+            if results.isEmpty {
+                tab.appendBlock(.status(message: "🔍 '\(query)' 검색 결과 없음"))
+                return
+            }
+
+            var lines = ["🔍 '\(query)' 검색 결과 (\(results.count)건)", "═══════════════════════════════"]
+            for r in results.prefix(20) {
+                lines.append("[\(r.tabName)] \(r.blockContent)")
+            }
+            if results.count > 20 {
+                lines.append("... 외 \(results.count - 20)건")
+            }
+            tab.appendBlock(.status(message: lines.joined(separator: "\n")))
         },
     ]
 
@@ -2951,23 +3090,15 @@ struct NewTabSheet: View {
 
     private var sessionConfigView: some View {
         VStack(spacing: 0) {
+            DSModalHeader(
+                icon: "plus.circle.fill",
+                iconColor: Theme.accent,
+                title: "새 세션",
+                subtitle: "프로젝트 경로를 선택하고 실행 규칙만 정하면 바로 시작할 수 있습니다."
+            )
+
             ScrollView(.vertical, showsIndicators: true) {
-                VStack(spacing: 18) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: Theme.iconSize(16), weight: .bold))
-                                .foregroundColor(Theme.accent)
-                            Text("New Session")
-                                .font(Theme.mono(14, weight: .bold))
-                                .foregroundColor(Theme.textPrimary)
-                        }
-                        Text("프로젝트 경로를 선택하고 실행 규칙만 정하면 바로 시작할 수 있습니다.")
-                            .font(Theme.mono(9))
-                            .foregroundColor(Theme.textDim)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .appPanelStyle(fill: Theme.bgCard.opacity(0.98), strokeOpacity: 0.22)
+                VStack(spacing: Theme.sp4) {
 
                     configSection(title: "빠른 시작", subtitle: "최근 프로젝트와 마지막 설정을 바로 불러올 수 있습니다.") {
                         VStack(alignment: .leading, spacing: 14) {

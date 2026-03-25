@@ -1,6 +1,6 @@
 import XCTest
 import SwiftUI
-@testable import WorkManApp
+@testable import Doffice
 
 final class SessionPersistenceTests: XCTestCase {
     func testApplySavedSessionConfigurationRestoresAdvancedOptions() {

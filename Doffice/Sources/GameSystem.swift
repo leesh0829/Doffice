@@ -1291,6 +1291,7 @@ struct AchievementCollectionView: View {
                                     .onTapGesture { if ach.unlocked { withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { inspectedAchievement = ach } } }
                             }
                         }
+                        .id("\(selectedRarity?.rawValue ?? "all")-\(showUnlockedOnly)")
                     }
                 }
                 .padding(.horizontal, 24).padding(.vertical, 16)
@@ -1686,23 +1687,8 @@ struct AchievementCard: View {
     @State private var isHovered = false
 
     private var cardBg: Color {
-        if AppSettings.shared.isDarkMode {
-            switch achievement.rarity {
-            case .mythic: return Color(hex: "1c1212")
-            case .legendary: return Color(hex: "1c1a12")
-            case .epic: return Color(hex: "19161f")
-            case .rare: return Color(hex: "141722")
-            case .common: return Color(hex: "151820")
-            }
-        } else {
-            switch achievement.rarity {
-            case .mythic: return Color(hex: "fff2f2")
-            case .legendary: return Color(hex: "fffcf3")
-            case .epic: return Color(hex: "f9f5fd")
-            case .rare: return Color(hex: "f2f6fc")
-            case .common: return .white
-            }
-        }
+        // 앱 톤 유지: bgCard 위에 rarity 색상을 미세하게 올림
+        Theme.bgCard
     }
 
     var body: some View {
@@ -1785,34 +1771,26 @@ struct AchievementCard: View {
 
     private var cardBackground: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: Theme.cornerLarge)
                 .fill(achievement.unlocked ? cardBg : Theme.bgSurface.opacity(0.04))
 
             if achievement.unlocked {
                 // Left rarity stripe
                 HStack {
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(achievement.rarity.color.opacity(0.6))
-                        .frame(width: 3)
-                        .padding(.vertical, 6)
-                    Spacer()
-                }
-                // Top gradient line
-                VStack {
-                    RoundedRectangle(cornerRadius: 1)
-                        .fill(LinearGradient(colors: [achievement.rarity.color.opacity(0.5), achievement.rarity.color.opacity(0.02)], startPoint: .leading, endPoint: .trailing))
-                        .frame(height: 2)
-                        .padding(.horizontal, 10)
+                        .fill(achievement.rarity.color.opacity(0.5))
+                        .frame(width: 2)
+                        .padding(.vertical, 8)
                     Spacer()
                 }
             }
 
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: Theme.cornerLarge)
                 .stroke(
                     achievement.unlocked
-                        ? achievement.rarity.color.opacity(isHovered ? 0.5 : 0.2)
-                        : Theme.border.opacity(isHovered ? 0.15 : 0.04),
-                    lineWidth: achievement.unlocked ? 1 : 0.5
+                        ? Theme.accentBorder(achievement.rarity.color)
+                        : Theme.border.opacity(isHovered ? 0.3 : 0.1),
+                    lineWidth: 1
                 )
         }
         .shadow(color: achievement.unlocked ? achievement.rarity.color.opacity(isHovered ? 0.25 : 0.08) : .clear, radius: isHovered ? 12 : 4)

@@ -493,6 +493,32 @@ struct MainView: View {
             .background(RoundedRectangle(cornerRadius: Theme.cornerMedium).fill(Theme.bgSurface))
             .overlay(RoundedRectangle(cornerRadius: Theme.cornerMedium).stroke(Theme.border, lineWidth: 1))
 
+            Menu {
+                ForEach(settings.layoutPresets) { preset in
+                    Button(action: {
+                        settings.applyPreset(preset)
+                        viewModeRaw = preset.viewModeRaw
+                    }) {
+                        Text(preset.name)
+                    }
+                }
+                Divider()
+                Button("현재 레이아웃 저장...") {
+                    settings.saveCurrentAsPreset(
+                        name: "프리셋 \(settings.layoutPresets.count + 1)",
+                        viewModeRaw: viewModeRaw,
+                        sidebarWidth: Double(sidebarWidth)
+                    )
+                }
+            } label: {
+                Image(systemName: "rectangle.3.group")
+                    .font(.system(size: Theme.chromeIconSize(11)))
+                    .foregroundColor(Theme.textDim)
+            }
+            .menuStyle(.borderlessButton)
+            .frame(width: 28)
+            .help("레이아웃 프리셋")
+
             Spacer()
 
             // 업데이트 배지

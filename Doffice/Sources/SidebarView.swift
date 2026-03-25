@@ -222,9 +222,48 @@ struct SidebarView: View {
                     } else {
                         ForEach(filteredProjectGroups) { group in
                             if group.tabs.count == 1 {
-                                SessionCard(tab: group.tabs[0])
+                                let tab = group.tabs[0]
+                                SessionCard(tab: tab)
+                                    .overlay(alignment: .leading) {
+                                        if isMultiSelectMode {
+                                            Image(systemName: selectedTabIds.contains(tab.id) ? "checkmark.circle.fill" : "circle")
+                                                .font(.system(size: 14))
+                                                .foregroundColor(selectedTabIds.contains(tab.id) ? Theme.accent : Theme.textDim)
+                                                .padding(.leading, 6)
+                                        }
+                                    }
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        if isMultiSelectMode {
+                                            if selectedTabIds.contains(tab.id) {
+                                                selectedTabIds.remove(tab.id)
+                                            } else {
+                                                selectedTabIds.insert(tab.id)
+                                            }
+                                        }
+                                    }
+                                    .allowsHitTesting(isMultiSelectMode ? true : false)
                             } else {
                                 SessionGroupCard(group: group)
+                                    .overlay(alignment: .leading) {
+                                        if isMultiSelectMode {
+                                            VStack(spacing: 4) {
+                                                ForEach(group.tabs) { tab in
+                                                    Image(systemName: selectedTabIds.contains(tab.id) ? "checkmark.circle.fill" : "circle")
+                                                        .font(.system(size: 14))
+                                                        .foregroundColor(selectedTabIds.contains(tab.id) ? Theme.accent : Theme.textDim)
+                                                        .onTapGesture {
+                                                            if selectedTabIds.contains(tab.id) {
+                                                                selectedTabIds.remove(tab.id)
+                                                            } else {
+                                                                selectedTabIds.insert(tab.id)
+                                                            }
+                                                        }
+                                                }
+                                            }
+                                            .padding(.leading, 6)
+                                        }
+                                    }
                             }
                         }
                     }
@@ -1170,9 +1209,10 @@ struct WorkerMiniCard: View {
                     .font(Theme.chrome(9)).foregroundColor(Theme.textDim) }
                 if isSelected { Button(action: { manager.removeTab(tab.id) }) {
                     Image(systemName: "xmark").font(Theme.chrome(7, weight: .bold)).foregroundColor(Theme.textDim).padding(2) }.buttonStyle(.plain) }
-            }.padding(.horizontal, 8).padding(.vertical, 5)
-            .background(RoundedRectangle(cornerRadius: 6).fill(isSelected ? Theme.bgSelected : .clear)
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(isSelected ? Theme.accent.opacity(0.2) : .clear, lineWidth: 1)))
+            }
+            .padding(.horizontal, Theme.sp2).padding(.vertical, Theme.sp1 + 1)
+            .background(RoundedRectangle(cornerRadius: Theme.cornerMedium).fill(isSelected ? Theme.bgSelected : .clear))
+            .overlay(RoundedRectangle(cornerRadius: Theme.cornerMedium).stroke(isSelected ? Theme.border : .clear, lineWidth: 1))
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(tab.projectName) \(tab.workerName)")

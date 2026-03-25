@@ -22,6 +22,9 @@ struct OfficeSceneView: View {
     let fpsCheckTimer = Timer.publish(every: 2.0, on: .main, in: .common).autoconnect()
 
     private static func computeAdaptiveFPS() -> Double {
+        if AppSettings.shared.effectivePerformanceMode {
+            return 4  // Very low FPS in performance mode
+        }
         let tabs = SessionManager.shared.userVisibleTabs
         if tabs.contains(where: { $0.isProcessing }) {
             return OfficeConstants.fps // 24

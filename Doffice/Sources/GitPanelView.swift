@@ -199,29 +199,29 @@ struct GitPanelView: View {
     // ═══════════════════════════════════════════════════════
 
     private var gitToolbar: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: Theme.sp2) {
             // Branch pill
-            HStack(spacing: 5) {
+            HStack(spacing: 4) {
                 Image(systemName: "arrow.triangle.branch")
-                    .font(.system(size: Theme.iconSize(10), weight: .semibold))
+                    .font(.system(size: Theme.iconSize(10), weight: .medium))
                     .foregroundColor(Theme.green)
                 Text(git.currentBranch.isEmpty ? "—" : git.currentBranch)
-                    .font(Theme.chrome(10, weight: .bold))
+                    .font(Theme.code(10, weight: .medium))
                     .foregroundColor(Theme.textPrimary)
                     .lineLimit(1)
 
                 if let br = git.branches.first(where: { $0.isCurrent }) {
                     if br.ahead > 0 {
-                        Text("↑\(br.ahead)").font(Theme.chrome(8, weight: .bold)).foregroundColor(Theme.green)
+                        Text("↑\(br.ahead)").font(Theme.code(8, weight: .bold)).foregroundColor(Theme.green)
                     }
                     if br.behind > 0 {
-                        Text("↓\(br.behind)").font(Theme.chrome(8, weight: .bold)).foregroundColor(Theme.orange)
+                        Text("↓\(br.behind)").font(Theme.code(8, weight: .bold)).foregroundColor(Theme.orange)
                     }
                 }
             }
-            .padding(.horizontal, 10).padding(.vertical, 5)
-            .background(RoundedRectangle(cornerRadius: 8).fill(Theme.green.opacity(0.08))
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.green.opacity(0.15), lineWidth: 0.5)))
+            .padding(.horizontal, Theme.sp2).padding(.vertical, Theme.sp1 + 1)
+            .background(RoundedRectangle(cornerRadius: Theme.cornerMedium).fill(Theme.accentBg(Theme.green)))
+            .overlay(RoundedRectangle(cornerRadius: Theme.cornerMedium).stroke(Theme.accentBorder(Theme.green), lineWidth: 1))
 
             // Stats pills
             if !git.commits.isEmpty {
@@ -290,18 +290,18 @@ struct GitPanelView: View {
                     .animation(git.isLoading ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: git.isLoading)
             }.buttonStyle(.plain)
         }
-        .padding(.horizontal, 12).padding(.vertical, 7)
+        .padding(.horizontal, Theme.sp3).padding(.vertical, Theme.sp2 - 1)
         .background(Theme.bgCard)
     }
 
     private func statPill(icon: String, text: String, color: Color) -> some View {
         HStack(spacing: 3) {
             Image(systemName: icon).font(.system(size: 8, weight: .medium))
-            Text(text).font(Theme.chrome(8, weight: .bold))
+            Text(text).font(Theme.chrome(8, weight: .medium))
         }
         .foregroundColor(color)
-        .padding(.horizontal, 6).padding(.vertical, 3)
-        .background(RoundedRectangle(cornerRadius: 5).fill(color.opacity(0.06)))
+        .padding(.horizontal, Theme.sp2 - 2).padding(.vertical, 3)
+        .background(RoundedRectangle(cornerRadius: Theme.cornerSmall).fill(Theme.accentBg(color)))
     }
 
     private func toolbarActionBtn(_ label: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
@@ -311,9 +311,9 @@ struct GitPanelView: View {
                 Text(label).font(Theme.chrome(8, weight: .medium))
             }
             .foregroundColor(color)
-            .padding(.horizontal, 8).padding(.vertical, 4)
-            .background(RoundedRectangle(cornerRadius: 6).fill(color.opacity(0.06))
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.12), lineWidth: 0.5)))
+            .padding(.horizontal, Theme.sp2).padding(.vertical, Theme.sp1 + 1)
+            .background(RoundedRectangle(cornerRadius: Theme.cornerMedium).fill(Theme.accentBg(color)))
+            .overlay(RoundedRectangle(cornerRadius: Theme.cornerMedium).stroke(Theme.accentBorder(color), lineWidth: 1))
         }.buttonStyle(.plain)
     }
 
@@ -841,20 +841,20 @@ struct GitPanelView: View {
                 .frame(width: 90, alignment: .trailing)
                 .padding(.trailing, 12)
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, Theme.sp1)
         .background(
-            isSelected ? Theme.accent.opacity(0.1) :
-            isHovered ? Theme.accent.opacity(0.03) :
-            hasTag ? Theme.yellow.opacity(0.02) : .clear
+            isSelected ? Theme.accentBg(Theme.accent) :
+            isHovered ? Theme.bgHover :
+            .clear
         )
         .overlay(alignment: .bottom) {
-            Rectangle().fill(Theme.border.opacity(0.15)).frame(height: 0.5)
+            Rectangle().fill(Theme.borderSubtle).frame(height: 1)
         }
         .overlay(alignment: .leading) {
             if isSelected {
-                Rectangle().fill(Theme.accent).frame(width: 3)
+                Rectangle().fill(Theme.accent).frame(width: 2)
             } else if commit.refs.contains(where: { $0.type == .head }) {
-                Rectangle().fill(Theme.green).frame(width: 3)
+                Rectangle().fill(Theme.green).frame(width: 2)
             }
         }
         .contentShape(Rectangle())
@@ -932,22 +932,23 @@ struct GitPanelView: View {
     // MARK: - Ref Badges
 
     private func refBadge(_ ref: GitCommitNode.GitRef) -> some View {
-        let (bg, fg, icon): (Color, Color, String) = {
+        let (tint, icon): (Color, String) = {
             switch ref.type {
-            case .head: return (Theme.green, .white, "chevron.right")
-            case .branch: return (Theme.accent, .white, "arrow.triangle.branch")
-            case .remoteBranch: return (Theme.purple, .white, "cloud.fill")
-            case .tag: return (Theme.yellow, Theme.bg, "tag.fill")
+            case .head: return (Theme.green, "chevron.right")
+            case .branch: return (Theme.accent, "arrow.triangle.branch")
+            case .remoteBranch: return (Theme.purple, "cloud.fill")
+            case .tag: return (Theme.yellow, "tag.fill")
             }
         }()
 
         return HStack(spacing: 2) {
             Image(systemName: icon).font(.system(size: 6, weight: .bold))
-            Text(ref.name).font(Theme.mono(7, weight: .bold)).lineLimit(1)
+            Text(ref.name).font(Theme.code(7, weight: .bold)).lineLimit(1)
         }
-        .foregroundColor(fg)
-        .padding(.horizontal, 5).padding(.vertical, 2)
-        .background(Capsule().fill(bg.opacity(ref.type == .tag ? 0.85 : 0.75)))
+        .foregroundColor(tint)
+        .padding(.horizontal, Theme.sp1 + 1).padding(.vertical, 2)
+        .background(RoundedRectangle(cornerRadius: Theme.cornerSmall).fill(Theme.accentBg(tint)))
+        .overlay(RoundedRectangle(cornerRadius: Theme.cornerSmall).stroke(Theme.accentBorder(tint), lineWidth: 1))
     }
 
     // ═══════════════════════════════════════════════════════
@@ -1615,9 +1616,8 @@ struct GitPanelView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 10).padding(.vertical, 10)
+        .padding(.horizontal, Theme.sp3).padding(.vertical, Theme.sp2)
         .background(Theme.bgCard)
-        .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: -2)
     }
 
     // ═══════════════════════════════════════════════════════
@@ -1625,36 +1625,36 @@ struct GitPanelView: View {
     // ═══════════════════════════════════════════════════════
 
     private func sectionHeader(_ title: String, count: Int, icon: String, color: Color) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: Theme.sp1 + 2) {
             Image(systemName: icon).font(.system(size: Theme.iconSize(9))).foregroundColor(color)
-            Text(title).font(Theme.mono(9, weight: .bold)).foregroundColor(color)
-            Text("\(count)").font(Theme.mono(8, weight: .bold)).foregroundColor(color.opacity(0.6))
-                .padding(.horizontal, 5).padding(.vertical, 1)
-                .background(Capsule().fill(color.opacity(0.08)))
+            Text(title).font(Theme.mono(9, weight: .semibold)).foregroundColor(color)
+            Text("\(count)").font(Theme.mono(8, weight: .medium)).foregroundColor(Theme.textMuted)
+                .padding(.horizontal, Theme.sp1).padding(.vertical, 1)
+                .background(RoundedRectangle(cornerRadius: 3).fill(Theme.bgTertiary))
             Spacer()
         }
     }
 
     private func fileChangeRow(_ file: GitFileChange, showDiffArrow: Bool = false) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: Theme.sp2 - 2) {
             Image(systemName: file.status.icon)
                 .font(.system(size: 9)).foregroundColor(file.status.color).frame(width: 14)
             Text(file.fileName)
-                .font(Theme.mono(9, weight: .medium)).foregroundColor(Theme.textPrimary).lineLimit(1)
+                .font(Theme.code(9, weight: .medium)).foregroundColor(Theme.textPrimary).lineLimit(1)
             Spacer()
-            // Colored status pill
             Text(file.status.rawValue)
-                .font(Theme.mono(7, weight: .bold))
-                .foregroundColor(.white)
-                .padding(.horizontal, 5).padding(.vertical, 1)
-                .background(Capsule().fill(file.status.color.opacity(0.85)))
+                .font(Theme.code(7, weight: .bold))
+                .foregroundColor(file.status.color)
+                .padding(.horizontal, Theme.sp1 + 1).padding(.vertical, 1)
+                .background(RoundedRectangle(cornerRadius: Theme.cornerSmall).fill(Theme.accentBg(file.status.color)))
+                .overlay(RoundedRectangle(cornerRadius: Theme.cornerSmall).stroke(Theme.accentBorder(file.status.color), lineWidth: 1))
             if showDiffArrow {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 7, weight: .medium))
-                    .foregroundColor(Theme.textDim.opacity(0.4))
+                    .foregroundColor(Theme.textMuted)
             }
         }
-        .padding(.vertical, 3).padding(.horizontal, 8)
+        .padding(.vertical, Theme.sp1).padding(.horizontal, Theme.sp2)
         .background(RoundedRectangle(cornerRadius: 4).fill(file.status.color.opacity(0.04)))
         .contentShape(Rectangle())
     }
@@ -1889,9 +1889,14 @@ struct GitPanelView: View {
     }
 
     private func emptyState(_ msg: String, icon: String) -> some View {
-        VStack(spacing: 12) {
-            Image(systemName: icon).font(.system(size: 32)).foregroundColor(Theme.textDim.opacity(0.3))
-            Text(msg).font(Theme.mono(11)).foregroundColor(Theme.textDim)
+        VStack(spacing: Theme.sp3) {
+            Image(systemName: icon)
+                .font(.system(size: Theme.iconSize(24), weight: .light))
+                .foregroundColor(Theme.textMuted)
+            Text(msg)
+                .font(Theme.mono(10))
+                .foregroundColor(Theme.textDim)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

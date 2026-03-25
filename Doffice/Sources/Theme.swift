@@ -45,6 +45,23 @@ class AppSettings: ObservableObject {
         didSet { objectWillChange.send() }
     }
 
+    // ── 성능 모드 ──
+    @AppStorage("performanceMode") var performanceMode: Bool = false {
+        didSet { objectWillChange.send() }
+    }
+    @AppStorage("autoPerformanceMode") var autoPerformanceMode: Bool = true {
+        didSet { objectWillChange.send() }
+    }
+
+    var effectivePerformanceMode: Bool {
+        if performanceMode { return true }
+        if autoPerformanceMode {
+            // 10개 이상 세션이면 자동 성능 모드
+            return SessionManager.shared.tabs.count >= 10
+        }
+        return false
+    }
+
     // ── 터미널 모드 ──
     @AppStorage("rawTerminalMode") var rawTerminalMode: Bool = false {
         didSet { objectWillChange.send() }
@@ -273,6 +290,46 @@ class AppSettings: ObservableObject {
         }
 
         return URL(string: "https://" + trimmed)
+    }
+
+    // ── 레이아웃 프리셋 ──
+
+    struct LayoutPreset: Codable, Identifiable {
+        let id: String
+        var name: String
+        var viewModeRaw: Int
+        var sidebarWidth: Double
+        var isDarkMode: Bool
+        var fontSizeScale: Double
+    }
+
+    @AppStorage("layoutPresets") var layoutPresetsData: Data = Data()
+
+    var layoutPresets: [LayoutPreset] {
+        get { (try? JSONDecoder().decode([LayoutPreset].self, from: layoutPresetsData)) ?? [] }
+        set { layoutPresetsData = (try? JSONEncoder().encode(newValue)) ?? Data() }
+    }
+
+    func saveCurrentAsPreset(name: String, viewModeRaw: Int, sidebarWidth: Double) {
+        var presets = layoutPresets
+        let preset = LayoutPreset(
+            id: UUID().uuidString, name: name,
+            viewModeRaw: viewModeRaw, sidebarWidth: sidebarWidth,
+            isDarkMode: isDarkMode, fontSizeScale: fontSizeScale
+        )
+        presets.append(preset)
+        layoutPresets = presets
+    }
+
+    func applyPreset(_ preset: LayoutPreset) {
+        isDarkMode = preset.isDarkMode
+        fontSizeScale = preset.fontSizeScale
+    }
+
+    func deletePreset(_ id: String) {
+        var presets = layoutPresets
+        presets.removeAll { $0.id == id }
+        layoutPresets = presets
     }
 }
 
@@ -1967,6 +2024,17 @@ struct SettingsView: View {
                                 .font(.system(size: 9, weight: .bold)).foregroundColor(Theme.textDim)
                         }.buttonStyle(.plain)
                     }
+                }
+            }
+
+            settingsSection(title: "성능", subtitle: settings.performanceMode ? "수동 활성" : (settings.autoPerformanceMode ? "자동" : "비활성")) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("성능 모드 (애니메이션/효과 줄임)", isOn: $settings.performanceMode)
+                        .font(Theme.mono(10, weight: .medium))
+                    Toggle("자동 성능 모드 (세션 10개 이상)", isOn: $settings.autoPerformanceMode)
+                        .font(Theme.mono(10, weight: .medium))
+                    Text("성능 모드에서는 오피스 애니메이션, 배경 효과가 줄어들고 프레임 레이트가 낮아집니다.")
+                        .font(Theme.mono(8)).foregroundColor(Theme.textDim)
                 }
             }
 
