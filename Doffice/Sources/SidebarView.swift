@@ -51,11 +51,11 @@ private enum SessionStatusFilter: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .all: return "전체"
-        case .active: return "활성"
-        case .processing: return "작업 중"
-        case .completed: return "완료"
-        case .attention: return "확인 필요"
+        case .all: return NSLocalizedString("status.all", comment: "")
+        case .active: return NSLocalizedString("status.active", comment: "")
+        case .processing: return NSLocalizedString("status.processing", comment: "")
+        case .completed: return NSLocalizedString("status.completed", comment: "")
+        case .attention: return NSLocalizedString("status.attention", comment: "")
         }
     }
 
@@ -167,7 +167,7 @@ struct SidebarView: View {
         VStack(spacing: 0) {
             HStack(spacing: 6) {
                 Image(systemName: "circle.grid.2x2.fill").font(Theme.chrome(9)).foregroundColor(Theme.textDim)
-                Text("SESSIONS").font(Theme.pixel).foregroundColor(Theme.textDim).tracking(2)
+                Text(NSLocalizedString("sessions", comment: "").uppercased()).font(Theme.pixel).foregroundColor(Theme.textDim).tracking(2)
                 Spacer()
                 Button(action: { showHistory.toggle() }) {
                     Image(systemName: "clock.arrow.circlepath").font(Theme.chrome(9))
@@ -211,8 +211,9 @@ struct SidebarView: View {
             }
 
             ScrollView {
+                let groups = filteredProjectGroups
                 VStack(spacing: 4) {
-                    if filteredProjectGroups.isEmpty {
+                    if groups.isEmpty {
                         AppEmptyStateView(
                             title: "조건에 맞는 세션이 없습니다",
                             message: searchQuery.isEmpty ? "필터를 바꾸거나 새 세션을 시작해보세요." : "검색어나 필터를 조정해보세요.",
@@ -220,7 +221,7 @@ struct SidebarView: View {
                             tint: searchQuery.isEmpty ? Theme.accent : Theme.textDim
                         )
                     } else {
-                        ForEach(filteredProjectGroups) { group in
+                        ForEach(groups) { group in
                             if group.tabs.count == 1 {
                                 let tab = group.tabs[0]
                                 SessionCard(tab: tab)
@@ -410,8 +411,7 @@ struct SidebarView: View {
                     HStack {
                         Text("현재 세션").font(Theme.chrome(8, weight: .medium)).foregroundColor(Theme.textDim)
                         Spacer()
-                        let totalIn = manager.userVisibleTabs.reduce(0) { $0 + $1.inputTokensUsed }
-                        let totalOut = manager.userVisibleTabs.reduce(0) { $0 + $1.outputTokensUsed }
+                        let (totalIn, totalOut) = manager.userVisibleTabs.reduce((0, 0)) { ($0.0 + $1.inputTokensUsed, $0.1 + $1.outputTokensUsed) }
                         if totalIn > 0 || totalOut > 0 {
                             HStack(spacing: 4) {
                                 Text("In").font(Theme.chrome(7)).foregroundColor(Theme.textDim)
@@ -557,10 +557,10 @@ struct SidebarView: View {
                         .foregroundColor(statusFilter == filter ? filter.tint : Theme.textDim)
                         .padding(.horizontal, 6).padding(.vertical, 3)
                         .background(
-                            Capsule().fill(statusFilter == filter ? filter.tint.opacity(0.12) : .clear)
+                            RoundedRectangle(cornerRadius: Theme.cornerMedium).fill(statusFilter == filter ? filter.tint.opacity(0.12) : .clear)
                         )
                         .overlay(
-                            Capsule().stroke(statusFilter == filter ? filter.tint.opacity(0.3) : Theme.border.opacity(0.2), lineWidth: 0.5)
+                            RoundedRectangle(cornerRadius: Theme.cornerMedium).stroke(statusFilter == filter ? filter.tint.opacity(0.3) : Theme.border.opacity(0.2), lineWidth: 1)
                         )
                     }
                     .buttonStyle(.plain)
@@ -611,10 +611,10 @@ struct SidebarView: View {
 
     private var managementButtons: some View {
         VStack(spacing: 6) {
-            utilityButton(title: "캐릭터 관리", icon: "person.2.fill", countText: "\(CharacterRegistry.shared.hiredCharacters.count)/\(CharacterRegistry.shared.allCharacters.count)", tone: .accent) { showCharacterSheet = true }
-            utilityButton(title: "악세서리", icon: "sofa.fill", countText: "\(breakRoomFurnitureOnCount)/20", tone: .purple) { showAccessorySheet = true }
-            utilityButton(title: "보고서", icon: "doc.text.fill", countText: "\(manager.availableReportCount)", tone: .cyan) { showReportSheet = true }
-            utilityButton(title: "도전과제", icon: "trophy.fill", countText: "\(AchievementManager.shared.unlockedCount)/\(AchievementManager.shared.achievements.count)", tone: .yellow) { showAchievementSheet = true }
+            utilityButton(title: NSLocalizedString("sidebar.characters", comment: ""), icon: "person.2.fill", countText: "\(CharacterRegistry.shared.hiredCharacters.count)/\(CharacterRegistry.shared.allCharacters.count)", tone: .accent) { showCharacterSheet = true }
+            utilityButton(title: NSLocalizedString("sidebar.accessories", comment: ""), icon: "sofa.fill", countText: "\(breakRoomFurnitureOnCount)/20", tone: .purple) { showAccessorySheet = true }
+            utilityButton(title: NSLocalizedString("sidebar.reports", comment: ""), icon: "doc.text.fill", countText: "\(manager.availableReportCount)", tone: .cyan) { showReportSheet = true }
+            utilityButton(title: NSLocalizedString("sidebar.achievements", comment: ""), icon: "trophy.fill", countText: "\(AchievementManager.shared.unlockedCount)/\(AchievementManager.shared.achievements.count)", tone: .yellow) { showAchievementSheet = true }
         }
         .padding(.horizontal, 10).padding(.bottom, 6)
         .sheet(isPresented: $showCharacterSheet) {
@@ -628,10 +628,10 @@ struct SidebarView: View {
 
     private var lightweightManagementButtons: some View {
         VStack(spacing: 6) {
-            lightweightButton(title: "캐릭터 관리", icon: "person.2.fill") { showCharacterSheet = true }
-            lightweightButton(title: "악세서리", icon: "sofa.fill") { showAccessorySheet = true }
-            lightweightButton(title: "보고서", icon: "doc.text.fill") { showReportSheet = true }
-            lightweightButton(title: "도전과제", icon: "trophy.fill") { showAchievementSheet = true }
+            lightweightButton(title: NSLocalizedString("sidebar.characters", comment: ""), icon: "person.2.fill") { showCharacterSheet = true }
+            lightweightButton(title: NSLocalizedString("sidebar.accessories", comment: ""), icon: "sofa.fill") { showAccessorySheet = true }
+            lightweightButton(title: NSLocalizedString("sidebar.reports", comment: ""), icon: "doc.text.fill") { showReportSheet = true }
+            lightweightButton(title: NSLocalizedString("sidebar.achievements", comment: ""), icon: "trophy.fill") { showAchievementSheet = true }
         }
         .padding(.horizontal, 10).padding(.bottom, 6)
         .sheet(isPresented: $showCharacterSheet) {
@@ -793,7 +793,7 @@ struct SidebarView: View {
                     .foregroundColor(tone.color)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(Capsule().fill(tone.color.opacity(0.10)))
+                    .background(RoundedRectangle(cornerRadius: Theme.cornerSmall).fill(tone.color.opacity(0.10)))
             }
             .foregroundColor(Theme.textSecondary)
             .padding(.vertical, 10)
@@ -831,7 +831,7 @@ struct ReportCenterView: View {
             DSModalHeader(
                 icon: "doc.richtext.fill",
                 iconColor: Theme.cyan,
-                title: "보고서",
+                title: NSLocalizedString("sidebar.reports", comment: ""),
                 subtitle: "보고자가 작성한 보고서 열람 및 관리",
                 trailing: AnyView(
                     Text("\(reports.count)")
@@ -866,11 +866,11 @@ struct ReportCenterView: View {
             else if let first = reports.first { loadReport(first.path) }
             else { selectedReportPath = nil; reportText = "" }
         }
-        .alert("보고서 삭제", isPresented: $showDeleteConfirm) {
-            Button("삭제", role: .destructive) {
+        .alert(NSLocalizedString("report.delete", comment: ""), isPresented: $showDeleteConfirm) {
+            Button(NSLocalizedString("delete", comment: ""), role: .destructive) {
                 if let r = reportToDelete { deleteReport(r); reportToDelete = nil }
             }
-            Button("취소", role: .cancel) { reportToDelete = nil }
+            Button(NSLocalizedString("cancel", comment: ""), role: .cancel) { reportToDelete = nil }
         } message: {
             if let r = reportToDelete {
                 Text("「\(r.projectName)」 보고서를 삭제하시겠습니까?\n삭제된 파일은 복구할 수 없습니다.")
@@ -890,7 +890,7 @@ struct ReportCenterView: View {
             .padding(.horizontal, 14).padding(.vertical, 8)
             .background(Theme.bgSurface.opacity(0.3))
 
-            Rectangle().fill(Theme.border.opacity(0.5)).frame(height: 0.5)
+            Rectangle().fill(Theme.border.opacity(0.5)).frame(height: 1)
 
             ScrollView {
                 LazyVStack(spacing: 4) {
@@ -970,7 +970,7 @@ struct ReportCenterView: View {
                             .frame(width: 20, height: 20)
                     }
                     .buttonStyle(.plain)
-                    .help("보고서 삭제")
+                    .help(NSLocalizedString("report.delete", comment: ""))
                     .transition(.opacity)
                 }
             }
@@ -1136,7 +1136,6 @@ struct SessionGroupCard: View {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                         .font(Theme.chrome(7, weight: .bold)).foregroundColor(Theme.textDim).frame(width: 10)
                     Circle().fill(groupStatus.tint).frame(width: 7, height: 7)
-                        .shadow(color: groupStatus.tint.opacity(0.5), radius: isGroupSelected ? 3 : 0)
                     Text(group.projectName).font(Theme.chrome(11, weight: isGroupSelected ? .bold : .semibold))
                         .foregroundColor(isGroupSelected ? Theme.textPrimary : Theme.textSecondary).lineLimit(1)
                     Spacer()
@@ -1248,7 +1247,6 @@ struct SessionCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {
                     Circle().fill(tab.statusPresentation.tint).frame(width: 7, height: 7)
-                        .shadow(color: tab.statusPresentation.tint.opacity(0.5), radius: tab.isRunning ? 3 : 0)
                     Text(tab.projectName)
                         .font(Theme.chrome(11, weight: isSelected ? .semibold : .regular))
                         .foregroundColor(isSelected ? Theme.textPrimary : Theme.textSecondary).lineLimit(1)

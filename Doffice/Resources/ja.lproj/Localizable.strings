@@ -11,6 +11,7 @@
 "retry" = "リトライ";
 
 /* Session states */
+"status.all" = "すべて";
 "status.processing" = "処理中";
 "status.completed" = "完了";
 "status.idle" = "待機中";
@@ -40,6 +41,7 @@
 "git.conflict" = "コンフリクト";
 "git.tags" = "タグ";
 "git.remotes" = "リモート";
+"git.branch.delete" = "ブランチ削除";
 "git.no.git" = "Gitがインストールされていません";
 
 /* Sidebar & Reports */

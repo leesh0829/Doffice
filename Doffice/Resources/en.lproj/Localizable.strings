@@ -11,6 +11,7 @@
 "retry" = "Retry";
 
 /* Session states */
+"status.all" = "All";
 "status.processing" = "Processing";
 "status.completed" = "Completed";
 "status.idle" = "Idle";
@@ -40,6 +41,7 @@
 "git.conflict" = "Conflict";
 "git.tags" = "Tags";
 "git.remotes" = "Remotes";
+"git.branch.delete" = "Delete Branch";
 "git.no.git" = "Git is not installed";
 
 /* Sidebar & Reports */

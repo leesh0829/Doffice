@@ -61,6 +61,18 @@ struct GitPanelView: View {
         case commit = "커밋", push = "푸시", pull = "풀"
         case branch = "브랜치", stash = "스태시"
         case merge = "병합", checkout = "체크아웃"
+
+        var displayName: String {
+            switch self {
+            case .commit: return NSLocalizedString("git.commit", comment: "")
+            case .push: return NSLocalizedString("git.push", comment: "")
+            case .pull: return NSLocalizedString("git.pull", comment: "")
+            case .branch: return NSLocalizedString("git.branch", comment: "")
+            case .stash: return NSLocalizedString("git.stash", comment: "")
+            case .merge: return NSLocalizedString("git.merge", comment: "")
+            case .checkout: return rawValue
+            }
+        }
     }
     enum RightPanelTab: String { case changes, info }
 
@@ -153,9 +165,9 @@ struct GitPanelView: View {
             if !projectPath.isEmpty { git.start(projectPath: projectPath) }
         }
         .sheet(isPresented: $showActionSheet) { actionSheet }
-        .alert("파일 변경사항 삭제", isPresented: $showDiscardAlert) {
-            Button("취소", role: .cancel) { fileToDiscard = nil }
-            Button("삭제", role: .destructive) {
+        .alert(NSLocalizedString("git.discard", comment: ""), isPresented: $showDiscardAlert) {
+            Button(NSLocalizedString("cancel", comment: ""), role: .cancel) { fileToDiscard = nil }
+            Button(NSLocalizedString("delete", comment: ""), role: .destructive) {
                 if let f = fileToDiscard {
                     git.discardFile(path: f.path)
                     showToast("변경사항 삭제됨: \(f.fileName)", icon: "trash.fill", color: Theme.red)
@@ -165,9 +177,9 @@ struct GitPanelView: View {
         } message: {
             Text("'\(fileToDiscard?.fileName ?? "")'의 변경사항을 되돌립니다. 이 작업은 취소할 수 없습니다.")
         }
-        .alert("브랜치 삭제", isPresented: $showDeleteBranchAlert) {
-            Button("취소", role: .cancel) { branchToDelete = nil }
-            Button("삭제", role: .destructive) {
+        .alert(NSLocalizedString("git.branch.delete", comment: ""), isPresented: $showDeleteBranchAlert) {
+            Button(NSLocalizedString("cancel", comment: ""), role: .cancel) { branchToDelete = nil }
+            Button(NSLocalizedString("delete", comment: ""), role: .destructive) {
                 if let b = branchToDelete {
                     git.deleteBranch(name: b) { success in
                         if success {
@@ -183,7 +195,7 @@ struct GitPanelView: View {
             Text("브랜치 '\(branchToDelete ?? "")'를 삭제합니다.")
         }
         .alert("Force Push 경고", isPresented: $showForcePushWarning) {
-            Button("취소", role: .cancel) { }
+            Button(NSLocalizedString("cancel", comment: ""), role: .cancel) { }
             Button("강제 푸시", role: .destructive) {
                 if let tab = activeTab {
                     tab.sendPrompt("현재 브랜치를 리모트에 force push 해주세요.")
@@ -251,10 +263,10 @@ struct GitPanelView: View {
             }
             .buttonStyle(.plain)
 
-            toolbarActionBtn("푸시", icon: "arrow.up.circle.fill", color: Theme.accent) {
+            toolbarActionBtn(NSLocalizedString("git.push", comment: ""), icon: "arrow.up.circle.fill", color: Theme.accent) {
                 executeGitAction(.push, input: "")
             }
-            toolbarActionBtn("풀", icon: "arrow.down.circle.fill", color: Theme.cyan) {
+            toolbarActionBtn(NSLocalizedString("git.pull", comment: ""), icon: "arrow.down.circle.fill", color: Theme.cyan) {
                 executeGitAction(.pull, input: "")
             }
 
@@ -436,7 +448,7 @@ struct GitPanelView: View {
 
                     // Tags section
                     sidebarSection(
-                        title: "태그",
+                        title: NSLocalizedString("git.tags", comment: ""),
                         icon: "tag.fill",
                         color: Theme.yellow,
                         count: allTags.count,
@@ -466,7 +478,7 @@ struct GitPanelView: View {
 
                     // Remotes section
                     sidebarSection(
-                        title: "리모트",
+                        title: NSLocalizedString("git.remotes", comment: ""),
                         icon: "cloud.fill",
                         color: Theme.purple,
                         count: remoteNames.count,
@@ -769,7 +781,7 @@ struct GitPanelView: View {
                     .frame(width: CGFloat(max(git.maxLaneCount, 1)) * 20 + 12)
 
                 HStack(spacing: 8) {
-                    Text("작업 디렉토리")
+                    Text(NSLocalizedString("git.working.directory", comment: ""))
                         .font(Theme.mono(10, weight: .bold))
                         .foregroundColor(Theme.yellow)
 
@@ -977,7 +989,7 @@ struct GitPanelView: View {
         VStack(spacing: 0) {
             // Tab bar
             HStack(spacing: 0) {
-                commitRightTabButton("변경사항", tab: .changes, icon: "doc.text.fill")
+                commitRightTabButton(NSLocalizedString("git.changes", comment: ""), tab: .changes, icon: "doc.text.fill")
                 commitRightTabButton("정보", tab: .info, icon: "info.circle.fill")
                 Spacer()
             }
@@ -1121,7 +1133,7 @@ struct GitPanelView: View {
                 Image(systemName: "folder.badge.gearshape")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(Theme.accent)
-                Text("작업 디렉토리")
+                Text(NSLocalizedString("git.working.directory", comment: ""))
                     .font(Theme.chrome(9, weight: .bold))
                     .foregroundColor(Theme.textPrimary)
                 Spacer()
@@ -1139,7 +1151,7 @@ struct GitPanelView: View {
                     if !git.workingDirStaged.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 6) {
-                                sectionHeader("스테이지됨", count: git.workingDirStaged.count, icon: "checkmark.circle.fill", color: Theme.green)
+                                sectionHeader(NSLocalizedString("git.staged", comment: ""), count: git.workingDirStaged.count, icon: "checkmark.circle.fill", color: Theme.green)
                                 Spacer()
 
                                 // Select All / Deselect All toggle
@@ -1210,7 +1222,7 @@ struct GitPanelView: View {
                                     .buttonStyle(.plain)
 
                                     Button(action: { git.unstageFile(path: f.path); showInfoToast("언스테이지: \(f.fileName)") }) {
-                                        Text("언스테이지")
+                                        Text(NSLocalizedString("git.unstage", comment: ""))
                                             .font(Theme.mono(7, weight: .bold))
                                             .foregroundColor(Theme.orange)
                                             .padding(.horizontal, 6).padding(.vertical, 2)
@@ -1229,7 +1241,7 @@ struct GitPanelView: View {
                     if !git.workingDirUnstaged.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 6) {
-                                sectionHeader("변경사항", count: git.workingDirUnstaged.count, icon: "pencil.circle.fill", color: Theme.orange)
+                                sectionHeader(NSLocalizedString("git.changes", comment: ""), count: git.workingDirUnstaged.count, icon: "pencil.circle.fill", color: Theme.orange)
                                 Spacer()
                                 Button(action: { git.stageAll(); showSuccessToast("전체 파일 스테이지됨") }) {
                                     Text("모두 스테이지")
@@ -1253,7 +1265,7 @@ struct GitPanelView: View {
                                     .buttonStyle(.plain)
 
                                     Button(action: { git.stageFile(path: f.path); showSuccessToast("스테이지: \(f.fileName)") }) {
-                                        Text("스테이지")
+                                        Text(NSLocalizedString("git.stage", comment: ""))
                                             .font(Theme.mono(7, weight: .bold))
                                             .foregroundColor(Theme.green)
                                             .padding(.horizontal, 6).padding(.vertical, 2)
@@ -1266,7 +1278,7 @@ struct GitPanelView: View {
                                         fileToDiscard = f
                                         showDiscardAlert = true
                                     }) {
-                                        Text("삭제")
+                                        Text(NSLocalizedString("git.discard", comment: ""))
                                             .font(Theme.mono(7, weight: .bold))
                                             .foregroundColor(Theme.red)
                                             .padding(.horizontal, 6).padding(.vertical, 2)
@@ -1288,7 +1300,7 @@ struct GitPanelView: View {
                             Image(systemName: "checkmark.circle")
                                 .font(.system(size: 9, weight: .medium))
                                 .foregroundColor(Theme.green)
-                            Text("커밋 메시지")
+                            Text(NSLocalizedString("git.commit.message", comment: ""))
                                 .font(Theme.chrome(9, weight: .bold))
                                 .foregroundColor(Theme.textSecondary)
                         }
@@ -1584,7 +1596,7 @@ struct GitPanelView: View {
             Button(action: { executeGitAction(.push, input: "") }) {
                 HStack(spacing: 3) {
                     Image(systemName: "arrow.up.circle.fill").font(.system(size: 8))
-                    Text("푸시").font(Theme.mono(8, weight: .medium))
+                    Text(NSLocalizedString("git.push", comment: "")).font(Theme.mono(8, weight: .medium))
                     if let br = git.branches.first(where: { $0.isCurrent }), br.ahead > 0 {
                         Text("↑\(br.ahead)")
                             .font(Theme.mono(6, weight: .bold))
@@ -1602,7 +1614,7 @@ struct GitPanelView: View {
             Button(action: { executeGitAction(.pull, input: "") }) {
                 HStack(spacing: 3) {
                     Image(systemName: "arrow.down.circle.fill").font(.system(size: 8))
-                    Text("풀").font(Theme.mono(8, weight: .medium))
+                    Text(NSLocalizedString("git.pull", comment: "")).font(Theme.mono(8, weight: .medium))
                     if let br = git.branches.first(where: { $0.isCurrent }), br.behind > 0 {
                         Text("↓\(br.behind)")
                             .font(Theme.mono(6, weight: .bold))
@@ -1673,7 +1685,7 @@ struct GitPanelView: View {
                             .background(RoundedRectangle(cornerRadius: 3).fill(Theme.green.opacity(0.08)))
                     }.buttonStyle(.plain)
                     Button(action: { git.stashDrop(index: s.id) }) {
-                        Text("삭제").font(Theme.mono(7, weight: .bold)).foregroundColor(Theme.red)
+                        Text(NSLocalizedString("delete", comment: "")).font(Theme.mono(7, weight: .bold)).foregroundColor(Theme.red)
                             .padding(.horizontal, 4).padding(.vertical, 1)
                             .background(RoundedRectangle(cornerRadius: 3).fill(Theme.red.opacity(0.08)))
                     }.buttonStyle(.plain)
@@ -1688,11 +1700,11 @@ struct GitPanelView: View {
 
     private var quickActionGrid: some View {
         let actions: [(String, String, GitAction, Color)] = [
-            ("커밋", "checkmark.circle.fill", .commit, Theme.green),
-            ("푸시", "arrow.up.circle.fill", .push, Theme.accent),
-            ("풀", "arrow.down.circle.fill", .pull, Theme.cyan),
-            ("브랜치", "arrow.triangle.branch", .branch, Theme.purple),
-            ("스태시", "tray.and.arrow.down.fill", .stash, Theme.yellow),
+            (NSLocalizedString("git.commit", comment: ""), "checkmark.circle.fill", .commit, Theme.green),
+            (NSLocalizedString("git.push", comment: ""), "arrow.up.circle.fill", .push, Theme.accent),
+            (NSLocalizedString("git.pull", comment: ""), "arrow.down.circle.fill", .pull, Theme.cyan),
+            (NSLocalizedString("git.branch", comment: ""), "arrow.triangle.branch", .branch, Theme.purple),
+            (NSLocalizedString("git.stash", comment: ""), "tray.and.arrow.down.fill", .stash, Theme.yellow),
             ("병합", "arrow.triangle.merge", .merge, Theme.orange),
         ]
         return VStack(alignment: .leading, spacing: 6) {
@@ -1727,7 +1739,7 @@ struct GitPanelView: View {
         VStack(spacing: 16) {
             HStack {
                 Image(systemName: actionIcon(actionType)).font(.system(size: 16)).foregroundColor(Theme.accent)
-                Text("Git \(actionType.rawValue)").font(Theme.mono(14, weight: .bold)).foregroundColor(Theme.textPrimary)
+                Text("Git \(actionType.displayName)").font(Theme.mono(14, weight: .bold)).foregroundColor(Theme.textPrimary)
                 Spacer()
             }
 
@@ -1735,7 +1747,7 @@ struct GitPanelView: View {
                 switch actionType {
                 case .commit:
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("커밋 메시지").font(Theme.mono(9, weight: .medium)).foregroundColor(Theme.textDim)
+                        Text(NSLocalizedString("git.commit.message", comment: "")).font(Theme.mono(9, weight: .medium)).foregroundColor(Theme.textDim)
                         TextEditor(text: $actionInput).font(Theme.monoNormal).frame(height: 80).padding(4)
                             .background(RoundedRectangle(cornerRadius: 6).fill(Theme.bgSurface))
                             .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.border, lineWidth: 1))
@@ -1783,7 +1795,7 @@ struct GitPanelView: View {
             }
 
             HStack {
-                Button("취소") { showActionSheet = false }
+                Button(NSLocalizedString("cancel", comment: "")) { showActionSheet = false }
                     .font(Theme.mono(10, weight: .medium)).foregroundColor(Theme.textDim)
                     .padding(.horizontal, 16).padding(.vertical, 8)
                     .background(RoundedRectangle(cornerRadius: 6).fill(Theme.bgSurface))

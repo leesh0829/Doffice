@@ -130,7 +130,6 @@ struct OnboardingView: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 22).padding(.vertical, 10)
                     .background(RoundedRectangle(cornerRadius: 10).fill(stepAccent))
-                    .shadow(color: stepAccent.opacity(0.3), radius: 6, y: 3)
                 }
                 .buttonStyle(.plain)
                 .keyboardShortcut(.return, modifiers: [])
@@ -146,7 +145,6 @@ struct OnboardingView: View {
                         RoundedRectangle(cornerRadius: 12)
                             .fill(LinearGradient(colors: [Theme.accent, Theme.purple], startPoint: .leading, endPoint: .trailing))
                     )
-                    .shadow(color: Theme.accent.opacity(0.4), radius: 8, y: 4)
                 }
                 .buttonStyle(.plain)
                 .keyboardShortcut(.return, modifiers: [])

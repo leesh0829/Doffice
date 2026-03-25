@@ -1185,7 +1185,6 @@ struct AchievementToastView: View {
                 RoundedRectangle(cornerRadius: 13)
                     .stroke(achievement.rarity.color.opacity(0.28), lineWidth: 1)
             )
-            .shadow(color: Color.black.opacity(0.16), radius: 12, y: 6)
         }
         .buttonStyle(.plain)
         .help("클릭해서 닫기")
@@ -1332,7 +1331,6 @@ struct AchievementCollectionView: View {
                     RoundedRectangle(cornerRadius: 4)
                         .fill(LinearGradient(colors: [Theme.yellow, Theme.orange], startPoint: .leading, endPoint: .trailing))
                         .frame(width: max(4, geo.size.width * CGFloat(fraction)), height: 8)
-                        .shadow(color: Theme.yellow.opacity(0.3), radius: 4, y: 0)
                 }
             }.frame(height: 8)
 
@@ -1391,7 +1389,7 @@ struct AchievementCollectionView: View {
                 .padding(.horizontal, 12).padding(.vertical, 7)
                 .background(
                     RoundedRectangle(cornerRadius: Theme.cornerMedium).fill(showUnlockedOnly ? Theme.accent.opacity(0.12) : Theme.bgSurface)
-                        .overlay(RoundedRectangle(cornerRadius: Theme.cornerMedium).stroke(showUnlockedOnly ? Theme.accent.opacity(0.3) : Theme.border.opacity(0.2), lineWidth: 0.5))
+                        .overlay(RoundedRectangle(cornerRadius: Theme.cornerMedium).stroke(showUnlockedOnly ? Theme.accent.opacity(0.3) : Theme.border.opacity(0.2), lineWidth: 1))
                 )
             }.buttonStyle(.plain)
         }
@@ -1467,7 +1465,7 @@ struct AchievementCollectionView: View {
                 .font(Theme.mono(8, weight: .bold))
                 .foregroundColor(rarity.color)
                 .padding(.horizontal, 6).padding(.vertical, 2)
-                .background(Capsule().fill(rarity.color.opacity(0.1)).overlay(Capsule().stroke(rarity.color.opacity(0.2), lineWidth: 0.5)))
+                .background(Capsule().fill(rarity.color.opacity(0.1)).overlay(Capsule().stroke(rarity.color.opacity(0.2), lineWidth: 1)))
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
@@ -1587,7 +1585,7 @@ struct AchievementDetailCard: View {
                     ))
                     .frame(width: 120, height: 120)
                 Circle()
-                    .stroke(achievement.rarity.color.opacity(0.15), lineWidth: 1.5)
+                    .stroke(achievement.rarity.color.opacity(0.15), lineWidth: 1)
                     .frame(width: 80, height: 80)
                 Circle()
                     .stroke(achievement.rarity.color.opacity(0.08), lineWidth: 1)
@@ -1646,12 +1644,10 @@ struct AchievementDetailCard: View {
                         LinearGradient(
                             colors: [achievement.rarity.color.opacity(0.5), achievement.rarity.color.opacity(0.15), achievement.rarity.color.opacity(0.5)],
                             startPoint: .topLeading, endPoint: .bottomTrailing
-                        ), lineWidth: 1.5
+                        ), lineWidth: 1
                     )
             }
         )
-        .shadow(color: achievement.rarity.color.opacity(0.35), radius: 30, y: 8)
-        .shadow(color: .black.opacity(0.5), radius: 20, y: 10)
         .onAppear {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.65).delay(0.1)) { appeared = true }
         }
@@ -1793,7 +1789,6 @@ struct AchievementCard: View {
                     lineWidth: 1
                 )
         }
-        .shadow(color: achievement.unlocked ? achievement.rarity.color.opacity(isHovered ? 0.25 : 0.08) : .clear, radius: isHovered ? 12 : 4)
     }
 
     private func fmtDate(_ date: Date) -> String {

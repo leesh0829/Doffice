@@ -11,6 +11,7 @@
 "retry" = "재시도";
 
 /* Session states */
+"status.all" = "전체";
 "status.processing" = "작업 중";
 "status.completed" = "완료";
 "status.idle" = "유휴";
@@ -40,6 +41,7 @@
 "git.conflict" = "충돌";
 "git.tags" = "태그";
 "git.remotes" = "리모트";
+"git.branch.delete" = "브랜치 삭제";
 "git.no.git" = "Git이 설치되지 않았습니다";
 
 /* Sidebar & Reports */

@@ -154,9 +154,8 @@ struct MainView: View {
                 .background(
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Theme.bgCard)
-                        .shadow(color: .black.opacity(0.15), radius: 8, y: -2)
                 )
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.border.opacity(0.3), lineWidth: 0.5))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.border.opacity(0.3), lineWidth: 1))
                 .padding(.horizontal, 20).padding(.bottom, 40)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .animation(.spring(response: 0.3), value: settings.pendingRefresh)
@@ -182,13 +181,13 @@ struct MainView: View {
 
     private var bodyWithAlerts: some View {
         bodyWithSheets
-        .alert("Claude Code 미설치", isPresented: $showClaudeNotInstalledAlert) {
+        .alert(NSLocalizedString("claude.not.installed", comment: ""), isPresented: $showClaudeNotInstalledAlert) {
             Button("설치 방법 보기") {
                 if let url = URL(string: "https://docs.anthropic.com/en/docs/claude-code/overview") {
                     NSWorkspace.shared.open(url)
                 }
             }
-            Button("재시도") {
+            Button(NSLocalizedString("retry", comment: "")) {
                 DispatchQueue.global(qos: .userInitiated).async {
                     ClaudeInstallChecker.shared.check()
                     DispatchQueue.main.async {
@@ -198,12 +197,12 @@ struct MainView: View {
                     }
                 }
             }
-            Button("확인", role: .cancel) {}
+            Button(NSLocalizedString("confirm", comment: ""), role: .cancel) {}
         } message: {
             Text("Claude Code CLI가 설치되어 있지 않습니다.\n\n터미널에서 아래 명령어로 설치해주세요:\n\nnpm install -g @anthropic-ai/claude-code\n\n이미 설치했는데 이 메시지가 보인다면:\n• PATH가 설정되지 않았을 수 있습니다\n• 터미널에서 'which claude'를 실행해 경로를 확인하세요\n• nvm/fnm 등 버전 매니저를 사용 중이라면 셸 프로파일(.zshrc)에 초기화 코드가 있는지 확인하세요\n\n설치 후 '재시도' 버튼을 눌러주세요.")
         }
         .alert(roleNoticeTitle, isPresented: $showRoleNoticeAlert) {
-            Button("확인", role: .cancel) {}
+            Button(NSLocalizedString("confirm", comment: ""), role: .cancel) {}
         } message: {
             Text(roleNoticeMessage)
         }
@@ -311,7 +310,7 @@ struct MainView: View {
                             .foregroundColor(Theme.textDim.opacity(0.6))
                             .frame(width: 26, height: 20)
                             .background(RoundedRectangle(cornerRadius: 5).fill(Theme.bgCard.opacity(0.7)))
-                            .overlay(RoundedRectangle(cornerRadius: 5).stroke(Theme.border.opacity(0.3), lineWidth: 0.5))
+                            .overlay(RoundedRectangle(cornerRadius: 5).stroke(Theme.border.opacity(0.3), lineWidth: 1))
                     }
                     .buttonStyle(.plain)
                     .help(settings.officeViewMode == "grid" ? "선택 캐릭터 포커스로 전환" : "오피스 전체 보기로 전환")
@@ -327,7 +326,7 @@ struct MainView: View {
                             .foregroundColor(Theme.textDim.opacity(0.5))
                             .frame(width: 26, height: 20)
                             .background(RoundedRectangle(cornerRadius: 5).fill(Theme.bgCard.opacity(0.7)))
-                            .overlay(RoundedRectangle(cornerRadius: 5).stroke(Theme.border.opacity(0.3), lineWidth: 0.5))
+                            .overlay(RoundedRectangle(cornerRadius: 5).stroke(Theme.border.opacity(0.3), lineWidth: 1))
                     }
                     .buttonStyle(.plain)
                     .help(officeExpanded ? "오피스 축소" : "오피스 확장")
@@ -559,7 +558,7 @@ struct MainView: View {
             HStack(spacing: 0) {
                 chromeIconButton("rectangle.on.rectangle", help: "오피스 분리") { openOfficeWindow() }
                 chromeIconButton("ladybug.fill", help: "버그 신고") { showBugReport = true }
-                chromeIconButton("gearshape.fill", help: "설정") { showSettings = true }
+                chromeIconButton("gearshape.fill", help: NSLocalizedString("settings", comment: "")) { showSettings = true }
                 chromeIconButton("arrow.clockwise", help: "새로고침 (⌘R)") { manager.refresh() }
                 chromeIconButton(settings.isLocked ? "lock.fill" : "lock.open", help: "세션 잠금") {
                     if settings.lockPIN.isEmpty { settings.isLocked.toggle() } else { settings.isLocked = true }
@@ -764,8 +763,6 @@ struct BillingAlertOverlay: View {
                 RoundedRectangle(cornerRadius: 18)
                     .fill(AppSettings.shared.isDarkMode ? Color(hex: "1a1810") : Color(hex: "fffcf5"))
                     .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.orange.opacity(0.2), lineWidth: 1))
-                    .shadow(color: Theme.orange.opacity(0.12), radius: 25, y: 8)
-                    .shadow(color: Color.black.opacity(0.25), radius: 15, y: 6)
             )
             .scaleEffect(appeared ? 1.0 : 0.85)
             .opacity(appeared ? 1 : 0)
@@ -896,8 +893,6 @@ struct DailyRewardOverlay: View {
                         RoundedRectangle(cornerRadius: 20)
                             .stroke(streakColor.opacity(0.2), lineWidth: 1)
                     )
-                    .shadow(color: streakColor.opacity(0.15), radius: 30, y: 10)
-                    .shadow(color: Color.black.opacity(0.3), radius: 20, y: 8)
             )
             .frame(width: 300)
             .scaleEffect(appeared ? 1.0 : 0.85)

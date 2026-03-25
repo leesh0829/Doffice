@@ -358,7 +358,6 @@ struct CommandPaletteView: View {
             .background(Theme.bgCard)
             .cornerRadius(14)
             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.border.opacity(0.4), lineWidth: 1))
-            .shadow(color: .black.opacity(0.3), radius: 20, y: 8)
             .frame(width: 520)
             .padding(.top, 80)
             .frame(maxHeight: .infinity, alignment: .top)
@@ -522,7 +521,6 @@ struct SavePresetSheet: View {
                                 .fill(color)
                                 .frame(width: 24, height: 24)
                                 .overlay(Circle().stroke(.white.opacity(selectedTint == name ? 0.8 : 0), lineWidth: 2))
-                                .shadow(color: selectedTint == name ? color.opacity(0.5) : .clear, radius: 4)
                         }
                         .buttonStyle(.plain)
                     }
@@ -724,7 +722,6 @@ struct SessionNotificationBannerStack: View {
         .background(Theme.bgCard.opacity(0.95))
         .cornerRadius(10)
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(notif.tint.opacity(0.3), lineWidth: 1))
-        .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
         .onTapGesture {
             if let tabId = notif.tabId {
                 onTapNotification?(tabId)

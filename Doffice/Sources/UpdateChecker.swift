@@ -574,7 +574,6 @@ struct UpdateSheet: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 18).padding(.vertical, 8)
                     .background(RoundedRectangle(cornerRadius: 8).fill(Theme.green))
-                    .shadow(color: Theme.green.opacity(0.3), radius: 4, y: 2)
                 }.buttonStyle(.plain).keyboardShortcut(.return)
             }
 
@@ -603,7 +602,6 @@ struct UpdateSheet: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 18).padding(.vertical, 8)
                     .background(RoundedRectangle(cornerRadius: 8).fill(Theme.green))
-                    .shadow(color: Theme.green.opacity(0.3), radius: 4, y: 2)
                 }.buttonStyle(.plain).keyboardShortcut(.return)
             }
 

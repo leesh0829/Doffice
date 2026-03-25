@@ -2366,35 +2366,35 @@ class TerminalTab: ObservableObject, Identifiable {
 extension TerminalTab {
     var statusPresentation: TabStatusPresentation {
         if startError != nil || claudeActivity == .error {
-            return TabStatusPresentation(category: .attention, label: "오류", symbol: "exclamationmark.triangle.fill", tint: Theme.red, sortPriority: 0)
+            return TabStatusPresentation(category: .attention, label: NSLocalizedString("status.error", comment: ""), symbol: "exclamationmark.triangle.fill", tint: Theme.red, sortPriority: 0)
         }
         if isCompleted {
-            return TabStatusPresentation(category: .completed, label: "완료", symbol: "checkmark.circle.fill", tint: Theme.green, sortPriority: 3)
+            return TabStatusPresentation(category: .completed, label: NSLocalizedString("status.completed", comment: ""), symbol: "checkmark.circle.fill", tint: Theme.green, sortPriority: 3)
         }
         if isProcessing {
             switch claudeActivity {
             case .thinking:
-                return TabStatusPresentation(category: .processing, label: "생각 중", symbol: "brain.head.profile", tint: Theme.purple, sortPriority: 1)
+                return TabStatusPresentation(category: .processing, label: NSLocalizedString("status.thinking", comment: ""), symbol: "brain.head.profile", tint: Theme.purple, sortPriority: 1)
             case .reading:
-                return TabStatusPresentation(category: .processing, label: "읽는 중", symbol: "book.fill", tint: Theme.accent, sortPriority: 1)
+                return TabStatusPresentation(category: .processing, label: NSLocalizedString("status.reading", comment: ""), symbol: "book.fill", tint: Theme.accent, sortPriority: 1)
             case .writing:
-                return TabStatusPresentation(category: .processing, label: "작성 중", symbol: "square.and.pencil", tint: Theme.green, sortPriority: 1)
+                return TabStatusPresentation(category: .processing, label: NSLocalizedString("status.writing", comment: ""), symbol: "square.and.pencil", tint: Theme.green, sortPriority: 1)
             case .searching:
-                return TabStatusPresentation(category: .processing, label: "검색 중", symbol: "magnifyingglass", tint: Theme.cyan, sortPriority: 1)
+                return TabStatusPresentation(category: .processing, label: NSLocalizedString("status.searching", comment: ""), symbol: "magnifyingglass", tint: Theme.cyan, sortPriority: 1)
             case .running:
-                return TabStatusPresentation(category: .processing, label: "실행 중", symbol: "terminal.fill", tint: Theme.yellow, sortPriority: 1)
+                return TabStatusPresentation(category: .processing, label: NSLocalizedString("status.running", comment: ""), symbol: "terminal.fill", tint: Theme.yellow, sortPriority: 1)
             case .done:
-                return TabStatusPresentation(category: .completed, label: "완료", symbol: "checkmark.circle.fill", tint: Theme.green, sortPriority: 3)
+                return TabStatusPresentation(category: .completed, label: NSLocalizedString("status.completed", comment: ""), symbol: "checkmark.circle.fill", tint: Theme.green, sortPriority: 3)
             case .error:
-                return TabStatusPresentation(category: .attention, label: "오류", symbol: "exclamationmark.triangle.fill", tint: Theme.red, sortPriority: 0)
+                return TabStatusPresentation(category: .attention, label: NSLocalizedString("status.error", comment: ""), symbol: "exclamationmark.triangle.fill", tint: Theme.red, sortPriority: 0)
             case .idle:
-                return TabStatusPresentation(category: .active, label: "활성", symbol: "bolt.circle.fill", tint: Theme.green.opacity(0.85), sortPriority: 2)
+                return TabStatusPresentation(category: .active, label: NSLocalizedString("status.active", comment: ""), symbol: "bolt.circle.fill", tint: Theme.green.opacity(0.85), sortPriority: 2)
             }
         }
         if isRunning {
             return TabStatusPresentation(category: .active, label: "대기", symbol: "pause.circle.fill", tint: Theme.green.opacity(0.75), sortPriority: 2)
         }
-        return TabStatusPresentation(category: .idle, label: "유휴", symbol: "moon.zzz.fill", tint: Theme.textDim, sortPriority: 4)
+        return TabStatusPresentation(category: .idle, label: NSLocalizedString("status.idle", comment: ""), symbol: "moon.zzz.fill", tint: Theme.textDim, sortPriority: 4)
     }
 
     var sidebarSearchTokens: String {

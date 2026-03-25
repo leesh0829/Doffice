@@ -17,6 +17,27 @@ struct OfficeSpriteRenderer {
 
     // Sprite cache: keyed by color combination string → CharacterSpriteSet
     private static var spriteCache: [String: CharacterSpriteSet] = [:]
+
+    // Pre-allocated bubble text arrays to avoid per-frame allocation
+    private static let greetTexts0 = ["(ᵔᴥᵔ)", "ヾ(＾∇＾)", "(◕‿◕)", "\\(^o^)/"]
+    private static let greetTexts1 = ["(＾▽＾)", "(｡◕‿◕｡)", "٩(◕‿◕)۶", "(づ｡◕‿‿◕｡)づ"]
+    private static let chatTexts0 = ["(¬‿¬)", "ᕕ(ᐛ)ᕗ", "(•̀ᴗ•́)و", "( ˘▽˘)っ♨"]
+    private static let chatTexts1 = ["(≧◡≦)", "ʕ•ᴥ•ʔ", "(ノ◕ヮ◕)ノ*:・゚✧", "٩(♡ε♡)۶"]
+    private static let brainTexts0 = ["(°ロ°)☝", "φ(._.)メモメモ", "(⌐■_■)", "ᕦ(ò_óˇ)ᕤ"]
+    private static let brainTexts1 = ["(☞ﾟ∀ﾟ)☞", "( •_•)>⌐■-■", "ψ(._. )>", "(╯°□°)╯︵ ┻━┻"]
+    private static let coffeeTexts0 = ["☕(◕‿◕)", "(っ˘ω˘c)♨", "( ˘⌣˘)❤☕", "✧(˘⌣˘)☕"]
+    private static let coffeeTexts1 = ["(⊃˘▽˘)⊃☕", "☕(⌐■_■)", "(´∀`)♨", "☕✧(◕‿◕✿)"]
+    private static let highFiveTexts0 = ["(つ≧▽≦)つ", "ε=ε=(ノ≧∇≦)ノ", "(ﾉ◕ヮ◕)ﾉ*:・゚✧", "( •̀ω•́ )σ"]
+    private static let highFiveTexts1 = ["⊂(◉‿◉)つ", "(ノ´ヮ`)ノ*: ・゚✧", "\\(★ω★)/", "(*≧▽≦)ノシ"]
+
+    // Pre-allocated activity reaction arrays to avoid per-frame allocation
+    private static let typingReactions = ["⌨️ ᵗᵃᵏ", "✎ ᵗᵃᵏ", "⌨ᵈᵃᵈᵃ", "⚡⌨⚡"]
+    private static let readingReactions = ["📖...", "🔍hmm", "👀...", "📄✓"]
+    private static let searchingReactions = ["🔎...", "🧐?", "🗂️...", "📂✓"]
+    private static let errorReactions = ["(╥_╥)", "╥﹏╥", "(ᗒᗣᗕ)՞", "( ꈨ◞ )"]
+    private static let thinkingReactions = ["(·_·)", "🤔...", "φ(._.)", "(ᵕ≀ᵕ)"]
+    private static let celebratingReactions = ["🎉✧", "\\(ᵔᵕᵔ)/", "٩(◕‿◕)۶", "★彡"]
+    private static let idleReactions = ["(¬_¬)", "(-_-) zzZ", "(˘ω˘)", "( ˙꒳˙ )"]
     private let windowColumns: Set<Int> = [3, 4, 5, 9, 10, 11, 15, 16, 17, 21, 22, 23, 31, 32, 33, 37, 38, 39]
     private var palette: OfficeScenePalette { OfficeScenePalette(theme: theme, dark: dark) }
 
@@ -2116,29 +2137,19 @@ struct OfficeSpriteRenderer {
             switch mode {
             case .greeting:
                 color = Color(hex: "5AF078")
-                texts = role == 0
-                    ? ["(ᵔᴥᵔ)", "ヾ(＾∇＾)", "(◕‿◕)", "\\(^o^)/"]
-                    : ["(＾▽＾)", "(｡◕‿◕｡)", "٩(◕‿◕)۶", "(づ｡◕‿‿◕｡)づ"]
+                texts = role == 0 ? Self.greetTexts0 : Self.greetTexts1
             case .chatting:
                 color = Color(hex: "78C8F0")
-                texts = role == 0
-                    ? ["(¬‿¬)", "ᕕ(ᐛ)ᕗ", "(•̀ᴗ•́)و", "( ˘▽˘)っ♨"]
-                    : ["(≧◡≦)", "ʕ•ᴥ•ʔ", "(ノ◕ヮ◕)ノ*:・゚✧", "٩(♡ε♡)۶"]
+                texts = role == 0 ? Self.chatTexts0 : Self.chatTexts1
             case .brainstorming:
                 color = Color(hex: "C88AF0")
-                texts = role == 0
-                    ? ["(°ロ°)☝", "φ(._.)メモメモ", "(⌐■_■)", "ᕦ(ò_óˇ)ᕤ"]
-                    : ["(☞ﾟ∀ﾟ)☞", "( •_•)>⌐■-■", "ψ(._. )>", "(╯°□°)╯︵ ┻━┻"]
+                texts = role == 0 ? Self.brainTexts0 : Self.brainTexts1
             case .coffee:
                 color = Color(hex: "E8A850")
-                texts = role == 0
-                    ? ["☕(◕‿◕)", "(っ˘ω˘c)♨", "( ˘⌣˘)❤☕", "✧(˘⌣˘)☕"]
-                    : ["(⊃˘▽˘)⊃☕", "☕(⌐■_■)", "(´∀`)♨", "☕✧(◕‿◕✿)"]
+                texts = role == 0 ? Self.coffeeTexts0 : Self.coffeeTexts1
             case .highFive:
                 color = Color(hex: "F0D850")
-                texts = role == 0
-                    ? ["(つ≧▽≦)つ", "ε=ε=(ノ≧∇≦)ノ", "(ﾉ◕ヮ◕)ﾉ*:・゚✧", "( •̀ω•́ )σ"]
-                    : ["⊂(◉‿◉)つ", "(ノ´ヮ`)ノ*: ・゚✧", "\\(★ω★)/", "(*≧▽≦)ノシ"]
+                texts = role == 0 ? Self.highFiveTexts0 : Self.highFiveTexts1
             }
 
             let text = texts[phase % texts.count]
@@ -2155,28 +2166,21 @@ struct OfficeSpriteRenderer {
 
             switch char.state {
             case .typing:
-                let reactions = ["⌨️ ᵗᵃᵏ", "✎ ᵗᵃᵏ", "⌨ᵈᵃᵈᵃ", "⚡⌨⚡"]
-                return (reactions[frame / 18 % reactions.count], Color(hex: "5AF078"))
+                return (Self.typingReactions[frame / 18 % Self.typingReactions.count], Color(hex: "5AF078"))
             case .reading:
-                let reactions = ["📖...", "🔍hmm", "👀...", "📄✓"]
-                return (reactions[frame / 18 % reactions.count], Color(hex: "78C8F0"))
+                return (Self.readingReactions[frame / 18 % Self.readingReactions.count], Color(hex: "78C8F0"))
             case .searching:
-                let reactions = ["🔎...", "🧐?", "🗂️...", "📂✓"]
-                return (reactions[frame / 18 % reactions.count], Color(hex: "C88AF0"))
+                return (Self.searchingReactions[frame / 18 % Self.searchingReactions.count], Color(hex: "C88AF0"))
             case .error:
-                let reactions = ["(╥_╥)", "╥﹏╥", "(ᗒᗣᗕ)՞", "( ꈨ◞ )"]
-                return (reactions[frame / 12 % reactions.count], Color(hex: "F06868"))
+                return (Self.errorReactions[frame / 12 % Self.errorReactions.count], Color(hex: "F06868"))
             case .thinking:
-                let reactions = ["(·_·)", "🤔...", "φ(._.)", "(ᵕ≀ᵕ)"]
-                return (reactions[frame / 24 % reactions.count], Color(hex: "E8A850"))
+                return (Self.thinkingReactions[frame / 24 % Self.thinkingReactions.count], Color(hex: "E8A850"))
             case .celebrating:
-                let reactions = ["🎉✧", "\\(ᵔᵕᵔ)/", "٩(◕‿◕)۶", "★彡"]
-                return (reactions[frame / 12 % reactions.count], Color(hex: "F0D850"))
+                return (Self.celebratingReactions[frame / 12 % Self.celebratingReactions.count], Color(hex: "F0D850"))
             case .sittingIdle:
                 // Only idle characters sometimes show reactions (rarely)
                 guard (frame / 36 + char.tileCol * 7) % 20 == 0 else { return nil }
-                let reactions = ["(¬_¬)", "(-_-) zzZ", "(˘ω˘)", "( ˙꒳˙ )"]
-                return (reactions[(frame / 36 + char.tileCol) % reactions.count], Color(hex: "8690a4"))
+                return (Self.idleReactions[(frame / 36 + char.tileCol) % Self.idleReactions.count], Color(hex: "8690a4"))
             default:
                 return nil
             }

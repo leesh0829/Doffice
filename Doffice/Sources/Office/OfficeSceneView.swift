@@ -257,7 +257,7 @@ struct OfficeSceneView: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 5)
                 .background(
-                    RoundedRectangle(cornerRadius: 7)
+                    RoundedRectangle(cornerRadius: Theme.cornerMedium)
                         .fill(Theme.purple.opacity(0.1))
                 )
             }
@@ -284,9 +284,9 @@ struct OfficeSceneView: View {
             }
         }
         .frame(width: 250, alignment: .leading)
-        .appPanelStyle(padding: 12, radius: 14, fill: Theme.bgCard.opacity(0.92), strokeOpacity: 0.20, shadow: true)
+        .appPanelStyle(padding: Theme.sp3, radius: Theme.cornerXL, fill: Theme.bgCard.opacity(0.92), strokeOpacity: 0.20, shadow: false)
         .overlay(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: Theme.cornerXL)
                 .stroke(tab.workerColor.opacity(0.26), lineWidth: 1)
         )
         .accessibilityElement(children: .combine)
@@ -316,17 +316,16 @@ struct OfficeSceneView: View {
                 .foregroundColor(Theme.textPrimary)
                 .lineLimit(1)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, Theme.sp3)
+        .padding(.vertical, Theme.sp2)
         .background(
-            Capsule()
+            RoundedRectangle(cornerRadius: Theme.cornerSmall)
                 .fill(Theme.bgCard.opacity(0.94))
                 .overlay(
-                    Capsule()
+                    RoundedRectangle(cornerRadius: Theme.cornerSmall)
                         .stroke(Theme.orange.opacity(0.3), lineWidth: 1)
                 )
         )
-        .shadow(color: Color.black.opacity(settings.isDarkMode ? 0.18 : 0.08), radius: 10, y: 4)
     }
 
     private var editPanel: some View {
@@ -351,41 +350,40 @@ struct OfficeSceneView: View {
                     store.saveCurrentLayout()
                 }
                 .buttonStyle(.plain)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(RoundedRectangle(cornerRadius: 7).fill(Theme.accent.opacity(0.16)))
-                .overlay(RoundedRectangle(cornerRadius: 7).stroke(Theme.accent.opacity(0.36), lineWidth: 1))
+                .padding(.horizontal, Theme.sp3)
+                .padding(.vertical, Theme.sp2 - 2)
+                .background(RoundedRectangle(cornerRadius: Theme.cornerMedium).fill(Theme.accent.opacity(0.16)))
+                .overlay(RoundedRectangle(cornerRadius: Theme.cornerMedium).stroke(Theme.accent.opacity(0.36), lineWidth: 1))
 
                 Button("초기화") {
                     store.resetCurrentLayout(with: manager.userVisibleTabs)
                     selectedFurnitureId = nil
                 }
                 .buttonStyle(.plain)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(RoundedRectangle(cornerRadius: 7).fill(Theme.bgCard.opacity(0.9)))
-                .overlay(RoundedRectangle(cornerRadius: 7).stroke(Theme.border.opacity(0.7), lineWidth: 1))
+                .padding(.horizontal, Theme.sp3)
+                .padding(.vertical, Theme.sp2 - 2)
+                .background(RoundedRectangle(cornerRadius: Theme.cornerMedium).fill(Theme.bgCard.opacity(0.9)))
+                .overlay(RoundedRectangle(cornerRadius: Theme.cornerMedium).stroke(Theme.border.opacity(0.7), lineWidth: 1))
 
                 Button("완료") {
                     settings.isEditMode = false
                 }
                 .buttonStyle(.plain)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(RoundedRectangle(cornerRadius: 7).fill(Theme.yellow.opacity(0.14)))
-                .overlay(RoundedRectangle(cornerRadius: 7).stroke(Theme.yellow.opacity(0.34), lineWidth: 1))
+                .padding(.horizontal, Theme.sp3)
+                .padding(.vertical, Theme.sp2 - 2)
+                .background(RoundedRectangle(cornerRadius: Theme.cornerMedium).fill(Theme.yellow.opacity(0.14)))
+                .overlay(RoundedRectangle(cornerRadius: Theme.cornerMedium).stroke(Theme.yellow.opacity(0.34), lineWidth: 1))
             }
         }
-        .padding(12)
+        .padding(Theme.sp3)
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: Theme.cornerXL)
                 .fill(Theme.bgCard.opacity(0.92))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Theme.border.opacity(0.8), lineWidth: 1)
+            RoundedRectangle(cornerRadius: Theme.cornerXL)
+                .stroke(Theme.border, lineWidth: 1)
         )
-        .shadow(color: Color.black.opacity(settings.isDarkMode ? 0.18 : 0.08), radius: 10, y: 4)
     }
 
     private func infoStat(title: String, value: String, tint: Color) -> some View {
@@ -399,10 +397,10 @@ struct OfficeSceneView: View {
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, Theme.sp3)
+        .padding(.vertical, Theme.sp2)
         .background(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: Theme.cornerLarge)
                 .fill(Theme.bgSurface.opacity(0.85))
         )
     }
@@ -439,11 +437,11 @@ struct OfficeSceneView: View {
                 .disabled(store.followZoomLevel >= 3.0)
             }
             .background(
-                RoundedRectangle(cornerRadius: 7)
+                RoundedRectangle(cornerRadius: Theme.cornerMedium)
                     .fill(Theme.bgCard.opacity(0.94))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 7)
-                            .stroke(Theme.border.opacity(0.5), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: Theme.cornerMedium)
+                            .stroke(Theme.border, lineWidth: 1)
                     )
             )
 
@@ -460,20 +458,19 @@ struct OfficeSceneView: View {
                         .font(.system(size: Theme.iconSize(9)))
                         .foregroundColor(Theme.textDim)
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 7)
+                .padding(.horizontal, Theme.sp3)
+                .padding(.vertical, Theme.sp2 - 1)
                 .background(
-                    Capsule()
+                    RoundedRectangle(cornerRadius: Theme.cornerSmall)
                         .fill(Theme.bgCard.opacity(0.94))
                         .overlay(
-                            Capsule()
+                            RoundedRectangle(cornerRadius: Theme.cornerSmall)
                                 .stroke(Theme.cyan.opacity(0.35), lineWidth: 1)
                         )
                 )
             }
             .buttonStyle(.plain)
         }
-        .shadow(color: Color.black.opacity(settings.isDarkMode ? 0.2 : 0.08), radius: 8, y: 3)
     }
 
     private func roleTint(for role: WorkerJob) -> Color {

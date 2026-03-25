@@ -71,8 +71,8 @@ struct TerminalAreaView: View {
                 Image(systemName: icon).font(.system(size: Theme.iconSize(9)))
                 Text(label).font(Theme.chrome(8, weight: selected ? .bold : .regular))
             }
-            .foregroundColor(selected ? Theme.accent : Theme.textDim).padding(.horizontal, 6).padding(.vertical, 4)
-            .background(RoundedRectangle(cornerRadius: 4).fill(selected ? Theme.accent.opacity(0.12) : .clear))
+            .foregroundColor(selected ? Theme.accent : Theme.textDim).padding(.horizontal, Theme.sp2 - 2).padding(.vertical, Theme.sp1)
+            .background(RoundedRectangle(cornerRadius: Theme.cornerSmall).fill(selected ? Theme.accent.opacity(0.12) : .clear))
         }.buttonStyle(.plain)
     }
     private func singleTabBtn(_ t: TerminalTab) -> some View {
@@ -93,8 +93,8 @@ struct TerminalAreaView: View {
                 if manager.userVisibleTabs.filter({ $0.projectPath == t.projectPath }).count > 1 {
                     Text(t.workerName).font(Theme.chrome(9)).foregroundColor(t.workerColor)
                 }
-            }.padding(.horizontal, 8).padding(.vertical, 4)
-            .background(RoundedRectangle(cornerRadius: 5).fill(a ? Theme.bgSelected : .clear))
+            }.padding(.horizontal, Theme.sp2).padding(.vertical, Theme.sp1)
+            .background(RoundedRectangle(cornerRadius: Theme.cornerSmall).fill(a ? Theme.bgSelected : .clear))
         }.buttonStyle(.plain)
     }
 
@@ -120,9 +120,9 @@ struct TerminalAreaView: View {
                     Text(t.workerName).font(Theme.chrome(9)).foregroundColor(t.workerColor)
                 }
             }
-            .padding(.horizontal, 8).padding(.vertical, 4)
-            .background(RoundedRectangle(cornerRadius: 5).fill(isPinned ? Theme.accent.opacity(0.12) : .clear)
-                .overlay(RoundedRectangle(cornerRadius: 5).stroke(isPinned ? Theme.accent.opacity(0.3) : .clear, lineWidth: 1)))
+            .padding(.horizontal, Theme.sp2).padding(.vertical, Theme.sp1)
+            .background(RoundedRectangle(cornerRadius: Theme.cornerSmall).fill(isPinned ? Theme.accent.opacity(0.12) : .clear)
+                .overlay(RoundedRectangle(cornerRadius: Theme.cornerSmall).stroke(isPinned ? Theme.accent.opacity(0.3) : .clear, lineWidth: 1)))
         }.buttonStyle(.plain)
         .help("클릭하여 그리드에 표시/숨기기")
     }
@@ -764,7 +764,6 @@ struct EventStreamView: View {
             if let approval = tab.pendingApproval {
                 Color.black.opacity(0.4).ignoresSafeArea()
                 ApprovalSheet(approval: approval)
-                    .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
             }
         }
         .overlay {
@@ -772,7 +771,6 @@ struct EventStreamView: View {
                 Color.black.opacity(0.4).ignoresSafeArea()
                     .onTapGesture { showSleepWorkSetup = false }
                 SleepWorkSetupSheet(tab: tab, onDismiss: { showSleepWorkSetup = false })
-                    .shadow(color: .black.opacity(0.3), radius: 20, y: 10)
             }
         }
         // 보안 경고 오버레이
@@ -811,11 +809,11 @@ struct EventStreamView: View {
                     .foregroundColor(color.opacity(0.5))
             }.buttonStyle(.plain)
         }
-        .padding(10)
+        .padding(Theme.sp3)
         .background(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: Theme.cornerLarge)
                 .fill(color.opacity(0.08))
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(color.opacity(0.3), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: Theme.cornerLarge).stroke(color.opacity(0.3), lineWidth: 1))
         )
         .transition(.move(edge: .top).combined(with: .opacity))
     }
@@ -876,7 +874,7 @@ struct EventStreamView: View {
                 }
                 .foregroundColor(showFilterBar || blockFilter.isActive ? Theme.accent : Theme.textDim)
                 .padding(.horizontal, 5).padding(.vertical, 2)
-                .background(showFilterBar ? Theme.accent.opacity(0.08) : .clear).cornerRadius(4)
+                .background(showFilterBar ? Theme.accent.opacity(0.08) : .clear).cornerRadius(Theme.cornerSmall)
             }.buttonStyle(.plain).help("로그 필터")
 
             Button(action: { withAnimation(.easeInOut(duration: 0.15)) { showFilePanel.toggle() } }) {
@@ -886,10 +884,10 @@ struct EventStreamView: View {
                 }
                 .foregroundColor(showFilePanel ? Theme.accent : Theme.textDim)
                 .padding(.horizontal, 5).padding(.vertical, 2)
-                .background(showFilePanel ? Theme.accent.opacity(0.08) : .clear).cornerRadius(4)
+                .background(showFilePanel ? Theme.accent.opacity(0.08) : .clear).cornerRadius(Theme.cornerSmall)
             }.buttonStyle(.plain).help("파일 변경")
         }
-        .padding(.horizontal, 12).padding(.vertical, 5)
+        .padding(.horizontal, Theme.sp3).padding(.vertical, 5)
         .background(Theme.bgSurface.opacity(0.5))
         .overlay(Rectangle().fill(Theme.border).frame(height: 1), alignment: .bottom)
     }
@@ -1029,6 +1027,10 @@ struct EventStreamView: View {
     }
 
     private var filteredBlocks: [StreamBlock] {
+        // Fast path: no filtering needed
+        if tab.outputMode == .full && !blockFilter.isActive {
+            return tab.blocks
+        }
         var blocks: [StreamBlock]
         switch tab.outputMode {
         case .full: blocks = tab.blocks
@@ -1126,7 +1128,7 @@ struct EventStreamView: View {
                                         .resizable().scaledToFill()
                                         .frame(width: 48, height: 48)
                                         .clipShape(RoundedRectangle(cornerRadius: 6))
-                                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.border, lineWidth: 0.5))
+                                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.border, lineWidth: 1))
                                 } else {
                                     RoundedRectangle(cornerRadius: 6).fill(Theme.bgSurface)
                                         .frame(width: 48, height: 48)
@@ -1742,7 +1744,7 @@ struct EventStreamView: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 4)
-                        .stroke(isSelected ? color.opacity(0.3) : .clear, lineWidth: 0.5)
+                        .stroke(isSelected ? color.opacity(0.3) : .clear, lineWidth: 1)
                 )
         }.buttonStyle(.plain)
     }
@@ -2220,7 +2222,7 @@ struct MarkdownTextView: View {
                         .padding(8)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(RoundedRectangle(cornerRadius: 6).fill(Theme.bg))
-                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.border.opacity(0.5), lineWidth: 0.5))
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.border, lineWidth: 1))
                         .textSelection(.enabled)
                 case .bullet(let content):
                     HStack(alignment: .top, spacing: 6) {
@@ -2323,7 +2325,7 @@ struct MarkdownTextView: View {
             }
         }
         .background(RoundedRectangle(cornerRadius: 6).fill(Theme.bgSurface.opacity(0.5)))
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.border.opacity(0.5), lineWidth: 0.5))
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.border, lineWidth: 1))
     }
 
     // MARK: - Block Parser
@@ -2580,7 +2582,7 @@ struct GridSinglePanel: View {
             EventStreamView(tab: tab, compact: true)
         }
         .background(RoundedRectangle(cornerRadius: 8).fill(Theme.bgCard))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(isSelected ? Theme.accent.opacity(0.5) : Theme.border, lineWidth: isSelected ? 1.5 : 0.5))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(isSelected ? Theme.accent.opacity(0.5) : Theme.border, lineWidth: 1))
     }
 }
 
@@ -2630,7 +2632,7 @@ struct GridGroupPanel: View {
                     EventStreamView(tab: activeTab, compact: true)
                 }
                 .background(RoundedRectangle(cornerRadius: 8).fill(Theme.bgCard))
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(group.hasActiveTab ? Theme.accent.opacity(0.5) : Theme.border, lineWidth: group.hasActiveTab ? 1.5 : 0.5))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(group.hasActiveTab ? Theme.accent.opacity(0.5) : Theme.border, lineWidth: 1))
                 .onTapGesture { manager.selectTab(activeTab.id) }
             } else {
                 EmptyView()
@@ -3385,7 +3387,7 @@ struct NewTabSheet: View {
                                     .foregroundColor(Theme.green)
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
-                                    .background(Capsule().fill(Theme.green.opacity(0.10)))
+                                    .background(RoundedRectangle(cornerRadius: Theme.cornerSmall).fill(Theme.green.opacity(0.10)))
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
