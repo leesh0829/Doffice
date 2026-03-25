@@ -5,6 +5,7 @@ DerivedData/
 *.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
 *.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+*.xcodeproj/project.xcworkspace/xcuserdata/
 
 # macOS
 .DS_Store
@@ -20,3 +21,10 @@ Carthage/
 *.ipa
 *.dSYM.zip
 *.dSYM
+
+# App recovery data (user-specific, should not be in repo)
+.workman/recovery/
+
+# User state
+*.xcuserstate
+UserInterfaceState.xcuserstate
