@@ -44,7 +44,7 @@ struct TerminalAreaView: View {
                             Button(action: { manager.clearPinnedTabs() }) {
                                 HStack(spacing: 3) {
                                     Image(systemName: "xmark.circle.fill").font(.system(size: 8))
-                                    Text("선택 해제").font(Theme.chrome(8))
+                                    Text(NSLocalizedString("terminal.deselect", comment: "")).font(Theme.chrome(8))
                                 }
                                 .foregroundColor(Theme.textDim)
                                 .padding(.horizontal, 6).padding(.vertical, 3)
@@ -124,7 +124,7 @@ struct TerminalAreaView: View {
             .background(RoundedRectangle(cornerRadius: Theme.cornerSmall).fill(isPinned ? Theme.accent.opacity(0.12) : .clear)
                 .overlay(RoundedRectangle(cornerRadius: Theme.cornerSmall).stroke(isPinned ? Theme.accent.opacity(0.3) : .clear, lineWidth: 1)))
         }.buttonStyle(.plain)
-        .help("클릭하여 그리드에 표시/숨기기")
+        .help(NSLocalizedString("terminal.help.grid.toggle", comment: ""))
     }
 }
 
@@ -164,14 +164,14 @@ struct EventStreamView: View {
         let category: String
         let action: (TerminalTab, SessionManager, [String]) -> Void
 
-        init(_ name: String, _ desc: String, usage: String = "", category: String = "일반", action: @escaping (TerminalTab, SessionManager, [String]) -> Void) {
+        init(_ name: String, _ desc: String, usage: String = "", category: String = NSLocalizedString("slash.category.general", comment: ""), action: @escaping (TerminalTab, SessionManager, [String]) -> Void) {
             self.name = name; self.description = desc; self.usage = usage; self.category = category; self.action = action
         }
     }
 
     private static let allSlashCommands: [SlashCommand] = [
         // ── 일반 ──
-        SlashCommand("help", "사용 가능한 명령어 목록", category: "일반") { tab, _, args in
+        SlashCommand("help", NSLocalizedString("slash.cmd.help", comment: ""), category: NSLocalizedString("slash.category.general", comment: "")) { tab, _, args in
             let cmds = EventStreamView.allSlashCommands
             if let query = args.first?.lowercased() {
                 let filtered = cmds.filter { $0.name.contains(query) || $0.description.contains(query) }
@@ -181,7 +181,7 @@ struct EventStreamView: View {
             } else {
                 var grouped: [String: [SlashCommand]] = [:]
                 for c in cmds { grouped[c.category, default: []].append(c) }
-                let order = ["일반", "모델/설정", "세션", "화면", "Git", "도구"]
+                let order = [NSLocalizedString("slash.category.general", comment: ""), NSLocalizedString("slash.category.model", comment: ""), NSLocalizedString("slash.category.session", comment: ""), NSLocalizedString("slash.category.display", comment: ""), "Git", NSLocalizedString("slash.category.tools", comment: "")]
                 var text = "📜 명령어 목록 (/help <키워드>로 검색)\n"
                 for cat in order {
                     guard let list = grouped[cat] else { continue }
@@ -191,26 +191,26 @@ struct EventStreamView: View {
                 tab.appendBlock(.status(message: text))
             }
         },
-        SlashCommand("clear", "이벤트 스트림 초기화", category: "일반") { tab, _, _ in
+        SlashCommand("clear", NSLocalizedString("slash.cmd.clear", comment: ""), category: NSLocalizedString("slash.category.general", comment: "")) { tab, _, _ in
             tab.clearBlocks()
             tab.appendBlock(.status(message: "🗑️ 로그가 초기화되었습니다"))
         },
-        SlashCommand("cancel", "현재 작업 취소", category: "일반") { tab, _, _ in
+        SlashCommand("cancel", NSLocalizedString("slash.cmd.cancel", comment: ""), category: NSLocalizedString("slash.category.general", comment: "")) { tab, _, _ in
             if tab.isProcessing { tab.cancelProcessing() }
             else { tab.appendBlock(.status(message: "ℹ️ 실행 중인 작업이 없습니다")) }
         },
-        SlashCommand("stop", "진행 중인 명령어 강제 중지 (SIGKILL)", category: "일반") { tab, _, _ in
+        SlashCommand("stop", NSLocalizedString("slash.cmd.stop", comment: ""), category: NSLocalizedString("slash.category.general", comment: "")) { tab, _, _ in
             if tab.isProcessing || tab.isRunning { tab.forceStop() }
             else { tab.appendBlock(.status(message: "ℹ️ 실행 중인 작업이 없습니다")) }
         },
-        SlashCommand("copy", "마지막 응답을 클립보드에 복사", category: "일반") { tab, _, _ in
+        SlashCommand("copy", NSLocalizedString("slash.cmd.copy", comment: ""), category: NSLocalizedString("slash.category.general", comment: "")) { tab, _, _ in
             if let last = tab.blocks.last(where: { if case .thought = $0.blockType { return true }; if case .completion = $0.blockType { return true }; return false }) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(last.content, forType: .string)
                 tab.appendBlock(.status(message: "📋 클립보드에 복사되었습니다 (\(last.content.count)자)"))
             } else { tab.appendBlock(.status(message: "⚠️ 복사할 응답이 없습니다")) }
         },
-        SlashCommand("export", "대화 로그를 파일로 저장", category: "일반") { tab, _, _ in
+        SlashCommand("export", NSLocalizedString("slash.cmd.export", comment: ""), category: NSLocalizedString("slash.category.general", comment: "")) { tab, _, _ in
             let text = tab.blocks.map { block -> String in
                 let prefix: String
                 switch block.blockType {
@@ -234,7 +234,7 @@ struct EventStreamView: View {
         },
 
         // ── 모델/설정 ──
-        SlashCommand("model", "모델 변경", usage: "<opus|sonnet|haiku>", category: "모델/설정") { tab, _, args in
+        SlashCommand("model", NSLocalizedString("slash.cmd.model", comment: ""), usage: "<opus|sonnet|haiku>", category: NSLocalizedString("slash.category.model", comment: "")) { tab, _, args in
             guard let arg = args.first?.lowercased(),
                   let model = ClaudeModel.allCases.first(where: { $0.rawValue.lowercased().contains(arg) }) else {
                 let current = tab.selectedModel
@@ -244,7 +244,7 @@ struct EventStreamView: View {
             tab.selectedModel = model
             tab.appendBlock(.status(message: "🤖 모델 변경: \(model.icon) \(model.rawValue)"))
         },
-        SlashCommand("effort", "노력 수준 변경", usage: "<low|medium|high|max>", category: "모델/설정") { tab, _, args in
+        SlashCommand("effort", NSLocalizedString("slash.cmd.effort", comment: ""), usage: "<low|medium|high|max>", category: NSLocalizedString("slash.category.model", comment: "")) { tab, _, args in
             guard let arg = args.first?.lowercased(),
                   let effort = EffortLevel.allCases.first(where: { $0.rawValue.lowercased() == arg }) else {
                 let current = tab.effortLevel
@@ -252,108 +252,108 @@ struct EventStreamView: View {
                 return
             }
             tab.effortLevel = effort
-            tab.appendBlock(.status(message: "💪 노력 수준 변경: \(effort.icon) \(effort.rawValue)"))
+            tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.effort.changed", comment: ""), effort.icon, effort.rawValue)))
         },
-        SlashCommand("output", "출력 모드 변경", usage: "<full|realtime|result>", category: "모델/설정") { tab, _, args in
+        SlashCommand("output", NSLocalizedString("slash.cmd.output", comment: ""), usage: "<full|realtime|result>", category: NSLocalizedString("slash.category.model", comment: "")) { tab, _, args in
             guard let arg = args.first?.lowercased() else {
-                tab.appendBlock(.status(message: "📺 현재 출력 모드: \(tab.outputMode.icon) \(tab.outputMode.rawValue)\n사용법: /output <full|realtime|result>"))
+                tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.output.current", comment: ""), tab.outputMode.icon, tab.outputMode.rawValue)))
                 return
             }
             let modeMap: [String: OutputMode] = ["full": .full, "전체": .full, "realtime": .realtime, "실시간": .realtime, "result": .resultOnly, "결과만": .resultOnly, "결과": .resultOnly]
-            guard let mode = modeMap[arg] else { tab.appendBlock(.status(message: "⚠️ 알 수 없는 모드: \(arg)")); return }
+            guard let mode = modeMap[arg] else { tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.output.unknown", comment: ""), arg))); return }
             tab.outputMode = mode
-            tab.appendBlock(.status(message: "📺 출력 모드 변경: \(mode.icon) \(mode.rawValue)"))
+            tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.output.changed", comment: ""), mode.icon, mode.rawValue)))
         },
-        SlashCommand("permission", "권한 모드 변경", usage: "<bypass|auto|default|plan|edits>", category: "모델/설정") { tab, _, args in
+        SlashCommand("permission", NSLocalizedString("slash.cmd.permission", comment: ""), usage: "<bypass|auto|default|plan|edits>", category: NSLocalizedString("slash.category.model", comment: "")) { tab, _, args in
             guard let arg = args.first?.lowercased() else {
                 let c = tab.permissionMode
-                tab.appendBlock(.status(message: "🛡️ 현재 권한: \(c.icon) \(c.displayName) — \(c.desc)\n사용법: /permission <bypass|auto|default|plan|edits>"))
+                tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.permission.current", comment: ""), c.icon, c.displayName, c.desc)))
                 return
             }
             let map: [String: PermissionMode] = ["bypass": .bypassPermissions, "auto": .auto, "default": .defaultMode, "plan": .plan, "edits": .acceptEdits, "edit": .acceptEdits]
-            guard let mode = map[arg] else { tab.appendBlock(.status(message: "⚠️ 알 수 없는 모드: \(arg)")); return }
+            guard let mode = map[arg] else { tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.permission.unknown", comment: ""), arg))); return }
             tab.permissionMode = mode
-            tab.appendBlock(.status(message: "🛡️ 권한 변경: \(mode.icon) \(mode.displayName) — \(mode.desc)"))
+            tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.permission.changed", comment: ""), mode.icon, mode.displayName, mode.desc)))
         },
-        SlashCommand("budget", "최대 예산 설정 (USD)", usage: "<금액|off>", category: "모델/설정") { tab, _, args in
+        SlashCommand("budget", NSLocalizedString("slash.cmd.budget", comment: ""), usage: "<금액|off>", category: NSLocalizedString("slash.category.model", comment: "")) { tab, _, args in
             guard let arg = args.first else {
                 let b = tab.maxBudgetUSD
-                tab.appendBlock(.status(message: "💰 현재 예산: \(b > 0 ? "$\(String(format: "%.2f", b))" : "무제한")\n사용법: /budget <금액|off>"))
+                tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.budget.current", comment: ""), b > 0 ? "$\(String(format: "%.2f", b))" : NSLocalizedString("slash.status.budget.unlimited", comment: ""))))
                 return
             }
-            if arg == "off" || arg == "0" { tab.maxBudgetUSD = 0; tab.appendBlock(.status(message: "💰 예산 제한 해제")); return }
-            guard let v = Double(arg), v > 0 else { tab.appendBlock(.status(message: "⚠️ 올바른 금액을 입력하세요")); return }
+            if arg == "off" || arg == "0" { tab.maxBudgetUSD = 0; tab.appendBlock(.status(message: NSLocalizedString("slash.status.budget.removed", comment: ""))); return }
+            guard let v = Double(arg), v > 0 else { tab.appendBlock(.status(message: NSLocalizedString("slash.status.budget.invalid", comment: ""))); return }
             tab.maxBudgetUSD = v
-            tab.appendBlock(.status(message: "💰 최대 예산 설정: $\(String(format: "%.2f", v))"))
+            tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.budget.set", comment: ""), String(format: "%.2f", v))))
         },
-        SlashCommand("system", "시스템 프롬프트 설정", usage: "<프롬프트|clear>", category: "모델/설정") { tab, _, args in
+        SlashCommand("system", NSLocalizedString("slash.cmd.system", comment: ""), usage: "<프롬프트|clear>", category: NSLocalizedString("slash.category.model", comment: "")) { tab, _, args in
             let text = args.joined(separator: " ")
             if text.isEmpty || text == "show" {
-                let s = tab.systemPrompt.isEmpty ? "(없음)" : tab.systemPrompt
-                tab.appendBlock(.status(message: "📝 시스템 프롬프트:\n\(s)"))
+                let s = tab.systemPrompt.isEmpty ? NSLocalizedString("slash.status.system.none", comment: "") : tab.systemPrompt
+                tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.system.current", comment: ""), s)))
             } else if text == "clear" {
                 tab.systemPrompt = ""
-                tab.appendBlock(.status(message: "📝 시스템 프롬프트 초기화"))
+                tab.appendBlock(.status(message: NSLocalizedString("slash.status.system.cleared", comment: "")))
             } else {
                 tab.systemPrompt = text
-                tab.appendBlock(.status(message: "📝 시스템 프롬프트 설정:\n\(text)"))
+                tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.system.set", comment: ""), text)))
             }
         },
-        SlashCommand("worktree", "워크트리 모드 토글", category: "모델/설정") { tab, _, _ in
+        SlashCommand("worktree", NSLocalizedString("slash.cmd.worktree", comment: ""), category: NSLocalizedString("slash.category.model", comment: "")) { tab, _, _ in
             tab.useWorktree.toggle()
-            tab.appendBlock(.status(message: "🌳 워크트리 모드: \(tab.useWorktree ? "켜짐" : "꺼짐")"))
+            tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.worktree.toggle", comment: ""), tab.useWorktree ? NSLocalizedString("slash.toggle.on", comment: "") : NSLocalizedString("slash.toggle.off", comment: ""))))
         },
-        SlashCommand("chrome", "크롬 연동 토글", category: "모델/설정") { tab, _, _ in
+        SlashCommand("chrome", NSLocalizedString("slash.cmd.chrome", comment: ""), category: NSLocalizedString("slash.category.model", comment: "")) { tab, _, _ in
             tab.enableChrome.toggle()
-            tab.appendBlock(.status(message: "🌐 크롬 연동: \(tab.enableChrome ? "켜짐" : "꺼짐")"))
+            tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.chrome.toggle", comment: ""), tab.enableChrome ? NSLocalizedString("slash.toggle.on", comment: "") : NSLocalizedString("slash.toggle.off", comment: ""))))
         },
-        SlashCommand("brief", "간결 모드 토글", category: "모델/설정") { tab, _, _ in
+        SlashCommand("brief", NSLocalizedString("slash.cmd.brief", comment: ""), category: NSLocalizedString("slash.category.model", comment: "")) { tab, _, _ in
             tab.enableBrief.toggle()
-            tab.appendBlock(.status(message: "✂️ 간결 모드: \(tab.enableBrief ? "켜짐" : "꺼짐")"))
+            tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.brief.toggle", comment: ""), tab.enableBrief ? NSLocalizedString("slash.toggle.on", comment: "") : NSLocalizedString("slash.toggle.off", comment: ""))))
         },
 
         // ── 세션 ──
-        SlashCommand("stats", "현재 세션 통계", category: "세션") { tab, _, _ in
+        SlashCommand("stats", NSLocalizedString("slash.cmd.stats", comment: ""), category: NSLocalizedString("slash.category.session", comment: "")) { tab, _, _ in
             let elapsed = Int(Date().timeIntervalSince(tab.startTime))
             let mins = elapsed / 60; let secs = elapsed % 60
-            let stats = """
-            📊 세션 통계
-            ├ 작업자: \(tab.workerName) (\(tab.projectName))
-            ├ 모델: \(tab.selectedModel.icon) \(tab.selectedModel.rawValue) · \(tab.effortLevel.icon) \(tab.effortLevel.rawValue)
-            ├ 경과: \(mins)m \(secs)s
-            ├ 토큰: \(tab.tokensUsed) (입력 \(tab.inputTokensUsed) / 출력 \(tab.outputTokensUsed))
-            ├ 비용: $\(String(format: "%.4f", tab.totalCost))
-            ├ 프롬프트: \(tab.completedPromptCount)회
-            ├ 명령: \(tab.commandCount)개 · 에러: \(tab.errorCount)개
-            ├ 블록: \(tab.blocks.count)개
-            └ 파일 변경: \(tab.fileChanges.count)개
-            """
+            let stats = [
+                NSLocalizedString("slash.status.stats.title", comment: ""),
+                String(format: NSLocalizedString("slash.status.stats.worker", comment: ""), tab.workerName, tab.projectName),
+                String(format: NSLocalizedString("slash.status.stats.model", comment: ""), tab.selectedModel.icon, tab.selectedModel.rawValue, tab.effortLevel.icon, tab.effortLevel.rawValue),
+                String(format: NSLocalizedString("slash.status.stats.elapsed", comment: ""), mins, secs),
+                String(format: NSLocalizedString("slash.status.stats.tokens", comment: ""), "\(tab.tokensUsed)", "\(tab.inputTokensUsed)", "\(tab.outputTokensUsed)"),
+                String(format: NSLocalizedString("slash.status.stats.cost", comment: ""), String(format: "%.4f", tab.totalCost)),
+                String(format: NSLocalizedString("slash.status.stats.prompts", comment: ""), tab.completedPromptCount),
+                String(format: NSLocalizedString("slash.status.stats.commands", comment: ""), tab.commandCount, tab.errorCount),
+                String(format: NSLocalizedString("slash.status.stats.blocks", comment: ""), tab.blocks.count),
+                String(format: NSLocalizedString("slash.status.stats.files", comment: ""), tab.fileChanges.count),
+            ].joined(separator: "\n")
             tab.appendBlock(.status(message: stats))
         },
-        SlashCommand("restart", "세션 재시작", category: "세션") { tab, _, _ in
+        SlashCommand("restart", NSLocalizedString("slash.cmd.restart", comment: ""), category: NSLocalizedString("slash.category.session", comment: "")) { tab, _, _ in
             if tab.isProcessing { tab.cancelProcessing() }
             tab.clearBlocks()
             tab.claudeActivity = .idle
             tab.start()
         },
-        SlashCommand("continue", "이전 대화 이어서 진행", category: "세션") { tab, _, _ in
+        SlashCommand("continue", NSLocalizedString("slash.cmd.continue", comment: ""), category: NSLocalizedString("slash.category.session", comment: "")) { tab, _, _ in
             tab.continueSession = true
-            tab.appendBlock(.status(message: "🔗 다음 프롬프트는 이전 대화를 이어서 진행합니다"))
+            tab.appendBlock(.status(message: NSLocalizedString("slash.status.continue", comment: "")))
         },
-        SlashCommand("resume", "이전 세션 이어서 진행", category: "세션") { tab, _, _ in
+        SlashCommand("resume", NSLocalizedString("slash.cmd.resume", comment: ""), category: NSLocalizedString("slash.category.session", comment: "")) { tab, _, _ in
             tab.continueSession = true
-            tab.appendBlock(.status(message: "🔗 resume 모드 활성화 — 다음 프롬프트가 이전 세션을 이어갑니다"))
+            tab.appendBlock(.status(message: NSLocalizedString("slash.status.resume", comment: "")))
         },
-        SlashCommand("fork", "현재 대화를 분기하여 새 세션 시작", category: "세션") { tab, _, _ in
+        SlashCommand("fork", NSLocalizedString("slash.cmd.fork", comment: ""), category: NSLocalizedString("slash.category.session", comment: "")) { tab, _, _ in
             tab.forkSession = true
-            tab.appendBlock(.status(message: "🍴 fork 모드 활성화 — 다음 프롬프트가 대화를 분기합니다"))
+            tab.appendBlock(.status(message: NSLocalizedString("slash.status.fork", comment: "")))
         },
 
         // ── 화면 ──
-        SlashCommand("scroll", "자동 스크롤 현재 상태 안내", category: "화면") { tab, _, _ in
-            tab.appendBlock(.status(message: "📜 스크롤 팁: 스크롤을 위로 올리면 자동 스크롤이 멈추고, 맨 아래로 내리면 다시 켜집니다"))
+        SlashCommand("scroll", NSLocalizedString("slash.cmd.scroll", comment: ""), category: NSLocalizedString("slash.category.display", comment: "")) { tab, _, _ in
+            tab.appendBlock(.status(message: NSLocalizedString("slash.status.scroll.tip", comment: "")))
         },
-        SlashCommand("errors", "에러만 필터링하여 표시", category: "화면") { tab, _, _ in
+        SlashCommand("errors", NSLocalizedString("slash.cmd.errors", comment: ""), category: NSLocalizedString("slash.category.display", comment: "")) { tab, _, _ in
             let errors = tab.blocks.filter { block in
                 if block.isError { return true }
                 switch block.blockType {
@@ -362,129 +362,129 @@ struct EventStreamView: View {
                 default: return false
                 }
             }
-            if errors.isEmpty { tab.appendBlock(.status(message: "✅ 에러 없음!")); return }
+            if errors.isEmpty { tab.appendBlock(.status(message: NSLocalizedString("slash.status.no.errors", comment: ""))); return }
             let text = errors.enumerated().map { (i, e) in "  \(i+1). \(e.content.prefix(200))" }.joined(separator: "\n")
-            tab.appendBlock(.status(message: "🚨 에러 목록 (\(errors.count)개)\n\(text)"))
+            tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.error.list", comment: ""), errors.count) + "\n\(text)"))
         },
-        SlashCommand("files", "변경된 파일 목록", category: "화면") { tab, _, _ in
-            if tab.fileChanges.isEmpty { tab.appendBlock(.status(message: "📁 변경된 파일 없음")); return }
+        SlashCommand("files", NSLocalizedString("slash.cmd.files", comment: ""), category: NSLocalizedString("slash.category.display", comment: "")) { tab, _, _ in
+            if tab.fileChanges.isEmpty { tab.appendBlock(.status(message: NSLocalizedString("slash.status.no.file.changes", comment: ""))); return }
             let text = tab.fileChanges.map { "  \($0.action == "Write" ? "📝" : "✏️") \($0.path)" }.joined(separator: "\n")
-            tab.appendBlock(.status(message: "📁 변경된 파일 (\(tab.fileChanges.count)개)\n\(text)"))
+            tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.file.list", comment: ""), tab.fileChanges.count) + "\n\(text)"))
         },
-        SlashCommand("tokens", "토큰 사용량 상세", category: "화면") { tab, _, _ in
+        SlashCommand("tokens", NSLocalizedString("slash.cmd.tokens", comment: ""), category: NSLocalizedString("slash.category.display", comment: "")) { tab, _, _ in
             let tracker = TokenTracker.shared
-            let text = """
-            🔢 토큰 사용량
-            ├ 이 세션: \(tracker.formatTokens(tab.tokensUsed)) (입력 \(tracker.formatTokens(tab.inputTokensUsed)) / 출력 \(tracker.formatTokens(tab.outputTokensUsed)))
-            ├ 오늘 전체: \(tracker.formatTokens(tracker.todayTokens))
-            ├ 이번 주: \(tracker.formatTokens(tracker.weekTokens))
-            ├ 비용 (세션): $\(String(format: "%.4f", tab.totalCost))
-            ├ 비용 (오늘): $\(String(format: "%.4f", tracker.todayCost))
-            └ 비용 (이번 주): $\(String(format: "%.4f", tracker.weekCost))
-            """
+            let text = [
+                NSLocalizedString("slash.status.tokens.title", comment: ""),
+                String(format: NSLocalizedString("slash.status.tokens.session", comment: ""), tracker.formatTokens(tab.tokensUsed), tracker.formatTokens(tab.inputTokensUsed), tracker.formatTokens(tab.outputTokensUsed)),
+                String(format: NSLocalizedString("slash.status.tokens.today", comment: ""), tracker.formatTokens(tracker.todayTokens)),
+                String(format: NSLocalizedString("slash.status.tokens.week", comment: ""), tracker.formatTokens(tracker.weekTokens)),
+                String(format: NSLocalizedString("slash.status.tokens.cost.session", comment: ""), String(format: "%.4f", tab.totalCost)),
+                String(format: NSLocalizedString("slash.status.tokens.cost.today", comment: ""), String(format: "%.4f", tracker.todayCost)),
+                String(format: NSLocalizedString("slash.status.tokens.cost.week", comment: ""), String(format: "%.4f", tracker.weekCost)),
+            ].joined(separator: "\n")
             tab.appendBlock(.status(message: text))
         },
-        SlashCommand("usage", "Claude 플랜 사용량 표시 (API에서 직접 조회)", category: "화면") { tab, _, _ in
-            tab.appendBlock(.status(message: "⏳ Claude 사용량 조회 중..."))
+        SlashCommand("usage", NSLocalizedString("slash.cmd.usage", comment: ""), category: NSLocalizedString("slash.category.display", comment: "")) { tab, _, _ in
+            tab.appendBlock(.status(message: NSLocalizedString("slash.status.usage.checking", comment: "")))
             DispatchQueue.global(qos: .userInitiated).async { [weak tab] in
                 let result = ClaudeUsageFetcher.fetch()
                 DispatchQueue.main.async {
                     guard let tab = tab else { return }
                     // 마지막 "조회 중" 블록 제거
                     if let lastIdx = tab.blocks.indices.last,
-                       tab.blocks[lastIdx].content.contains("조회 중") {
+                       tab.blocks[lastIdx].content.contains(NSLocalizedString("slash.checking", comment: "")) {
                         tab.blocks.remove(at: lastIdx)
                     }
                     tab.appendBlock(.status(message: result))
                 }
             }
         },
-        SlashCommand("config", "현재 설정 요약", category: "화면") { tab, _, _ in
+        SlashCommand("config", NSLocalizedString("slash.cmd.config", comment: ""), category: NSLocalizedString("slash.category.display", comment: "")) { tab, _, _ in
             var lines = [
-                "⚙️ 설정 요약",
-                "├ 모델: \(tab.selectedModel.icon) \(tab.selectedModel.rawValue)",
-                "├ 노력: \(tab.effortLevel.icon) \(tab.effortLevel.rawValue)",
-                "├ 출력: \(tab.outputMode.icon) \(tab.outputMode.rawValue)",
-                "├ 권한: \(tab.permissionMode.icon) \(tab.permissionMode.displayName)",
-                "├ 예산: \(tab.maxBudgetUSD > 0 ? "$\(String(format: "%.2f", tab.maxBudgetUSD))" : "무제한")",
-                "├ 워크트리: \(tab.useWorktree ? "✅" : "❌")",
-                "├ 크롬: \(tab.enableChrome ? "✅" : "❌")",
-                "├ 간결: \(tab.enableBrief ? "✅" : "❌")",
+                NSLocalizedString("slash.status.config.title", comment: ""),
+                String(format: NSLocalizedString("slash.status.config.model", comment: ""), tab.selectedModel.icon, tab.selectedModel.rawValue),
+                String(format: NSLocalizedString("slash.status.config.effort", comment: ""), tab.effortLevel.icon, tab.effortLevel.rawValue),
+                String(format: NSLocalizedString("slash.status.config.output", comment: ""), tab.outputMode.icon, tab.outputMode.rawValue),
+                String(format: NSLocalizedString("slash.status.config.permission", comment: ""), tab.permissionMode.icon, tab.permissionMode.displayName),
+                String(format: NSLocalizedString("slash.status.config.budget", comment: ""), tab.maxBudgetUSD > 0 ? "$\(String(format: "%.2f", tab.maxBudgetUSD))" : NSLocalizedString("slash.status.budget.unlimited", comment: "")),
+                String(format: NSLocalizedString("slash.status.config.worktree", comment: ""), tab.useWorktree ? "✅" : "❌"),
+                String(format: NSLocalizedString("slash.status.config.chrome", comment: ""), tab.enableChrome ? "✅" : "❌"),
+                String(format: NSLocalizedString("slash.status.config.brief", comment: ""), tab.enableBrief ? "✅" : "❌"),
             ]
-            if !tab.systemPrompt.isEmpty { lines.append("├ 시스템: \(tab.systemPrompt.prefix(50))...") }
-            if !tab.allowedTools.isEmpty { lines.append("├ 허용 도구: \(tab.allowedTools)") }
-            if !tab.disallowedTools.isEmpty { lines.append("├ 차단 도구: \(tab.disallowedTools)") }
-            lines.append("└ 프로젝트: \(tab.projectPath)")
+            if !tab.systemPrompt.isEmpty { lines.append(String(format: NSLocalizedString("slash.status.config.system", comment: ""), String(tab.systemPrompt.prefix(50)))) }
+            if !tab.allowedTools.isEmpty { lines.append(String(format: NSLocalizedString("slash.status.config.allow", comment: ""), tab.allowedTools)) }
+            if !tab.disallowedTools.isEmpty { lines.append(String(format: NSLocalizedString("slash.status.config.deny", comment: ""), tab.disallowedTools)) }
+            lines.append(String(format: NSLocalizedString("slash.status.config.project", comment: ""), tab.projectPath))
             tab.appendBlock(.status(message: lines.joined(separator: "\n")))
         },
 
         // ── Git ──
-        SlashCommand("git", "Git 상태 확인", category: "Git") { tab, _, _ in
+        SlashCommand("git", NSLocalizedString("slash.status.git.desc", comment: ""), category: "Git") { tab, _, _ in
             tab.refreshGitInfo()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 let g = tab.gitInfo
-                if !g.isGitRepo { tab.appendBlock(.status(message: "⚠️ Git 저장소가 아닙니다")); return }
-                let text = """
-                🔀 Git 상태
-                ├ 브랜치: \(g.branch)
-                ├ 변경 파일: \(g.changedFiles)개
-                ├ 마지막 커밋: \(g.lastCommit)
-                └ 커밋 시간: \(g.lastCommitAge)
-                """
+                if !g.isGitRepo { tab.appendBlock(.status(message: NSLocalizedString("slash.status.git.not.repo", comment: ""))); return }
+                let text = [
+                    NSLocalizedString("slash.status.git.title", comment: ""),
+                    String(format: NSLocalizedString("slash.status.git.branch", comment: ""), g.branch),
+                    String(format: NSLocalizedString("slash.status.git.changed.files", comment: ""), g.changedFiles),
+                    String(format: NSLocalizedString("slash.status.git.last.commit", comment: ""), g.lastCommit),
+                    String(format: NSLocalizedString("slash.status.git.commit.age", comment: ""), g.lastCommitAge),
+                ].joined(separator: "\n")
                 tab.appendBlock(.status(message: text))
             }
         },
-        SlashCommand("branch", "현재 브랜치 표시", category: "Git") { tab, _, _ in
+        SlashCommand("branch", NSLocalizedString("slash.cmd.branch", comment: ""), category: "Git") { tab, _, _ in
             tab.refreshGitInfo()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                tab.appendBlock(.status(message: "🌿 브랜치: \(tab.gitInfo.branch.isEmpty ? "(없음)" : tab.gitInfo.branch)"))
+                tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.branch.current", comment: ""), tab.gitInfo.branch.isEmpty ? NSLocalizedString("slash.status.deny.none", comment: "") : tab.gitInfo.branch)))
             }
         },
 
         // ── 도구 ──
-        SlashCommand("allow", "허용 도구 설정", usage: "<tool1,tool2,...|clear>", category: "도구") { tab, _, args in
+        SlashCommand("allow", NSLocalizedString("slash.cmd.allow", comment: ""), usage: "<tool1,tool2,...|clear>", category: NSLocalizedString("slash.category.tools", comment: "")) { tab, _, args in
             let text = args.joined(separator: " ")
             if text.isEmpty || text == "show" {
-                tab.appendBlock(.status(message: "✅ 허용 도구: \(tab.allowedTools.isEmpty ? "(전체)" : tab.allowedTools)"))
+                tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.allow.current", comment: ""), tab.allowedTools.isEmpty ? NSLocalizedString("slash.status.allow.all", comment: "") : tab.allowedTools)))
             } else if text == "clear" {
                 tab.allowedTools = ""
-                tab.appendBlock(.status(message: "✅ 도구 제한 해제 (전체 허용)"))
+                tab.appendBlock(.status(message: NSLocalizedString("slash.status.allow.cleared", comment: "")))
             } else {
                 tab.allowedTools = text
-                tab.appendBlock(.status(message: "✅ 허용 도구 설정: \(text)"))
+                tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.allow.set", comment: ""), text)))
             }
         },
-        SlashCommand("deny", "차단 도구 설정", usage: "<tool1,tool2,...|clear>", category: "도구") { tab, _, args in
+        SlashCommand("deny", NSLocalizedString("slash.cmd.deny", comment: ""), usage: "<tool1,tool2,...|clear>", category: NSLocalizedString("slash.category.tools", comment: "")) { tab, _, args in
             let text = args.joined(separator: " ")
             if text.isEmpty || text == "show" {
-                tab.appendBlock(.status(message: "🚫 차단 도구: \(tab.disallowedTools.isEmpty ? "(없음)" : tab.disallowedTools)"))
+                tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.deny.current", comment: ""), tab.disallowedTools.isEmpty ? NSLocalizedString("slash.status.deny.none", comment: "") : tab.disallowedTools)))
             } else if text == "clear" {
                 tab.disallowedTools = ""
-                tab.appendBlock(.status(message: "🚫 도구 차단 해제"))
+                tab.appendBlock(.status(message: NSLocalizedString("slash.status.deny.cleared", comment: "")))
             } else {
                 tab.disallowedTools = text
-                tab.appendBlock(.status(message: "🚫 도구 차단 설정: \(text)"))
+                tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.deny.set", comment: ""), text)))
             }
         },
-        SlashCommand("pr", "PR 번호로 리뷰 시작", usage: "<PR번호>", category: "도구") { tab, _, args in
+        SlashCommand("pr", NSLocalizedString("slash.cmd.pr", comment: ""), usage: "<PR번호>", category: NSLocalizedString("slash.category.tools", comment: "")) { tab, _, args in
             guard let num = args.first else {
-                tab.appendBlock(.status(message: "⚠️ 사용법: /pr <PR번호>"))
+                tab.appendBlock(.status(message: NSLocalizedString("slash.status.pr.usage", comment: "")))
                 return
             }
             tab.fromPR = num
-            tab.appendBlock(.status(message: "🔍 PR #\(num) — 다음 프롬프트에서 이 PR을 컨텍스트로 사용합니다"))
+            tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.pr.context", comment: ""), num)))
         },
-        SlashCommand("name", "세션 이름 설정", usage: "<이름>", category: "세션") { tab, _, args in
+        SlashCommand("name", NSLocalizedString("slash.cmd.name", comment: ""), usage: "<이름>", category: NSLocalizedString("slash.category.session", comment: "")) { tab, _, args in
             let n = args.joined(separator: " ")
-            if n.isEmpty { tab.appendBlock(.status(message: "📛 현재 이름: \(tab.sessionName.isEmpty ? "(없음)" : tab.sessionName)")); return }
+            if n.isEmpty { tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.name.current", comment: ""), tab.sessionName.isEmpty ? NSLocalizedString("slash.status.deny.none", comment: "") : tab.sessionName))); return }
             tab.sessionName = n
-            tab.appendBlock(.status(message: "📛 세션 이름: \(n)"))
+            tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.name.set", comment: ""), n)))
         },
-        SlashCommand("compare", "두 세션 비교", usage: "<세션1이름> <세션2이름>", category: "세션") { tab, manager, args in
+        SlashCommand("compare", NSLocalizedString("slash.cmd.compare", comment: ""), usage: "<세션1이름> <세션2이름>", category: NSLocalizedString("slash.category.session", comment: "")) { tab, manager, args in
             let allTabs = manager.userVisibleTabs
 
             if allTabs.count < 2 {
-                tab.appendBlock(.status(message: "비교하려면 최소 2개 세션이 필요합니다."))
+                tab.appendBlock(.status(message: NSLocalizedString("slash.compare.need.two", comment: "")))
                 return
             }
 
@@ -496,7 +496,7 @@ struct EventStreamView: View {
                 let name2 = args[1].lowercased()
                 guard let t1 = allTabs.first(where: { $0.workerName.lowercased().contains(name1) }),
                       let t2 = allTabs.first(where: { $0.workerName.lowercased().contains(name2) && $0.id != t1.id }) else {
-                    tab.appendBlock(.status(message: "세션을 찾을 수 없습니다. 이름을 확인하세요.\n사용 가능: " + allTabs.map(\.workerName).joined(separator: ", ")))
+                    tab.appendBlock(.status(message: NSLocalizedString("slash.compare.not.found", comment: "") + allTabs.map(\.workerName).joined(separator: ", ")))
                     return
                 }
                 tab1 = t1; tab2 = t2
@@ -509,9 +509,9 @@ struct EventStreamView: View {
             let dur2 = Int(Date().timeIntervalSince(tab2.startTime))
 
             func fmtDur(_ s: Int) -> String {
-                if s < 60 { return "\(s)초" }
-                if s < 3600 { return "\(s/60)분 \(s%60)초" }
-                return "\(s/3600)시간 \(s%3600/60)분"
+                if s < 60 { return String(format: NSLocalizedString("slash.status.duration.seconds", comment: ""), s) }
+                if s < 3600 { return String(format: NSLocalizedString("slash.status.duration.minutes", comment: ""), s/60, s%60) }
+                return String(format: NSLocalizedString("slash.status.duration.hours", comment: ""), s/3600, s%3600/60)
             }
 
             func fmtTokens(_ n: Int) -> String {
@@ -519,37 +519,40 @@ struct EventStreamView: View {
                 return "\(n)"
             }
 
+            let cmpProcessing = NSLocalizedString("slash.status.compare.status.processing", comment: "")
+            let cmpComplete = NSLocalizedString("slash.status.compare.status.complete", comment: "")
+            let cmpWaiting = NSLocalizedString("slash.status.compare.status.waiting", comment: "")
             let lines = [
-                "⚖️ 세션 비교",
+                NSLocalizedString("slash.status.compare.title", comment: ""),
                 "══════════════════════════════════════════════════",
                 "",
-                String(format: "%-20s │ %-20s │ %-20s", "항목", tab1.workerName, tab2.workerName),
+                String(format: "%-20s │ %-20s │ %-20s", NSLocalizedString("slash.status.compare.header.item", comment: ""), tab1.workerName, tab2.workerName),
                 "─────────────────────┼──────────────────────┼──────────────────────",
-                String(format: "%-20s │ %-20s │ %-20s", "프로젝트", String(tab1.projectName.prefix(18)), String(tab2.projectName.prefix(18))),
-                String(format: "%-20s │ %-20s │ %-20s", "상태", tab1.isProcessing ? "진행 중" : (tab1.isCompleted ? "완료" : "대기"), tab2.isProcessing ? "진행 중" : (tab2.isCompleted ? "완료" : "대기")),
-                String(format: "%-20s │ %-20s │ %-20s", "모델", tab1.selectedModel.rawValue, tab2.selectedModel.rawValue),
-                String(format: "%-20s │ %-20s │ %-20s", "토큰 (입력)", fmtTokens(tab1.inputTokensUsed), fmtTokens(tab2.inputTokensUsed)),
-                String(format: "%-20s │ %-20s │ %-20s", "토큰 (출력)", fmtTokens(tab1.outputTokensUsed), fmtTokens(tab2.outputTokensUsed)),
-                String(format: "%-20s │ %-20s │ %-20s", "토큰 (총)", fmtTokens(tab1.tokensUsed), fmtTokens(tab2.tokensUsed)),
-                String(format: "%-20s │ %-20s │ %-20s", "비용", String(format: "$%.4f", tab1.totalCost), String(format: "$%.4f", tab2.totalCost)),
-                String(format: "%-20s │ %-20s │ %-20s", "명령 수", "\(tab1.commandCount)", "\(tab2.commandCount)"),
-                String(format: "%-20s │ %-20s │ %-20s", "파일 변경", "\(tab1.fileChanges.count)개", "\(tab2.fileChanges.count)개"),
-                String(format: "%-20s │ %-20s │ %-20s", "에러", "\(tab1.errorCount)", "\(tab2.errorCount)"),
-                String(format: "%-20s │ %-20s │ %-20s", "경과 시간", fmtDur(dur1), fmtDur(dur2)),
+                String(format: "%-20s │ %-20s │ %-20s", NSLocalizedString("slash.status.compare.header.project", comment: ""), String(tab1.projectName.prefix(18)), String(tab2.projectName.prefix(18))),
+                String(format: "%-20s │ %-20s │ %-20s", NSLocalizedString("slash.status.compare.header.status", comment: ""), tab1.isProcessing ? cmpProcessing : (tab1.isCompleted ? cmpComplete : cmpWaiting), tab2.isProcessing ? cmpProcessing : (tab2.isCompleted ? cmpComplete : cmpWaiting)),
+                String(format: "%-20s │ %-20s │ %-20s", NSLocalizedString("slash.status.compare.header.model", comment: ""), tab1.selectedModel.rawValue, tab2.selectedModel.rawValue),
+                String(format: "%-20s │ %-20s │ %-20s", NSLocalizedString("slash.status.compare.header.tokens.in", comment: ""), fmtTokens(tab1.inputTokensUsed), fmtTokens(tab2.inputTokensUsed)),
+                String(format: "%-20s │ %-20s │ %-20s", NSLocalizedString("slash.status.compare.header.tokens.out", comment: ""), fmtTokens(tab1.outputTokensUsed), fmtTokens(tab2.outputTokensUsed)),
+                String(format: "%-20s │ %-20s │ %-20s", NSLocalizedString("slash.status.compare.header.tokens.total", comment: ""), fmtTokens(tab1.tokensUsed), fmtTokens(tab2.tokensUsed)),
+                String(format: "%-20s │ %-20s │ %-20s", NSLocalizedString("slash.status.compare.header.cost", comment: ""), String(format: "$%.4f", tab1.totalCost), String(format: "$%.4f", tab2.totalCost)),
+                String(format: "%-20s │ %-20s │ %-20s", NSLocalizedString("slash.status.compare.header.commands", comment: ""), "\(tab1.commandCount)", "\(tab2.commandCount)"),
+                String(format: "%-20s │ %-20s │ %-20s", NSLocalizedString("slash.status.compare.header.file.changes", comment: ""), String(format: NSLocalizedString("slash.status.file.count", comment: ""), tab1.fileChanges.count), String(format: NSLocalizedString("slash.status.file.count", comment: ""), tab2.fileChanges.count)),
+                String(format: "%-20s │ %-20s │ %-20s", NSLocalizedString("slash.status.compare.header.errors", comment: ""), "\(tab1.errorCount)", "\(tab2.errorCount)"),
+                String(format: "%-20s │ %-20s │ %-20s", NSLocalizedString("slash.status.compare.header.elapsed", comment: ""), fmtDur(dur1), fmtDur(dur2)),
                 "",
                 "══════════════════════════════════════════════════",
             ]
 
             tab.appendBlock(.status(message: lines.joined(separator: "\n")))
         },
-        SlashCommand("timeline", "세션 타임라인 보기", category: "세션") { tab, _, _ in
+        SlashCommand("timeline", NSLocalizedString("slash.cmd.timeline", comment: ""), category: NSLocalizedString("slash.category.session", comment: "")) { tab, _, _ in
             if tab.timeline.isEmpty {
-                tab.appendBlock(.status(message: "타임라인이 비어있습니다."))
+                tab.appendBlock(.status(message: NSLocalizedString("slash.timeline.empty", comment: "")))
                 return
             }
             let df = DateFormatter()
             df.dateFormat = "HH:mm:ss"
-            var lines = ["📋 세션 타임라인", "═══════════════════════════════"]
+            var lines = [NSLocalizedString("slash.status.timeline.title", comment: ""), "═══════════════════════════════"]
             for event in tab.timeline.suffix(30) {
                 let time = df.string(from: event.timestamp)
                 let icon: String
@@ -565,9 +568,9 @@ struct EventStreamView: View {
             }
             tab.appendBlock(.status(message: lines.joined(separator: "\n")))
         },
-        SlashCommand("sleepwork", "슬립워크 모드 시작", usage: "<작업내용> [토큰예산]", category: "세션") { tab, _, args in
+        SlashCommand("sleepwork", NSLocalizedString("slash.cmd.sleepwork", comment: ""), usage: "<작업내용> [토큰예산]", category: NSLocalizedString("slash.category.session", comment: "")) { tab, _, args in
             if args.isEmpty {
-                tab.appendBlock(.status(message: "사용법: /sleepwork <작업내용> [토큰예산]\n예: /sleepwork \"버그 수정해줘\" 10k\n\n또는 🌙 버튼을 눌러 설정 화면을 사용하세요."))
+                tab.appendBlock(.status(message: NSLocalizedString("slash.sleepwork.usage", comment: "")))
                 return
             }
             let taskText = args.dropLast().joined(separator: " ")
@@ -580,15 +583,15 @@ struct EventStreamView: View {
 
             let task = taskText.isEmpty ? budgetText : taskText  // if only 1 arg, treat as task
             if task.isEmpty {
-                tab.appendBlock(.status(message: "작업 내용을 입력하세요."))
+                tab.appendBlock(.status(message: NSLocalizedString("slash.sleepwork.enter.task", comment: "")))
                 return
             }
             tab.startSleepWork(task: task, tokenBudget: budget)
         },
-        SlashCommand("search", "전체 세션에서 검색", usage: "<검색어>", category: "화면") { tab, manager, args in
+        SlashCommand("search", NSLocalizedString("slash.cmd.search", comment: ""), usage: "<검색어>", category: NSLocalizedString("slash.category.display", comment: "")) { tab, manager, args in
             let query = args.joined(separator: " ").trimmingCharacters(in: .whitespaces)
             guard !query.isEmpty else {
-                tab.appendBlock(.status(message: "사용법: /search <검색어>"))
+                tab.appendBlock(.status(message: NSLocalizedString("slash.search.usage", comment: "")))
                 return
             }
             let allTabs = manager.userVisibleTabs
@@ -605,16 +608,16 @@ struct EventStreamView: View {
             }
 
             if results.isEmpty {
-                tab.appendBlock(.status(message: "🔍 '\(query)' 검색 결과 없음"))
+                tab.appendBlock(.status(message: String(format: NSLocalizedString("slash.status.search.no.results", comment: ""), query)))
                 return
             }
 
-            var lines = ["🔍 '\(query)' 검색 결과 (\(results.count)건)", "═══════════════════════════════"]
+            var lines = [String(format: NSLocalizedString("slash.status.search.results", comment: ""), query, results.count), "═══════════════════════════════"]
             for r in results.prefix(20) {
                 lines.append("[\(r.tabName)] \(r.blockContent)")
             }
             if results.count > 20 {
-                lines.append("... 외 \(results.count - 20)건")
+                lines.append(String(format: NSLocalizedString("slash.status.search.more", comment: ""), results.count - 20))
             }
             tab.appendBlock(.status(message: lines.joined(separator: "\n")))
         },
@@ -655,7 +658,7 @@ struct EventStreamView: View {
             HStack(spacing: 8) {
                 Button(action: { tab.forceStop() }) {
                     Circle().fill(Color.red.opacity(0.85)).frame(width: 10, height: 10)
-                }.buttonStyle(.plain).help("세션 종료")
+                }.buttonStyle(.plain).help(NSLocalizedString("terminal.help.close.session", comment: ""))
                 Text("claude — \(tab.projectName)")
                     .font(.system(size: 11, weight: .medium, design: .monospaced))
                     .foregroundColor(Color(red: 0.45, green: 0.45, blue: 0.5))
@@ -870,22 +873,22 @@ struct EventStreamView: View {
                 HStack(spacing: 3) {
                     Image(systemName: "line.3.horizontal.decrease.circle\(showFilterBar ? ".fill" : "")")
                         .font(Theme.chrome(8))
-                    Text("필터").font(Theme.chrome(8, weight: showFilterBar ? .bold : .regular))
+                    Text(NSLocalizedString("terminal.filter", comment: "")).font(Theme.chrome(8, weight: showFilterBar ? .bold : .regular))
                 }
                 .foregroundColor(showFilterBar || blockFilter.isActive ? Theme.accent : Theme.textDim)
                 .padding(.horizontal, 5).padding(.vertical, 2)
                 .background(showFilterBar ? Theme.accent.opacity(0.08) : .clear).cornerRadius(Theme.cornerSmall)
-            }.buttonStyle(.plain).help("로그 필터")
+            }.buttonStyle(.plain).help(NSLocalizedString("terminal.help.log.filter", comment: ""))
 
             Button(action: { withAnimation(.easeInOut(duration: 0.15)) { showFilePanel.toggle() } }) {
                 HStack(spacing: 3) {
                     Image(systemName: "doc.text.magnifyingglass").font(Theme.chrome(8))
-                    Text("파일").font(Theme.chrome(8, weight: showFilePanel ? .bold : .regular))
+                    Text(NSLocalizedString("terminal.file", comment: "")).font(Theme.chrome(8, weight: showFilePanel ? .bold : .regular))
                 }
                 .foregroundColor(showFilePanel ? Theme.accent : Theme.textDim)
                 .padding(.horizontal, 5).padding(.vertical, 2)
                 .background(showFilePanel ? Theme.accent.opacity(0.08) : .clear).cornerRadius(Theme.cornerSmall)
-            }.buttonStyle(.plain).help("파일 변경")
+            }.buttonStyle(.plain).help(NSLocalizedString("terminal.help.file.changes", comment: ""))
         }
         .padding(.horizontal, Theme.sp3).padding(.vertical, 5)
         .background(Theme.bgSurface.opacity(0.5))
@@ -894,9 +897,9 @@ struct EventStreamView: View {
 
     private var activityLabel: String {
         switch tab.claudeActivity {
-        case .idle: return "대기"; case .thinking: return "생각 중"; case .reading: return "읽는 중"
-        case .writing: return "작성 중"; case .searching: return "검색 중"; case .running: return "실행 중"
-        case .done: return "완료"; case .error: return "에러"
+        case .idle: return NSLocalizedString("terminal.status.idle", comment: ""); case .thinking: return NSLocalizedString("terminal.status.thinking", comment: ""); case .reading: return NSLocalizedString("terminal.status.reading", comment: "")
+        case .writing: return NSLocalizedString("terminal.status.writing", comment: ""); case .searching: return NSLocalizedString("terminal.status.searching", comment: ""); case .running: return NSLocalizedString("terminal.status.running", comment: "")
+        case .done: return NSLocalizedString("terminal.status.done", comment: ""); case .error: return NSLocalizedString("terminal.status.error", comment: "")
         }
     }
 
@@ -940,7 +943,7 @@ struct EventStreamView: View {
             // Search
             HStack(spacing: 3) {
                 Image(systemName: "magnifyingglass").font(Theme.chrome(8)).foregroundColor(Theme.textDim)
-                TextField("검색...", text: $blockFilter.searchText)
+                TextField(NSLocalizedString("terminal.search.placeholder", comment: ""), text: $blockFilter.searchText)
                     .textFieldStyle(.plain).font(Theme.chrome(9)).frame(width: 80)
             }
         }
@@ -1008,7 +1011,7 @@ struct EventStreamView: View {
                     }
 
                     if tab.fileChanges.isEmpty {
-                        Text("변경된 파일 없음").font(Theme.chrome(10)).foregroundColor(Theme.textDim)
+                        Text(NSLocalizedString("terminal.no.file.changes", comment: "")).font(Theme.chrome(10)).foregroundColor(Theme.textDim)
                             .frame(maxWidth: .infinity).padding(.vertical, 20)
                     }
                 }
@@ -1085,7 +1088,7 @@ struct EventStreamView: View {
                 settingSep
 
                 // Permission
-                settingGroup("권한") {
+                settingGroup(NSLocalizedString("terminal.permission.section", comment: "")) {
                     ForEach(PermissionMode.allCases) { m in
                         settingChip(m.displayName, isSelected: tab.permissionMode == m, color: permissionColor(m)) { tab.permissionMode = m }
                             .help(m.desc)
@@ -1169,10 +1172,10 @@ struct EventStreamView: View {
                         .disabled(tab.isProcessing)
                         .scrollContentBackground(.hidden)
                         .padding(.horizontal, 0).padding(.vertical, 4)
-                        .accessibilityLabel("명령 입력")
+                        .accessibilityLabel(NSLocalizedString("terminal.input.a11y", comment: ""))
                     // Placeholder (on top visually but doesn't intercept clicks)
                     if inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Text(tab.isProcessing ? "실행 중..." : "명령을 입력하세요")
+                        Text(tab.isProcessing ? NSLocalizedString("terminal.input.placeholder.running", comment: "") : NSLocalizedString("terminal.input.placeholder", comment: ""))
                             .font(Theme.monoNormal).foregroundColor(Theme.textDim.opacity(0.5))
                             .padding(.horizontal, 4).padding(.vertical, 8)
                             .allowsHitTesting(false)
@@ -1199,7 +1202,7 @@ struct EventStreamView: View {
                         .foregroundColor(tab.attachedImages.isEmpty ? Theme.textDim : Theme.cyan)
                 }
                 .buttonStyle(.plain)
-                .help("이미지 첨부 (Cmd+Shift+I)")
+                .help(NSLocalizedString("terminal.help.attach.image", comment: ""))
                 .padding(.bottom, 4)
 
                 Button(action: { showSleepWorkSetup = true }) {
@@ -1208,7 +1211,7 @@ struct EventStreamView: View {
                         .foregroundColor(Theme.purple)
                 }
                 .buttonStyle(.plain)
-                .help("슬립워크")
+                .help(NSLocalizedString("terminal.help.sleepwork", comment: ""))
                 .padding(.bottom, 4)
 
                 if tab.isProcessing {
@@ -1261,7 +1264,7 @@ struct EventStreamView: View {
                     .scrollContentBackground(.hidden)
                     .padding(.horizontal, 0).padding(.vertical, 2)
                 if inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text("입력...").font(Theme.monoSmall).foregroundColor(Theme.textDim.opacity(0.5))
+                    Text(NSLocalizedString("terminal.input.hint", comment: "")).font(Theme.monoSmall).foregroundColor(Theme.textDim.opacity(0.5))
                         .padding(.horizontal, 4).padding(.vertical, 6)
                         .allowsHitTesting(false)
                 }
@@ -1297,7 +1300,7 @@ struct EventStreamView: View {
 
         return HStack(spacing: 8) {
             Image(systemName: "moon.zzz.fill").font(.system(size: Theme.iconSize(10))).foregroundColor(Theme.purple)
-            Text("슬립워크 진행 중").font(Theme.chrome(9, weight: .bold)).foregroundColor(Theme.purple)
+            Text(NSLocalizedString("terminal.sleepwork.running", comment: "")).font(Theme.chrome(9, weight: .bold)).foregroundColor(Theme.purple)
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
@@ -1319,7 +1322,7 @@ struct EventStreamView: View {
                 tab.sleepWorkTask = nil
                 tab.cancelProcessing()
             }) {
-                Text("중단").font(Theme.chrome(9, weight: .bold)).foregroundColor(Theme.red)
+                Text(NSLocalizedString("terminal.sleepwork.stop", comment: "")).font(Theme.chrome(9, weight: .bold)).foregroundColor(Theme.red)
             }.buttonStyle(.plain)
         }
         .padding(.horizontal, 12).padding(.vertical, 6)
@@ -1337,7 +1340,7 @@ struct EventStreamView: View {
         panel.allowedContentTypes = [.image, .png, .jpeg]
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
-        panel.title = "이미지 첨부"
+        panel.title = NSLocalizedString("terminal.image.attach.title", comment: "")
         panel.message = "Claude에 보낼 이미지를 선택하세요"
         if panel.runModal() == .OK {
             tab.attachedImages.append(contentsOf: panel.urls)
@@ -1380,7 +1383,7 @@ struct EventStreamView: View {
             Rectangle().fill(Theme.border).frame(height: 1)
             HStack(spacing: 4) {
                 Image(systemName: "command").font(Theme.chrome(8)).foregroundColor(Theme.accent)
-                Text("명령어").font(Theme.chrome(8, weight: .bold)).foregroundColor(Theme.accent)
+                Text(NSLocalizedString("terminal.command.label", comment: "")).font(Theme.chrome(8, weight: .bold)).foregroundColor(Theme.accent)
                 if commands.count < Self.allSlashCommands.count {
                     Text("\(commands.count)개 일치").font(Theme.chrome(7)).foregroundColor(Theme.textDim)
                 }
@@ -1506,7 +1509,7 @@ struct EventStreamView: View {
                 Image(systemName: "list.bullet.clipboard")
                     .font(.system(size: Theme.iconSize(compact ? 8 : 10)))
                     .foregroundColor(Theme.purple)
-                Text("플랜 선택")
+                Text(NSLocalizedString("terminal.plan.select", comment: ""))
                     .font(Theme.mono(compact ? 9 : 10, weight: .bold))
                     .foregroundColor(Theme.textPrimary)
                 Text("\(selectedCount)/\(request.groups.count)")
@@ -1523,7 +1526,7 @@ struct EventStreamView: View {
                             planSelectionDraft = [:]
                         }
                     }) {
-                        Text("초기화")
+                        Text(NSLocalizedString("terminal.plan.reset", comment: ""))
                             .font(Theme.mono(compact ? 8 : 9))
                             .foregroundColor(Theme.textDim)
                     }
@@ -1594,7 +1597,7 @@ struct EventStreamView: View {
                     inputText = request.responseText(from: planSelectionDraft)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { isFocused = true }
                 }) {
-                    Text("입력창에 넣기")
+                    Text(NSLocalizedString("terminal.insert.input", comment: ""))
                         .font(Theme.mono(compact ? 8 : 9, weight: .medium))
                         .foregroundColor(isComplete ? Theme.textPrimary : Theme.textDim)
                         .padding(.horizontal, 10)
@@ -1617,7 +1620,7 @@ struct EventStreamView: View {
                     AchievementManager.shared.addXP(5)
                     AchievementManager.shared.incrementCommand()
                 }) {
-                    Text("선택 보내기")
+                    Text(NSLocalizedString("terminal.send.selection", comment: ""))
                         .font(Theme.mono(compact ? 8 : 9, weight: .bold))
                         .foregroundColor(isComplete ? Theme.bg : Theme.textDim)
                         .padding(.horizontal, 10)
@@ -1651,7 +1654,7 @@ struct EventStreamView: View {
                 Image(systemName: "point.topleft.down.curvedto.point.bottomright.up")
                     .font(Theme.mono(8))
                     .foregroundColor(Theme.accent)
-                Text("인수 흐름")
+                Text(NSLocalizedString("terminal.argument.flow", comment: ""))
                     .font(Theme.mono(8, weight: .bold))
                     .foregroundColor(Theme.textDim)
                 if let summary = workflowTab.workflowProgressSummary {
@@ -1842,7 +1845,7 @@ private struct PlanSelectionRequest {
 
             if let option = parseOption(from: line) {
                 if currentTitle == nil {
-                    currentTitle = "선택"
+                    currentTitle = NSLocalizedString("terminal.choice.select", comment: "")
                 }
                 currentOptions.append(option)
                 continue
@@ -2087,7 +2090,7 @@ struct EventBlockView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Image(systemName: "checkmark.circle.fill").font(.system(size: Theme.iconSize(10))).foregroundColor(Theme.green)
-                Text("완료").font(Theme.mono(10, weight: .bold)).foregroundColor(Theme.green)
+                Text(NSLocalizedString("terminal.complete", comment: "")).font(Theme.mono(10, weight: .bold)).foregroundColor(Theme.green)
                 if let d = duration {
                     Text("\(d/1000).\(d%1000/100)s").font(Theme.mono(8)).foregroundColor(Theme.textDim)
                 }
@@ -2096,7 +2099,7 @@ struct EventBlockView: View {
                 }
             }
 
-            if !block.content.isEmpty && block.content != "완료" {
+            if !block.content.isEmpty && block.content != NSLocalizedString("slash.status.completed", comment: "") {
                 MarkdownTextView(text: block.content, compact: compact)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
@@ -2183,7 +2186,7 @@ struct ToolOutputBlockView: View {
                     HStack(spacing: 4) {
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                             .font(.system(size: Theme.iconSize(7)))
-                        Text(isExpanded ? "접기" : "전체 보기 (\(lines.count)줄)")
+                        Text(isExpanded ? NSLocalizedString("terminal.collapse", comment: "") : String(format: NSLocalizedString("terminal.expand.all", comment: ""), lines.count))
                             .font(Theme.mono(9))
                     }
                     .foregroundColor(Theme.textDim)
@@ -2466,12 +2469,12 @@ struct ProcessingIndicator: View {
 
     private var statusText: String {
         switch activity {
-        case .thinking: return "생각 중"
-        case .reading: return "읽는 중"
-        case .writing: return "작성 중"
-        case .searching: return "검색 중"
-        case .running: return "실행 중"
-        default: return "처리 중"
+        case .thinking: return NSLocalizedString("terminal.status.thinking", comment: "")
+        case .reading: return NSLocalizedString("terminal.status.reading", comment: "")
+        case .writing: return NSLocalizedString("terminal.status.writing", comment: "")
+        case .searching: return NSLocalizedString("terminal.status.searching", comment: "")
+        case .running: return NSLocalizedString("terminal.status.running", comment: "")
+        default: return NSLocalizedString("misc.processing", comment: "")
         }
     }
 }
@@ -2655,7 +2658,7 @@ struct ApprovalSheet: View {
         VStack(spacing: 16) {
             HStack(spacing: 6) {
                 Image(systemName: "exclamationmark.shield.fill").font(.system(size: Theme.iconSize(20))).foregroundColor(Theme.yellow)
-                Text("승인 필요").font(Theme.mono(14, weight: .bold)).foregroundColor(Theme.textPrimary)
+                Text(NSLocalizedString("terminal.approval.needed", comment: "")).font(Theme.mono(14, weight: .bold)).foregroundColor(Theme.textPrimary)
             }
             Text(approval.reason).font(Theme.monoSmall).foregroundColor(Theme.textSecondary)
             Text(approval.command).font(Theme.mono(11)).foregroundColor(Theme.red)
@@ -2664,13 +2667,13 @@ struct ApprovalSheet: View {
                 .textSelection(.enabled)
             HStack {
                 Button(action: { approval.onDeny?(); dismiss() }) {
-                    Text("거부").font(Theme.mono(11, weight: .medium)).foregroundColor(Theme.red)
+                    Text(NSLocalizedString("terminal.deny", comment: "")).font(Theme.mono(11, weight: .medium)).foregroundColor(Theme.red)
                         .padding(.horizontal, 20).padding(.vertical, 8)
                         .background(Theme.red.opacity(0.1)).cornerRadius(6)
                 }.buttonStyle(.plain).keyboardShortcut(.escape)
                 Spacer()
                 Button(action: { approval.onApprove?(); dismiss() }) {
-                    Text("승인").font(Theme.mono(11, weight: .medium)).foregroundColor(Theme.textOnAccent)
+                    Text(NSLocalizedString("terminal.approve", comment: "")).font(Theme.mono(11, weight: .medium)).foregroundColor(Theme.textOnAccent)
                         .padding(.horizontal, 20).padding(.vertical, 8)
                         .background(Theme.accent).cornerRadius(6)
                 }.buttonStyle(.plain).keyboardShortcut(.return)
@@ -2688,7 +2691,7 @@ struct EmptySessionView: View {
         VStack {
             Spacer()
             AppEmptyStateView(
-                title: "세션이 아직 없습니다",
+                title: NSLocalizedString("terminal.no.session.title", comment: ""),
                 message: "Cmd+T 또는 새 세션 시작 버튼으로 바로 작업을 시작할 수 있습니다.",
                 symbol: "plus.circle.fill",
                 tint: Theme.accent
@@ -2738,19 +2741,19 @@ private enum NewSessionPreset: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .balanced: return "기본 작업"
-        case .planFirst: return "플랜 우선"
-        case .safeReview: return "안전 검토"
-        case .parallelBuild: return "병렬 구현"
+        case .balanced: return NSLocalizedString("terminal.preset.balanced", comment: "")
+        case .planFirst: return NSLocalizedString("terminal.preset.planfirst", comment: "")
+        case .safeReview: return NSLocalizedString("terminal.preset.safereview", comment: "")
+        case .parallelBuild: return NSLocalizedString("terminal.preset.parallelbuild", comment: "")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .balanced: return "일반 개발 시작"
-        case .planFirst: return "계획만 먼저 정리"
-        case .safeReview: return "보수적 권한으로 검토"
-        case .parallelBuild: return "여러 터미널로 분배"
+        case .balanced: return NSLocalizedString("terminal.preset.balanced.desc", comment: "")
+        case .planFirst: return NSLocalizedString("terminal.preset.planfirst.desc", comment: "")
+        case .safeReview: return NSLocalizedString("terminal.preset.safereview.desc", comment: "")
+        case .parallelBuild: return NSLocalizedString("terminal.preset.parallelbuild.desc", comment: "")
         }
     }
 
@@ -3000,7 +3003,7 @@ struct NewTabSheet: View {
                 Image(systemName: "shield.checkered")
                     .font(.system(size: Theme.iconSize(28))).foregroundColor(Theme.yellow)
 
-                Text("폴더 신뢰 확인")
+                Text(NSLocalizedString("terminal.trust.title", comment: ""))
                     .font(Theme.mono(14, weight: .bold))
                     .foregroundColor(Theme.textPrimary)
             }.padding(.top, 20).padding(.bottom, 12)
@@ -3019,7 +3022,7 @@ struct NewTabSheet: View {
 
             // 안내 텍스트
             VStack(alignment: .leading, spacing: 8) {
-                Text("이 프로젝트를 직접 만들었거나 신뢰할 수 있나요?")
+                Text(NSLocalizedString("terminal.trust.question", comment: ""))
                     .font(Theme.mono(11, weight: .medium))
                     .foregroundColor(Theme.textPrimary)
 
@@ -3051,7 +3054,7 @@ struct NewTabSheet: View {
                 }) {
                     HStack(spacing: 8) {
                         Text("❯").font(Theme.mono(12, weight: .bold)).foregroundColor(Theme.green)
-                        Text("네, 이 폴더를 신뢰합니다")
+                        Text(NSLocalizedString("terminal.trust.yes", comment: ""))
                             .font(Theme.mono(11, weight: .semibold)).foregroundColor(Theme.textPrimary)
                         Spacer()
                         Image(systemName: "checkmark.shield.fill").font(.system(size: Theme.iconSize(12))).foregroundColor(Theme.green)
@@ -3062,8 +3065,8 @@ struct NewTabSheet: View {
                 }
                 .buttonStyle(.plain)
                 .keyboardShortcut(.return)
-                .accessibilityLabel("이 폴더를 신뢰하고 세션 시작")
-                .accessibilityHint("프로젝트 폴더를 신뢰 목록으로 보고 새 세션을 생성합니다")
+                .accessibilityLabel(NSLocalizedString("terminal.trust.yes.a11y", comment: ""))
+                .accessibilityHint(NSLocalizedString("terminal.trust.yes.a11y.hint", comment: ""))
 
                 Button(action: {
                     withAnimation(sheetAnimation) {
@@ -3072,7 +3075,7 @@ struct NewTabSheet: View {
                 }) {
                     HStack(spacing: 8) {
                         Text(" ").font(Theme.mono(12, weight: .bold))
-                        Text("아니오, 돌아가기")
+                        Text(NSLocalizedString("terminal.trust.no", comment: ""))
                             .font(Theme.mono(11)).foregroundColor(Theme.textSecondary)
                         Spacer()
                         Image(systemName: "xmark.circle").font(.system(size: Theme.iconSize(12))).foregroundColor(Theme.textDim)
@@ -3083,7 +3086,7 @@ struct NewTabSheet: View {
                 }
                 .buttonStyle(.plain)
                 .keyboardShortcut(.escape)
-                .accessibilityLabel("폴더 신뢰 확인 닫기")
+                .accessibilityLabel(NSLocalizedString("terminal.trust.no.a11y", comment: ""))
             }.padding(.horizontal, 24).padding(.bottom, 20)
         }
         .frame(width: max(440, 440 * AppSettings.shared.fontSizeScale), height: max(340, 340 * AppSettings.shared.fontSizeScale))
@@ -3098,26 +3101,26 @@ struct NewTabSheet: View {
                 icon: "plus.circle.fill",
                 iconColor: Theme.accent,
                 title: NSLocalizedString("session.new", comment: ""),
-                subtitle: "프로젝트 경로를 선택하고 실행 규칙만 정하면 바로 시작할 수 있습니다."
+                subtitle: NSLocalizedString("terminal.new.subtitle", comment: "")
             )
 
             ScrollView(.vertical, showsIndicators: true) {
                 VStack(spacing: Theme.sp4) {
 
-                    configSection(title: "빠른 시작", subtitle: "최근 프로젝트와 마지막 설정을 바로 불러올 수 있습니다.") {
+                    configSection(title: NSLocalizedString("terminal.quickstart", comment: ""), subtitle: NSLocalizedString("terminal.quickstart.subtitle", comment: "")) {
                         VStack(alignment: .leading, spacing: 14) {
                             HStack(spacing: 8) {
                                 Button(action: { applyLastDraftIfAvailable() }) {
                                     HStack(spacing: 6) {
                                         Image(systemName: "clock.arrow.circlepath")
-                                        Text("마지막 설정 불러오기")
+                                        Text(NSLocalizedString("terminal.load.last.settings", comment: ""))
                                     }
                                     .font(Theme.mono(9, weight: .bold))
                                     .appButtonSurface(tone: .neutral, compact: true)
                                 }
                                 .buttonStyle(.plain)
                                 .disabled(preferences.lastDraft == nil)
-                                .accessibilityLabel("마지막 세션 설정 불러오기")
+                                .accessibilityLabel(NSLocalizedString("terminal.load.last.a11y", comment: ""))
 
                                 if !projectPath.isEmpty {
                                     Button(action: {
@@ -3125,17 +3128,17 @@ struct NewTabSheet: View {
                                     }) {
                                         HStack(spacing: 6) {
                                             Image(systemName: isCurrentProjectFavorite ? "star.fill" : "star")
-                                            Text(isCurrentProjectFavorite ? "즐겨찾기됨" : "즐겨찾기")
+                                            Text(isCurrentProjectFavorite ? NSLocalizedString("terminal.favorite.on", comment: "") : NSLocalizedString("terminal.favorite.off", comment: ""))
                                         }
                                         .font(Theme.mono(9, weight: .bold))
                                         .appButtonSurface(tone: .yellow, compact: true)
                                     }
                                     .buttonStyle(.plain)
-                                    .accessibilityLabel(isCurrentProjectFavorite ? "현재 프로젝트 즐겨찾기 해제" : "현재 프로젝트 즐겨찾기")
+                                    .accessibilityLabel(isCurrentProjectFavorite ? NSLocalizedString("terminal.favorite.a11y.on", comment: "") : NSLocalizedString("terminal.favorite.a11y.off", comment: ""))
                                 }
                             }
 
-                            optionGroup(title: "추천 프리셋") {
+                            optionGroup(title: NSLocalizedString("terminal.recommended.presets", comment: "")) {
                                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                                     ForEach(NewSessionPreset.allCases) { preset in
                                         selectionChip(
@@ -3156,12 +3159,12 @@ struct NewTabSheet: View {
 
                             // 사용자 저장 프리셋
                             if !CustomPresetStore.shared.presets.isEmpty {
-                                optionGroup(title: "내 프리셋") {
+                                optionGroup(title: NSLocalizedString("terminal.my.presets", comment: "")) {
                                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                                         ForEach(CustomPresetStore.shared.presets) { preset in
                                             selectionChip(
                                                 title: preset.name,
-                                                subtitle: "터미널 \(preset.draft.terminalCount) · \(preset.draft.selectedModel)",
+                                                subtitle: String(format: NSLocalizedString("terminal.preset.custom.subtitle", comment: ""), preset.draft.terminalCount, preset.draft.selectedModel),
                                                 symbol: preset.icon,
                                                 tint: preset.tintColor,
                                                 selected: activePresetId == "custom-\(preset.id)"
@@ -3175,7 +3178,7 @@ struct NewTabSheet: View {
                                                 Button(role: .destructive) {
                                                     CustomPresetStore.shared.delete(preset)
                                                 } label: {
-                                                    Label("삭제", systemImage: "trash")
+                                                    Label(NSLocalizedString("terminal.preset.delete", comment: ""), systemImage: "trash")
                                                 }
                                             }
                                         }
@@ -3184,30 +3187,30 @@ struct NewTabSheet: View {
                             }
 
                             if !favoriteProjects.isEmpty {
-                                optionGroup(title: "즐겨찾기 프로젝트") {
+                                optionGroup(title: NSLocalizedString("terminal.favorite.projects", comment: "")) {
                                     projectSuggestionScroller(projects: favoriteProjects)
                                 }
                             }
 
                             if !recentProjects.isEmpty {
-                                optionGroup(title: "최근 프로젝트") {
+                                optionGroup(title: NSLocalizedString("terminal.recent.projects", comment: "")) {
                                     projectSuggestionScroller(projects: recentProjects)
                                 }
                             }
                         }
                     }
 
-                    configSection(title: "프로젝트", subtitle: "경로만 입력해도 세션을 만들 수 있습니다.") {
+                    configSection(title: NSLocalizedString("terminal.config.project", comment: ""), subtitle: NSLocalizedString("terminal.config.project.subtitle", comment: "")) {
                         VStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 6) {
-                                sectionLabel("프로젝트 경로")
+                                sectionLabel(NSLocalizedString("terminal.project.path", comment: ""))
                                 HStack(spacing: 8) {
                                     TextField("/path/to/project", text: $projectPath)
                                         .textFieldStyle(.plain)
                                         .font(Theme.monoSmall)
                                         .appFieldStyle(emphasized: true)
-                                        .accessibilityLabel("프로젝트 경로")
-                                        .accessibilityHint("작업할 폴더 경로를 입력합니다")
+                                        .accessibilityLabel(NSLocalizedString("terminal.project.path.a11y", comment: ""))
+                                        .accessibilityHint(NSLocalizedString("terminal.project.path.a11y.hint", comment: ""))
 
                                     Button("Browse") {
                                         let p = NSOpenPanel(); p.canChooseFiles = false; p.canChooseDirectories = true
@@ -3219,7 +3222,7 @@ struct NewTabSheet: View {
                                     .buttonStyle(.plain)
                                     .font(Theme.mono(9, weight: .bold))
                                     .appButtonSurface(tone: .neutral, compact: true)
-                                    .accessibilityLabel("프로젝트 폴더 찾기")
+                                    .accessibilityLabel(NSLocalizedString("terminal.project.folder.find.a11y", comment: ""))
                                 }
                                 .onChange(of: projectPath) { _ in
                                     pathError = nil
@@ -3232,24 +3235,24 @@ struct NewTabSheet: View {
                             }
 
                             VStack(alignment: .leading, spacing: 6) {
-                                sectionLabel("프로젝트 이름")
+                                sectionLabel(NSLocalizedString("terminal.project.name", comment: ""))
                                 TextField("e.g. my-project", text: $projectName)
                                     .textFieldStyle(.plain)
                                     .font(Theme.monoSmall)
                                     .appFieldStyle()
-                                    .accessibilityLabel("프로젝트 이름")
+                                    .accessibilityLabel(NSLocalizedString("terminal.project.name.a11y", comment: ""))
                             }
                         }
                     }
 
-                    configSection(title: "실행 설정", subtitle: "모델, 추론 강도, 권한 모드를 같은 규칙으로 정리했습니다.") {
+                    configSection(title: NSLocalizedString("terminal.config.execution", comment: ""), subtitle: NSLocalizedString("terminal.config.execution.subtitle", comment: "")) {
                         VStack(alignment: .leading, spacing: 14) {
-                            optionGroup(title: "모델") {
+                            optionGroup(title: NSLocalizedString("terminal.config.model", comment: "")) {
                                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                                     ForEach(ClaudeModel.allCases) { model in
                                         selectionChip(
                                             title: model.displayName,
-                                            subtitle: model == .sonnet ? "기본 추천" : nil,
+                                            subtitle: model == .sonnet ? NSLocalizedString("terminal.config.model.recommended", comment: "") : nil,
                                             symbol: "circle.fill",
                                             tint: modelTint(model),
                                             selected: selectedModel == model
@@ -3276,7 +3279,7 @@ struct NewTabSheet: View {
                                 }
                             }
 
-                            optionGroup(title: "권한") {
+                            optionGroup(title: NSLocalizedString("terminal.config.permission", comment: "")) {
                                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                                     ForEach(PermissionMode.allCases) { mode in
                                         selectionChip(
@@ -3294,10 +3297,10 @@ struct NewTabSheet: View {
                         }
                     }
 
-                    configSection(title: "터미널", subtitle: "작업을 나눌 때만 여러 개를 선택하면 됩니다.") {
+                    configSection(title: NSLocalizedString("terminal.config.terminal", comment: ""), subtitle: NSLocalizedString("terminal.config.terminal.subtitle", comment: "")) {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
-                                sectionLabel("터미널 수")
+                                sectionLabel(NSLocalizedString("terminal.config.terminal.count", comment: ""))
                                 Spacer()
                                 Text("\(terminalCount)개")
                                     .font(Theme.mono(9, weight: .bold))
@@ -3336,14 +3339,14 @@ struct NewTabSheet: View {
                                         .foregroundColor(terminalCount == n ? Theme.accent : Theme.textSecondary)
                                     }
                                     .buttonStyle(.plain)
-                                    .accessibilityLabel("터미널 \(n)개")
-                                    .accessibilityValue(terminalCount == n ? "선택됨" : "선택 안 됨")
+                                    .accessibilityLabel(String(format: NSLocalizedString("terminal.config.terminal.n.a11y", comment: ""), n))
+                                    .accessibilityValue(terminalCount == n ? NSLocalizedString("terminal.config.terminal.selected", comment: "") : NSLocalizedString("terminal.config.terminal.unselected", comment: ""))
                                 }
                             }
 
                             if terminalCount > 1 {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    Text("각 터미널에 보낼 작업")
+                                    Text(NSLocalizedString("terminal.config.task.per.terminal", comment: ""))
                                         .font(Theme.mono(9, weight: .medium))
                                         .foregroundColor(Theme.textDim)
                                     ForEach(tasks.indices, id: \.self) { i in
@@ -3354,7 +3357,7 @@ struct NewTabSheet: View {
                                                 .font(Theme.mono(8, weight: .bold))
                                                 .foregroundColor(Theme.textDim)
                                                 .frame(width: 18)
-                                            TextField("작업 내용 (비워두면 빈 터미널)", text: $tasks[i])
+                                            TextField(NSLocalizedString("terminal.config.task.placeholder", comment: ""), text: $tasks[i])
                                                 .textFieldStyle(.plain)
                                                 .font(Theme.mono(10))
                                                 .appFieldStyle()
@@ -3375,16 +3378,16 @@ struct NewTabSheet: View {
                                 .font(.system(size: Theme.iconSize(9), weight: .bold))
                                 .foregroundColor(Theme.textDim)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("고급 옵션")
+                                Text(NSLocalizedString("terminal.config.advanced", comment: ""))
                                     .font(Theme.mono(10, weight: .bold))
                                     .foregroundColor(Theme.textPrimary)
-                                Text("예산, 워크트리, 도구 제한 같은 세부 옵션")
+                                Text(NSLocalizedString("terminal.config.advanced.desc", comment: ""))
                                     .font(Theme.mono(8))
                                     .foregroundColor(Theme.textDim)
                             }
                             Spacer()
                             if hasAdvancedOptions {
-                                Text("설정됨")
+                                Text(NSLocalizedString("terminal.config.advanced.set", comment: ""))
                                     .font(Theme.mono(8, weight: .bold))
                                     .foregroundColor(Theme.green)
                                     .padding(.horizontal, 8)
@@ -3396,7 +3399,7 @@ struct NewTabSheet: View {
                         .appPanelStyle(padding: 14, radius: 14, fill: Theme.bgCard.opacity(0.96), strokeOpacity: 0.18, shadow: false)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(showAdvanced ? "고급 옵션 접기" : "고급 옵션 펼치기")
+                    .accessibilityLabel(showAdvanced ? NSLocalizedString("terminal.config.advanced.collapse.a11y", comment: "") : NSLocalizedString("terminal.config.advanced.expand.a11y", comment: ""))
 
                     if showAdvanced {
                         advancedOptionsView
@@ -3413,25 +3416,25 @@ struct NewTabSheet: View {
                 }
                 .buttonStyle(.plain)
                 .keyboardShortcut(.escape)
-                .accessibilityLabel("새 세션 생성 취소")
+                .accessibilityLabel(NSLocalizedString("terminal.cancel.new.a11y", comment: ""))
 
                 Button(action: { showSavePreset = true }) {
                     HStack(spacing: 4) {
                         Image(systemName: "square.and.arrow.down").font(.system(size: Theme.iconSize(9)))
-                        Text("프리셋 저장")
+                        Text(NSLocalizedString("terminal.save.preset", comment: ""))
                             .font(Theme.mono(9, weight: .bold))
                     }
                     .appButtonSurface(tone: .neutral, compact: true)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("현재 설정을 프리셋으로 저장")
+                .accessibilityLabel(NSLocalizedString("terminal.save.preset.a11y", comment: ""))
 
                 Spacer()
                 Button(action: {
                     if !projectPath.isEmpty {
                         var isDir: ObjCBool = false
                         if !FileManager.default.fileExists(atPath: projectPath, isDirectory: &isDir) || !isDir.boolValue {
-                            pathError = "경로가 존재하지 않거나 디렉토리가 아닙니다"
+                            pathError = NSLocalizedString("terminal.path.error", comment: "")
                             return
                         }
                         pathError = nil
@@ -3453,7 +3456,7 @@ struct NewTabSheet: View {
                 }
                 .buttonStyle(.plain).keyboardShortcut(.return)
                 .disabled(projectPath.isEmpty && projectName.isEmpty)
-                .accessibilityLabel(terminalCount > 1 ? "세션 \(terminalCount)개 생성" : "세션 생성")
+                .accessibilityLabel(terminalCount > 1 ? String(format: NSLocalizedString("terminal.create.sessions.a11y", comment: ""), terminalCount) : NSLocalizedString("terminal.create.session.a11y", comment: ""))
             }.padding(.horizontal, 24).padding(.vertical, 12)
             .background(Theme.bg)
             .overlay(Rectangle().fill(Theme.border).frame(height: 1), alignment: .top)
@@ -3478,9 +3481,9 @@ struct NewTabSheet: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 4) {
                     Image(systemName: "text.bubble.fill").font(.system(size: Theme.iconSize(9))).foregroundColor(Theme.purple)
-                    Text("시스템 프롬프트").font(Theme.mono(9, weight: .medium)).foregroundColor(Theme.textSecondary)
+                    Text(NSLocalizedString("terminal.system.prompt", comment: "")).font(Theme.mono(9, weight: .medium)).foregroundColor(Theme.textSecondary)
                 }
-                TextField("추가 지시사항 (--append-system-prompt)", text: $systemPrompt, axis: .vertical)
+                TextField(NSLocalizedString("terminal.system.prompt.placeholder", comment: ""), text: $systemPrompt, axis: .vertical)
                     .textFieldStyle(.plain)
                     .font(Theme.mono(10))
                     .lineLimit(2...4)
@@ -3492,7 +3495,7 @@ struct NewTabSheet: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 4) {
                         Image(systemName: "dollarsign.circle.fill").font(.system(size: Theme.iconSize(9))).foregroundColor(Theme.yellow)
-                        Text("예산 한도 (USD)").font(Theme.mono(9, weight: .medium)).foregroundColor(Theme.textSecondary)
+                        Text(NSLocalizedString("terminal.budget.limit", comment: "")).font(Theme.mono(9, weight: .medium)).foregroundColor(Theme.textSecondary)
                     }
                     TextField("0 = 무제한", text: $maxBudget)
                         .textFieldStyle(.plain)
@@ -3507,7 +3510,7 @@ struct NewTabSheet: View {
                     Toggle(isOn: $continueSession) {
                         HStack(spacing: 4) {
                             Image(systemName: "arrow.turn.up.right").font(.system(size: Theme.iconSize(9))).foregroundColor(Theme.cyan)
-                            Text("이전 대화 이어하기").font(Theme.mono(9, weight: .medium)).foregroundColor(Theme.textSecondary)
+                            Text(NSLocalizedString("terminal.resume.conversation", comment: "")).font(Theme.mono(9, weight: .medium)).foregroundColor(Theme.textSecondary)
                         }
                     }.toggleStyle(.switch).controlSize(.small)
                 }
@@ -3517,7 +3520,7 @@ struct NewTabSheet: View {
             Toggle(isOn: $useWorktree) {
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.triangle.branch").font(.system(size: Theme.iconSize(9))).foregroundColor(Theme.green)
-                    Text("Git 워크트리 생성").font(Theme.mono(9, weight: .medium)).foregroundColor(Theme.textSecondary)
+                    Text(NSLocalizedString("terminal.git.worktree", comment: "")).font(Theme.mono(9, weight: .medium)).foregroundColor(Theme.textSecondary)
                     Text("--worktree").font(Theme.mono(8)).foregroundColor(Theme.textDim)
                 }
             }.toggleStyle(.switch).controlSize(.small)
@@ -3526,10 +3529,10 @@ struct NewTabSheet: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 4) {
                     Image(systemName: "wrench.and.screwdriver.fill").font(.system(size: Theme.iconSize(9))).foregroundColor(Theme.orange)
-                    Text("허용 도구").font(Theme.mono(9, weight: .medium)).foregroundColor(Theme.textSecondary)
-                    Text("(쉼표 구분)").font(Theme.mono(8)).foregroundColor(Theme.textDim)
+                    Text(NSLocalizedString("terminal.allowed.tools", comment: "")).font(Theme.mono(9, weight: .medium)).foregroundColor(Theme.textSecondary)
+                    Text(NSLocalizedString("terminal.tools.comma.sep", comment: "")).font(Theme.mono(8)).foregroundColor(Theme.textDim)
                 }
-                TextField("예: Bash,Read,Edit,Write", text: $allowedTools)
+                TextField(NSLocalizedString("terminal.allowed.tools.placeholder", comment: ""), text: $allowedTools)
                     .textFieldStyle(.plain)
                     .font(Theme.mono(10))
                     .appFieldStyle()
@@ -3538,10 +3541,10 @@ struct NewTabSheet: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 4) {
                     Image(systemName: "xmark.shield.fill").font(.system(size: Theme.iconSize(9))).foregroundColor(Theme.red)
-                    Text("차단 도구").font(Theme.mono(9, weight: .medium)).foregroundColor(Theme.textSecondary)
-                    Text("(쉼표 구분)").font(Theme.mono(8)).foregroundColor(Theme.textDim)
+                    Text(NSLocalizedString("terminal.blocked.tools", comment: "")).font(Theme.mono(9, weight: .medium)).foregroundColor(Theme.textSecondary)
+                    Text(NSLocalizedString("terminal.tools.comma.sep", comment: "")).font(Theme.mono(8)).foregroundColor(Theme.textDim)
                 }
-                TextField("예: Bash(rm:*)", text: $disallowedTools)
+                TextField(NSLocalizedString("terminal.blocked.tools.placeholder", comment: ""), text: $disallowedTools)
                     .textFieldStyle(.plain)
                     .font(Theme.mono(10))
                     .appFieldStyle()
@@ -3551,10 +3554,10 @@ struct NewTabSheet: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 4) {
                     Image(systemName: "folder.badge.plus").font(.system(size: Theme.iconSize(9))).foregroundColor(Theme.accent)
-                    Text("추가 디렉토리 접근").font(Theme.mono(9, weight: .medium)).foregroundColor(Theme.textSecondary)
+                    Text(NSLocalizedString("terminal.additional.dirs", comment: "")).font(Theme.mono(9, weight: .medium)).foregroundColor(Theme.textSecondary)
                 }
                 HStack(spacing: 4) {
-                    TextField("경로 추가", text: $additionalDir)
+                    TextField(NSLocalizedString("terminal.additional.dir.placeholder", comment: ""), text: $additionalDir)
                         .textFieldStyle(.plain)
                         .font(Theme.mono(10))
                         .appFieldStyle()
@@ -3565,7 +3568,7 @@ struct NewTabSheet: View {
                         Image(systemName: "folder").font(.system(size: Theme.iconSize(10))).foregroundColor(Theme.accent)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("추가 디렉토리 선택")
+                    .accessibilityLabel(NSLocalizedString("terminal.additional.dir.select.a11y", comment: ""))
                     Button(action: {
                         if !additionalDir.isEmpty {
                             additionalDirs.append(additionalDir); additionalDir = ""
@@ -3575,7 +3578,7 @@ struct NewTabSheet: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(additionalDir.isEmpty)
-                    .accessibilityLabel("추가 디렉토리 목록에 추가")
+                    .accessibilityLabel(NSLocalizedString("terminal.additional.dir.add.a11y", comment: ""))
                 }
                 if !additionalDirs.isEmpty {
                     ForEach(additionalDirs.indices, id: \.self) { i in
@@ -3676,8 +3679,8 @@ struct NewTabSheet: View {
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(subtitle.map { "\(title), \($0)" } ?? title)
-        .accessibilityValue(selected ? "선택됨" : "선택 안 됨")
-        .accessibilityHint("이 설정을 선택합니다")
+        .accessibilityValue(selected ? NSLocalizedString("terminal.option.selected.a11y", comment: "") : NSLocalizedString("terminal.option.unselected.a11y", comment: ""))
+        .accessibilityHint(NSLocalizedString("terminal.option.select.a11y.hint", comment: ""))
     }
 
     private func modelTint(_ model: ClaudeModel) -> Color {
@@ -3690,10 +3693,10 @@ struct NewTabSheet: View {
 
     private func effortTitle(_ level: EffortLevel) -> String {
         switch level {
-        case .low: return "낮음"
-        case .medium: return "보통"
-        case .high: return "높음"
-        case .max: return "최대"
+        case .low: return NSLocalizedString("terminal.effort.low", comment: "")
+        case .medium: return NSLocalizedString("terminal.effort.medium", comment: "")
+        case .high: return NSLocalizedString("terminal.effort.high", comment: "")
+        case .max: return NSLocalizedString("terminal.effort.max", comment: "")
         }
     }
 
@@ -3778,8 +3781,8 @@ struct NewTabSheet: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("\(project.name) 프로젝트")
-                    .accessibilityValue(project.isFavorite ? "즐겨찾기" : "최근 사용")
-                    .accessibilityHint("이 프로젝트 정보를 입력 칸에 채웁니다")
+                    .accessibilityValue(project.isFavorite ? NSLocalizedString("terminal.project.a11y.favorite", comment: "") : NSLocalizedString("terminal.project.a11y.recent", comment: ""))
+                    .accessibilityHint(NSLocalizedString("terminal.project.a11y.hint", comment: ""))
                 }
             }
             .padding(.vertical, 1)
@@ -3950,19 +3953,19 @@ struct SleepWorkSetupSheet: View {
         VStack(spacing: 16) {
             HStack {
                 Image(systemName: "moon.zzz.fill").font(.system(size: 20)).foregroundColor(Theme.purple)
-                Text("슬립워크").font(Theme.mono(14, weight: .bold)).foregroundColor(Theme.textPrimary)
+                Text(NSLocalizedString("terminal.sleepwork.title", comment: "")).font(Theme.mono(14, weight: .bold)).foregroundColor(Theme.textPrimary)
                 Spacer()
                 Button(action: { close() }) {
                     Image(systemName: "xmark.circle.fill").font(.system(size: 16)).foregroundColor(Theme.textDim)
                 }.buttonStyle(.plain)
             }
 
-            Text("작업을 맡기고 자리를 비워보세요. 설정한 토큰 예산 내에서 자동으로 진행합니다.")
+            Text(NSLocalizedString("terminal.sleepwork.desc", comment: ""))
                 .font(Theme.mono(10))
                 .foregroundColor(Theme.textSecondary)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("작업 내용").font(Theme.mono(9, weight: .bold)).foregroundColor(Theme.textDim)
+                Text(NSLocalizedString("terminal.sleepwork.task", comment: "")).font(Theme.mono(9, weight: .bold)).foregroundColor(Theme.textDim)
                 TextEditor(text: $task)
                     .font(Theme.monoNormal)
                     .frame(minHeight: 80)
@@ -3972,14 +3975,14 @@ struct SleepWorkSetupSheet: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("토큰 예산 (예: 10k, 50k, 100k)").font(Theme.mono(9, weight: .bold)).foregroundColor(Theme.textDim)
+                Text(NSLocalizedString("terminal.sleepwork.token.budget", comment: "")).font(Theme.mono(9, weight: .bold)).foregroundColor(Theme.textDim)
                 TextField("10k", text: $budgetText)
                     .font(Theme.monoNormal)
                     .textFieldStyle(.plain)
                     .padding(8)
                     .background(RoundedRectangle(cornerRadius: 8).fill(Theme.bgSurface))
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.border, lineWidth: 1))
-                Text("비워두면 무제한. 예산의 2배 초과 시 자동 중단됩니다.")
+                Text(NSLocalizedString("terminal.sleepwork.token.hint", comment: ""))
                     .font(Theme.mono(8)).foregroundColor(Theme.textDim)
             }
 
@@ -3992,7 +3995,7 @@ struct SleepWorkSetupSheet: View {
                 }) {
                     HStack(spacing: 6) {
                         Image(systemName: "moon.zzz.fill").font(.system(size: 12))
-                        Text("슬립워크 시작").font(Theme.mono(11, weight: .bold))
+                        Text(NSLocalizedString("terminal.sleepwork.start", comment: "")).font(Theme.mono(11, weight: .bold))
                     }
                     .foregroundColor(.white)
                     .padding(.horizontal, 16).padding(.vertical, 10)

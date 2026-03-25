@@ -228,7 +228,7 @@ struct OfficeSceneView: View {
                     selectionBadge(badge.label, tint: badge.tint)
                 }
                 if tab.pendingApproval != nil && tab.officeLatestToolBadge == nil {
-                    selectionBadge("승인 필요", tint: Theme.yellow)
+                    selectionBadge(NSLocalizedString("office.approval.needed", comment: ""), tint: Theme.yellow)
                 }
             }
 
@@ -240,9 +240,9 @@ struct OfficeSceneView: View {
             }
 
             HStack(spacing: 8) {
-                infoStat(title: "활동", value: status.label, tint: status.tint)
-                infoStat(title: "토큰", value: tab.officeCompactTokenText, tint: Theme.accent)
-                infoStat(title: "파일", value: "\(tab.fileChanges.count)", tint: Theme.green)
+                infoStat(title: NSLocalizedString("office.activity", comment: ""), value: status.label, tint: status.tint)
+                infoStat(title: NSLocalizedString("office.tokens", comment: ""), value: tab.officeCompactTokenText, tint: Theme.accent)
+                infoStat(title: NSLocalizedString("office.files", comment: ""), value: "\(tab.fileChanges.count)", tint: Theme.green)
             }
 
             if let parallelSummary = tab.officeParallelSummary {
@@ -264,7 +264,7 @@ struct OfficeSceneView: View {
 
             if !tab.officeRecentFileNames.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("최근 변경")
+                    Text(NSLocalizedString("office.recent.changes", comment: ""))
                         .font(Theme.mono(8, weight: .bold))
                         .foregroundColor(Theme.textDim)
                     ForEach(tab.officeRecentFileNames, id: \.self) { name in
@@ -277,7 +277,7 @@ struct OfficeSceneView: View {
             }
 
             if let pendingApproval = tab.pendingApproval {
-                Text("승인 대기: \(pendingApproval.command)")
+                Text(String(format: NSLocalizedString("office.approval.pending", comment: ""), pendingApproval.command))
                     .font(Theme.mono(8))
                     .foregroundColor(Theme.yellow)
                     .lineLimit(2)
@@ -340,13 +340,13 @@ struct OfficeSceneView: View {
                     .font(Theme.mono(9, weight: .bold))
                     .foregroundColor(Theme.yellow)
             } else {
-                Text("가구를 눌러 이동")
+                Text(NSLocalizedString("office.furniture.move", comment: ""))
                     .font(Theme.mono(9))
                     .foregroundColor(Theme.textSecondary)
             }
 
             HStack(spacing: 6) {
-                Button("저장") {
+                Button(NSLocalizedString("office.save", comment: "")) {
                     store.saveCurrentLayout()
                 }
                 .buttonStyle(.plain)
@@ -355,7 +355,7 @@ struct OfficeSceneView: View {
                 .background(RoundedRectangle(cornerRadius: Theme.cornerMedium).fill(Theme.accent.opacity(0.16)))
                 .overlay(RoundedRectangle(cornerRadius: Theme.cornerMedium).stroke(Theme.accent.opacity(0.36), lineWidth: 1))
 
-                Button("초기화") {
+                Button(NSLocalizedString("office.reset", comment: "")) {
                     store.resetCurrentLayout(with: manager.userVisibleTabs)
                     selectedFurnitureId = nil
                 }
@@ -365,7 +365,7 @@ struct OfficeSceneView: View {
                 .background(RoundedRectangle(cornerRadius: Theme.cornerMedium).fill(Theme.bgCard.opacity(0.9)))
                 .overlay(RoundedRectangle(cornerRadius: Theme.cornerMedium).stroke(Theme.border.opacity(0.7), lineWidth: 1))
 
-                Button("완료") {
+                Button(NSLocalizedString("office.done", comment: "")) {
                     settings.isEditMode = false
                 }
                 .buttonStyle(.plain)

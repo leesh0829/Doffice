@@ -90,10 +90,10 @@ private enum SidebarSortOption: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .recent: return "최근 활동"
-        case .name: return "이름순"
-        case .tokens: return "토큰순"
-        case .status: return "상태순"
+        case .recent: return NSLocalizedString("sidebar.sort.recent", comment: "")
+        case .name: return NSLocalizedString("sidebar.sort.name", comment: "")
+        case .tokens: return NSLocalizedString("sidebar.sort.tokens", comment: "")
+        case .status: return NSLocalizedString("sidebar.sort.status", comment: "")
         }
     }
 }
@@ -172,14 +172,14 @@ struct SidebarView: View {
                 Button(action: { showHistory.toggle() }) {
                     Image(systemName: "clock.arrow.circlepath").font(Theme.chrome(9))
                         .foregroundColor(showHistory ? Theme.accent : Theme.textDim)
-                }.buttonStyle(.plain).help("세션 히스토리")
+                }.buttonStyle(.plain).help(NSLocalizedString("sidebar.help.history", comment: ""))
                 Button(action: { isMultiSelectMode.toggle(); if !isMultiSelectMode { selectedTabIds.removeAll() } }) {
                     Image(systemName: isMultiSelectMode ? "checkmark.circle.fill" : "checkmark.circle")
                         .font(.system(size: Theme.chromeIconSize(11)))
                         .foregroundColor(isMultiSelectMode ? Theme.accent : Theme.textDim)
                 }
                 .buttonStyle(.plain)
-                .help("일괄 선택 모드")
+                .help(NSLocalizedString("sidebar.help.multiselect", comment: ""))
                 Text("\(manager.userVisibleTabCount)")
                     .font(Theme.chrome(9, weight: .medium)).foregroundColor(Theme.textDim)
                     .padding(.horizontal, Theme.sp1 + 2).padding(.vertical, 1)
@@ -202,7 +202,7 @@ struct SidebarView: View {
                 Button(action: { manager.selectedGroupPath = nil; manager.focusSingleTab = false }) {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left").font(Theme.chrome(8, weight: .bold))
-                        Text("전체 보기").font(Theme.chrome(9, weight: .medium))
+                        Text(NSLocalizedString("sidebar.view.all", comment: "")).font(Theme.chrome(9, weight: .medium))
                         Spacer()
                     }
                     .foregroundColor(Theme.accent)
@@ -216,7 +216,7 @@ struct SidebarView: View {
                     if groups.isEmpty {
                         AppEmptyStateView(
                             title: NSLocalizedString("session.no.match", comment: ""),
-                            message: searchQuery.isEmpty ? NSLocalizedString("session.no.match.hint", comment: "") : "검색어나 필터를 조정해보세요.",
+                            message: searchQuery.isEmpty ? NSLocalizedString("session.no.match.hint", comment: "") : NSLocalizedString("sidebar.search.adjust", comment: ""),
                             symbol: searchQuery.isEmpty ? "rectangle.stack.badge.plus" : "magnifyingglass",
                             tint: searchQuery.isEmpty ? Theme.accent : Theme.textDim
                         )
@@ -273,17 +273,17 @@ struct SidebarView: View {
 
             if isMultiSelectMode && !selectedTabIds.isEmpty {
                 HStack(spacing: 8) {
-                    Text("\(selectedTabIds.count)개 선택").font(Theme.chrome(9, weight: .bold)).foregroundColor(Theme.accent)
+                    Text(String(format: NSLocalizedString("sidebar.selected.count", comment: ""), selectedTabIds.count)).font(Theme.chrome(9, weight: .bold)).foregroundColor(Theme.accent)
                     Spacer()
                     Button(action: { batchRestart() }) {
                         Image(systemName: "arrow.clockwise").font(.system(size: 10))
-                    }.buttonStyle(.plain).help("재시작")
+                    }.buttonStyle(.plain).help(NSLocalizedString("sidebar.help.restart", comment: ""))
                     Button(action: { batchStop() }) {
                         Image(systemName: "stop.fill").font(.system(size: 10)).foregroundColor(Theme.red)
-                    }.buttonStyle(.plain).help("중지")
+                    }.buttonStyle(.plain).help(NSLocalizedString("sidebar.help.stop", comment: ""))
                     Button(action: { batchClose() }) {
                         Image(systemName: "xmark").font(.system(size: 10)).foregroundColor(Theme.red)
-                    }.buttonStyle(.plain).help("닫기")
+                    }.buttonStyle(.plain).help(NSLocalizedString("close", comment: ""))
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(Theme.bgCard)
@@ -312,7 +312,7 @@ struct SidebarView: View {
             VStack(spacing: 10) {
                 VStack(spacing: 4) {
                     HStack {
-                        Text("오늘").font(Theme.chrome(9, weight: .medium)).foregroundColor(Theme.textSecondary)
+                        Text(NSLocalizedString("misc.today", comment: "")).font(Theme.chrome(9, weight: .medium)).foregroundColor(Theme.textSecondary)
                         Spacer()
                         Text(tracker.formatTokens(tracker.todayTokens))
                             .font(Theme.chrome(10, weight: .bold)).foregroundColor(Theme.textPrimary)
@@ -329,7 +329,7 @@ struct SidebarView: View {
                         }
                     }.frame(height: 4)
                     HStack {
-                        Text("남은 양").font(Theme.chrome(7)).foregroundColor(Theme.textDim)
+                        Text(NSLocalizedString("misc.remaining", comment: "")).font(Theme.chrome(7)).foregroundColor(Theme.textDim)
                         Spacer()
                         Text(tracker.formatTokens(tracker.dailyRemaining))
                             .font(Theme.chrome(8, weight: .semibold))
@@ -337,7 +337,7 @@ struct SidebarView: View {
                     }
                     if tracker.todayCost > 0 {
                         HStack {
-                            Text("비용").font(Theme.chrome(7)).foregroundColor(Theme.textDim)
+                            Text(NSLocalizedString("misc.cost", comment: "")).font(Theme.chrome(7)).foregroundColor(Theme.textDim)
                             Spacer()
                             Text(String(format: "$%.4f", tracker.todayCost))
                                 .font(Theme.chrome(8)).foregroundColor(Theme.yellow)
@@ -349,7 +349,7 @@ struct SidebarView: View {
 
                 VStack(spacing: 4) {
                     HStack {
-                        Text("이번 주").font(Theme.chrome(9, weight: .medium)).foregroundColor(Theme.textSecondary)
+                        Text(NSLocalizedString("misc.thisweek", comment: "")).font(Theme.chrome(9, weight: .medium)).foregroundColor(Theme.textSecondary)
                         Spacer()
                         Text(tracker.formatTokens(tracker.weekTokens))
                             .font(Theme.chrome(10, weight: .bold)).foregroundColor(Theme.textPrimary)
@@ -366,7 +366,7 @@ struct SidebarView: View {
                         }
                     }.frame(height: 4)
                     HStack {
-                        Text("남은 양").font(Theme.chrome(7)).foregroundColor(Theme.textDim)
+                        Text(NSLocalizedString("misc.remaining", comment: "")).font(Theme.chrome(7)).foregroundColor(Theme.textDim)
                         Spacer()
                         Text(tracker.formatTokens(tracker.weeklyRemaining))
                             .font(Theme.chrome(8, weight: .semibold))
@@ -374,7 +374,7 @@ struct SidebarView: View {
                     }
                     if tracker.weekCost > 0 {
                         HStack {
-                            Text("비용").font(Theme.chrome(7)).foregroundColor(Theme.textDim)
+                            Text(NSLocalizedString("misc.cost", comment: "")).font(Theme.chrome(7)).foregroundColor(Theme.textDim)
                             Spacer()
                             Text(String(format: "$%.4f", tracker.weekCost))
                                 .font(Theme.chrome(8)).foregroundColor(Theme.yellow)
@@ -387,18 +387,18 @@ struct SidebarView: View {
                     Divider().overlay(Theme.border.opacity(0.6))
                     VStack(spacing: 4) {
                         HStack {
-                            Text("결제 기간").font(Theme.chrome(9, weight: .medium)).foregroundColor(Theme.textSecondary)
+                            Text(NSLocalizedString("sidebar.billing.period", comment: "")).font(Theme.chrome(9, weight: .medium)).foregroundColor(Theme.textSecondary)
                             Spacer()
                             Text(tracker.billingPeriodLabel).font(Theme.chrome(8)).foregroundColor(Theme.textDim)
                         }
                         HStack {
-                            Text("토큰").font(Theme.chrome(7)).foregroundColor(Theme.textDim)
+                            Text(NSLocalizedString("sidebar.tokens", comment: "")).font(Theme.chrome(7)).foregroundColor(Theme.textDim)
                             Spacer()
                             Text(tracker.formatTokens(tracker.billingPeriodTokens))
                                 .font(Theme.chrome(10, weight: .bold)).foregroundColor(Theme.orange)
                         }
                         HStack {
-                            Text("비용").font(Theme.chrome(7)).foregroundColor(Theme.textDim)
+                            Text(NSLocalizedString("misc.cost", comment: "")).font(Theme.chrome(7)).foregroundColor(Theme.textDim)
                             Spacer()
                             Text(String(format: "$%.4f", tracker.billingPeriodCost))
                                 .font(Theme.chrome(8)).foregroundColor(Theme.yellow)
@@ -409,7 +409,7 @@ struct SidebarView: View {
                 if manager.totalTokensUsed > 0 {
                     Divider().overlay(Theme.border.opacity(0.6))
                     HStack {
-                        Text("현재 세션").font(Theme.chrome(8, weight: .medium)).foregroundColor(Theme.textDim)
+                        Text(NSLocalizedString("sidebar.current.session", comment: "")).font(Theme.chrome(8, weight: .medium)).foregroundColor(Theme.textDim)
                         Spacer()
                         let (totalIn, totalOut) = manager.userVisibleTabs.reduce((0, 0)) { ($0.0 + $1.inputTokensUsed, $0.1 + $1.outputTokensUsed) }
                         if totalIn > 0 || totalOut > 0 {
@@ -444,7 +444,7 @@ struct SidebarView: View {
         sidebarPanel(title: "Tokens", icon: "bolt.fill", tint: Theme.yellow) {
             VStack(spacing: 8) {
                 HStack {
-                    Text("총 사용량")
+                    Text(NSLocalizedString("sidebar.total.usage", comment: ""))
                         .font(Theme.chrome(8, weight: .medium))
                         .foregroundColor(Theme.textDim)
                     Spacer()
@@ -486,7 +486,7 @@ struct SidebarView: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
                     Image(systemName: "plus.circle.fill").font(Theme.chrome(14))
-                    Text("새 세션 시작").font(Theme.chrome(11, weight: .semibold))
+                    Text(NSLocalizedString("session.new", comment: "")).font(Theme.chrome(11, weight: .semibold))
                     Spacer()
                     Text("Cmd+T").font(Theme.chrome(8, weight: .medium)).foregroundColor(Theme.textDim)
                 }
@@ -507,7 +507,7 @@ struct SidebarView: View {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: Theme.chromeIconSize(9), weight: .semibold))
                     .foregroundColor(Theme.textDim)
-                TextField("검색", text: $searchQuery)
+                TextField(NSLocalizedString("search", comment: ""), text: $searchQuery)
                     .textFieldStyle(.plain)
                     .font(Theme.chrome(10))
                     .foregroundColor(Theme.textPrimary)
@@ -523,7 +523,7 @@ struct SidebarView: View {
                 Rectangle().fill(Theme.border).frame(width: 1, height: 12)
 
                 Menu {
-                    Picker("정렬", selection: sortOptionBinding) {
+                    Picker(NSLocalizedString("sidebar.sort.label", comment: ""), selection: sortOptionBinding) {
                         ForEach(SidebarSortOption.allCases) { option in
                             Text(option.label).tag(option)
                         }
@@ -832,7 +832,7 @@ struct ReportCenterView: View {
                 icon: "doc.richtext.fill",
                 iconColor: Theme.cyan,
                 title: NSLocalizedString("sidebar.reports", comment: ""),
-                subtitle: "보고자가 작성한 보고서 열람 및 관리",
+                subtitle: NSLocalizedString("sidebar.report.subtitle", comment: ""),
                 trailing: AnyView(
                     Text("\(reports.count)")
                         .font(Theme.mono(10, weight: .bold))
@@ -873,7 +873,7 @@ struct ReportCenterView: View {
             Button(NSLocalizedString("cancel", comment: ""), role: .cancel) { reportToDelete = nil }
         } message: {
             if let r = reportToDelete {
-                Text("「\(r.projectName)」 보고서를 삭제하시겠습니까?\n삭제된 파일은 복구할 수 없습니다.")
+                Text(String(format: NSLocalizedString("sidebar.report.delete.confirm", comment: ""), r.projectName))
             }
         }
     }
@@ -884,7 +884,7 @@ struct ReportCenterView: View {
         VStack(spacing: 0) {
             HStack(spacing: 6) {
                 Image(systemName: "list.bullet").font(.system(size: 9, weight: .medium)).foregroundColor(Theme.textDim)
-                Text("목록").font(Theme.mono(9, weight: .bold)).foregroundColor(Theme.textDim)
+                Text(NSLocalizedString("sidebar.report.list", comment: "")).font(Theme.mono(9, weight: .bold)).foregroundColor(Theme.textDim)
                 Spacer()
             }
             .padding(.horizontal, 14).padding(.vertical, 8)
@@ -911,10 +911,10 @@ struct ReportCenterView: View {
             Image(systemName: "doc.text.magnifyingglass")
                 .font(.system(size: 28))
                 .foregroundColor(Theme.textDim.opacity(0.2))
-            Text("보고서 없음")
+            Text(NSLocalizedString("sidebar.report.none", comment: ""))
                 .font(Theme.mono(10, weight: .bold))
                 .foregroundColor(Theme.textDim.opacity(0.5))
-            Text("보고자 역할의 캐릭터가 생성합니다")
+            Text(NSLocalizedString("sidebar.report.none.hint", comment: ""))
                 .font(Theme.mono(8))
                 .foregroundColor(Theme.textDim.opacity(0.35))
         }
@@ -996,7 +996,7 @@ struct ReportCenterView: View {
             } label: { Label(NSLocalizedString("action.copy.path", comment: ""), systemImage: "doc.on.doc") }
             Divider()
             Button(role: .destructive) { reportToDelete = report; showDeleteConfirm = true }
-                label: { Label("삭제", systemImage: "trash") }
+                label: { Label(NSLocalizedString("delete", comment: ""), systemImage: "trash") }
         }
     }
 
@@ -1012,7 +1012,7 @@ struct ReportCenterView: View {
                     Text("·").foregroundColor(Theme.textDim)
                     Text((r.path as NSString).lastPathComponent).font(Theme.mono(8)).foregroundColor(Theme.textDim).lineLimit(1)
                 } else {
-                    Text("미리보기").font(Theme.mono(10, weight: .bold)).foregroundColor(Theme.textDim)
+                    Text(NSLocalizedString("sidebar.report.preview", comment: "")).font(Theme.mono(10, weight: .bold)).foregroundColor(Theme.textDim)
                 }
                 Spacer()
                 if let p = selectedReportPath {
@@ -1029,7 +1029,7 @@ struct ReportCenterView: View {
                     }) {
                         HStack(spacing: 3) {
                             Image(systemName: "doc.on.doc").font(.system(size: 8))
-                            Text("복사").font(Theme.mono(8, weight: .bold))
+                            Text(NSLocalizedString("sidebar.report.copy", comment: "")).font(Theme.mono(8, weight: .bold))
                         }.foregroundColor(Theme.textSecondary)
                     }.buttonStyle(.plain)
                 }
@@ -1057,7 +1057,7 @@ struct ReportCenterView: View {
             Image(systemName: "arrow.left.circle")
                 .font(.system(size: 28))
                 .foregroundColor(Theme.textDim.opacity(0.15))
-            Text("보고서를 선택하세요")
+            Text(NSLocalizedString("sidebar.report.select", comment: ""))
                 .font(Theme.mono(11, weight: .medium))
                 .foregroundColor(Theme.textDim.opacity(0.4))
         }
@@ -1068,7 +1068,7 @@ struct ReportCenterView: View {
 
     private func loadReport(_ path: String) {
         selectedReportPath = path
-        reportText = (try? String(contentsOfFile: path, encoding: .utf8)) ?? "보고서를 불러오지 못했습니다."
+        reportText = (try? String(contentsOfFile: path, encoding: .utf8)) ?? NSLocalizedString("sidebar.report.load.fail", comment: "")
     }
 
     private func deleteReport(_ report: SessionManager.ReportReference) {
@@ -1102,18 +1102,18 @@ struct SessionGroupCard: View {
 
     private var groupStatus: TabStatusPresentation {
         if group.tabs.contains(where: { $0.statusPresentation.category == .attention }) {
-            return TabStatusPresentation(category: .attention, label: "확인 필요", symbol: "exclamationmark.triangle.fill", tint: Theme.red, sortPriority: 0)
+            return TabStatusPresentation(category: .attention, label: NSLocalizedString("status.attention", comment: ""), symbol: "exclamationmark.triangle.fill", tint: Theme.red, sortPriority: 0)
         }
         if group.tabs.allSatisfy(\.isCompleted) {
-            return TabStatusPresentation(category: .completed, label: "완료", symbol: "checkmark.circle.fill", tint: Theme.green, sortPriority: 3)
+            return TabStatusPresentation(category: .completed, label: NSLocalizedString("status.completed", comment: ""), symbol: "checkmark.circle.fill", tint: Theme.green, sortPriority: 3)
         }
         if group.tabs.contains(where: { $0.statusPresentation.category == .processing }) {
-            return TabStatusPresentation(category: .processing, label: "작업 중", symbol: "gearshape.2.fill", tint: Theme.accent, sortPriority: 1)
+            return TabStatusPresentation(category: .processing, label: NSLocalizedString("status.processing", comment: ""), symbol: "gearshape.2.fill", tint: Theme.accent, sortPriority: 1)
         }
         if group.tabs.contains(where: { $0.statusPresentation.category == .active }) {
-            return TabStatusPresentation(category: .active, label: "활성", symbol: "bolt.circle.fill", tint: Theme.green.opacity(0.85), sortPriority: 2)
+            return TabStatusPresentation(category: .active, label: NSLocalizedString("status.active", comment: ""), symbol: "bolt.circle.fill", tint: Theme.green.opacity(0.85), sortPriority: 2)
         }
-        return TabStatusPresentation(category: .idle, label: "유휴", symbol: "moon.zzz.fill", tint: Theme.textDim, sortPriority: 4)
+        return TabStatusPresentation(category: .idle, label: NSLocalizedString("status.idle", comment: ""), symbol: "moon.zzz.fill", tint: Theme.textDim, sortPriority: 4)
     }
 
     var body: some View {
@@ -1184,7 +1184,7 @@ struct SessionGroupCard: View {
                     let script = "tell application \"Terminal\" to do script \"cd \\\"\(p)\\\"\""
                     if let appleScript = NSAppleScript(source: script) { appleScript.executeAndReturnError(nil) }
                 }
-            } label: { Label("터미널에서 열기", systemImage: "terminal") }
+            } label: { Label(NSLocalizedString("sidebar.open.terminal", comment: ""), systemImage: "terminal") }
         }
     }
 }
@@ -1216,7 +1216,7 @@ struct WorkerMiniCard: View {
         .buttonStyle(.plain)
         .accessibilityLabel("\(tab.projectName) \(tab.workerName)")
         .accessibilityValue(tab.statusPresentation.label)
-        .accessibilityHint("이 세션을 단독으로 엽니다")
+        .accessibilityHint(NSLocalizedString("sidebar.a11y.open.single", comment: ""))
         .contextMenu {
             Button { NSWorkspace.shared.open(URL(fileURLWithPath: tab.projectPath)) }
                 label: { Label(NSLocalizedString("action.finder", comment: ""), systemImage: "folder") }
@@ -1267,7 +1267,7 @@ struct SessionCard: View {
                     HStack(spacing: 3) {
                         RoundedRectangle(cornerRadius: 1).fill(tab.workerColor).frame(width: 3, height: 10)
                         if isEditingName {
-                            TextField("이름", text: $editName).textFieldStyle(.plain)
+                            TextField(NSLocalizedString("sidebar.field.name", comment: ""), text: $editName).textFieldStyle(.plain)
                                 .font(Theme.chrome(10, weight: .bold)).foregroundColor(tab.workerColor).frame(width: 60)
                                 .onSubmit {
                                     if !editName.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -1324,7 +1324,7 @@ struct SessionCard: View {
         .buttonStyle(.plain)
         .accessibilityLabel("\(tab.projectName) 세션")
         .accessibilityValue("\(tab.workerName), \(tab.statusPresentation.label)")
-        .accessibilityHint("이 세션을 선택합니다")
+        .accessibilityHint(NSLocalizedString("sidebar.a11y.select.session", comment: ""))
         .contextMenu {
             Button { NSWorkspace.shared.open(URL(fileURLWithPath: tab.projectPath)) }
                 label: { Label(NSLocalizedString("action.finder", comment: ""), systemImage: "folder") }
@@ -1393,8 +1393,8 @@ struct SessionHistoryView: View {
                 }
                 if history.isEmpty {
                     AppEmptyStateView(
-                        title: "이전 기록이 없습니다",
-                        message: "작업을 한 번 시작하면 최근 세션이 여기에 정리됩니다.",
+                        title: NSLocalizedString("sidebar.history.empty.title", comment: ""),
+                        message: NSLocalizedString("sidebar.history.empty.message", comment: ""),
                         symbol: "clock.arrow.circlepath",
                         tint: Theme.textDim
                     )
@@ -1416,7 +1416,7 @@ struct SessionHistoryView: View {
                                     }
                                 }) {
                                     Image(systemName: "arrow.counterclockwise").font(Theme.chrome(9)).foregroundColor(Theme.accent)
-                                }.buttonStyle(.plain).help("세션 재시작")
+                                }.buttonStyle(.plain).help(NSLocalizedString("sidebar.help.session.restart", comment: ""))
                             }
                         }
                     }
@@ -1436,10 +1436,10 @@ struct SessionHistoryView: View {
     }
     private func timeAgo(_ date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
-        if interval < 60 { return "방금" }
-        if interval < 3600 { return "\(Int(interval / 60))분 전" }
-        if interval < 86400 { return "\(Int(interval / 3600))시간 전" }
-        return "\(Int(interval / 86400))일 전"
+        if interval < 60 { return NSLocalizedString("sidebar.time.just.now", comment: "") }
+        if interval < 3600 { return String(format: NSLocalizedString("sidebar.time.minutes.ago", comment: ""), Int(interval / 60)) }
+        if interval < 86400 { return String(format: NSLocalizedString("sidebar.time.hours.ago", comment: ""), Int(interval / 3600)) }
+        return String(format: NSLocalizedString("sidebar.time.days.ago", comment: ""), Int(interval / 86400))
     }
 
     private func reloadHistory() {

@@ -81,10 +81,10 @@ class AppSettings: ObservableObject {
 
     var currentLanguageLabel: String {
         switch appLanguage {
-        case "ko": return "한국어"
+        case "ko": return NSLocalizedString("theme.lang.korean", comment: "")
         case "en": return "English"
         case "ja": return "日本語"
-        default: return "시스템 기본"
+        default: return NSLocalizedString("settings.language.system", comment: "")
         }
     }
 
@@ -197,7 +197,7 @@ class AppSettings: ObservableObject {
 
     var coffeeSupportDisplayTitle: String {
         let trimmed = coffeeSupportButtonTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "후원하기" : trimmed
+        return trimmed.isEmpty ? NSLocalizedString("coffee.default.button", comment: "") : trimmed
     }
 
     var trimmedCoffeeSupportBankName: String {
@@ -209,7 +209,7 @@ class AppSettings: ObservableObject {
     }
 
     var coffeeSupportAccountDisplayText: String {
-        let bank = trimmedCoffeeSupportBankName.isEmpty ? "카카오뱅크" : trimmedCoffeeSupportBankName
+        let bank = trimmedCoffeeSupportBankName.isEmpty ? NSLocalizedString("coffee.default.bank", comment: "") : trimmedCoffeeSupportBankName
         let account = trimmedCoffeeSupportAccountNumber.isEmpty ? "7777015832634" : trimmedCoffeeSupportAccountNumber
         return "\(bank) \(account)"
     }
@@ -373,21 +373,21 @@ enum AutomationTemplateKind: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .planner: return "기획자"
-        case .designer: return "디자이너"
-        case .developerExecution: return "개발자 구현"
-        case .developerRevision: return "개발자 재작업"
-        case .reviewer: return "코드 리뷰어"
+        case .planner: return NSLocalizedString("template.pipeline.planner", comment: "")
+        case .designer: return NSLocalizedString("template.pipeline.designer", comment: "")
+        case .developerExecution: return NSLocalizedString("template.pipeline.dev.exec", comment: "")
+        case .developerRevision: return NSLocalizedString("template.pipeline.dev.revision", comment: "")
+        case .reviewer: return NSLocalizedString("template.pipeline.reviewer", comment: "")
         case .qa: return "QA"
-        case .reporter: return "보고자"
+        case .reporter: return NSLocalizedString("template.pipeline.reporter", comment: "")
         case .sre: return "SRE"
         }
     }
 
     var shortLabel: String {
         switch self {
-        case .developerExecution: return "구현"
-        case .developerRevision: return "재작업"
+        case .developerExecution: return NSLocalizedString("template.pipeline.dev.exec.short", comment: "")
+        case .developerRevision: return NSLocalizedString("template.pipeline.dev.revision.short", comment: "")
         default: return displayName
         }
     }
@@ -407,14 +407,14 @@ enum AutomationTemplateKind: String, CaseIterable, Identifiable {
 
     var summary: String {
         switch self {
-        case .planner: return "사용자 요구사항을 개발 가능한 실행 계획으로 정리합니다."
-        case .designer: return "UI/UX 흐름과 상호작용 메모를 정리합니다."
-        case .developerExecution: return "개발자가 처음 구현할 때 받는 지시문입니다."
-        case .developerRevision: return "리뷰/QA 피드백을 반영할 때 쓰는 재작업 지시문입니다."
-        case .reviewer: return "변경 파일과 리스크를 검토하는 리뷰 양식입니다."
-        case .qa: return "실행/테스트 관점에서 검증하는 QA 양식입니다."
-        case .reporter: return "최종 Markdown 보고서 구조와 작성 지침입니다."
-        case .sre: return "배포/운영 안정성 점검 양식입니다."
+        case .planner: return NSLocalizedString("template.pipeline.planner.desc", comment: "")
+        case .designer: return NSLocalizedString("template.pipeline.designer.desc", comment: "")
+        case .developerExecution: return NSLocalizedString("template.pipeline.dev.exec.desc", comment: "")
+        case .developerRevision: return NSLocalizedString("template.pipeline.dev.revision.desc", comment: "")
+        case .reviewer: return NSLocalizedString("template.pipeline.reviewer.desc", comment: "")
+        case .qa: return NSLocalizedString("template.pipeline.qa.desc", comment: "")
+        case .reporter: return NSLocalizedString("template.pipeline.reporter.desc", comment: "")
+        case .sre: return NSLocalizedString("template.pipeline.sre.desc", comment: "")
         }
     }
 
@@ -833,29 +833,7 @@ enum BackgroundTheme: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var displayName: String {
-        switch self {
-        case .auto: return "자동"
-        case .sunny: return "맑은 낮"
-        case .clearSky: return "파란 하늘"
-        case .sunset: return "노을"
-        case .goldenHour: return "골든아워"
-        case .dusk: return "황혼"
-        case .moonlit: return "달빛"
-        case .starryNight: return "별밤"
-        case .aurora: return "오로라"
-        case .milkyWay: return "은하수"
-        case .storm: return "먹구름"
-        case .rain: return "비"
-        case .snow: return "눈"
-        case .fog: return "안개"
-        case .cherryBlossom: return "벚꽃"
-        case .autumn: return "단풍"
-        case .forest: return "숲"
-        case .neonCity: return "네온시티"
-        case .ocean: return "바다"
-        case .desert: return "사막"
-        case .volcano: return "화산"
-        }
+        NSLocalizedString("weather.\(rawValue)", comment: "")
     }
 
     var icon: String {
@@ -950,7 +928,7 @@ enum BackgroundTheme: String, CaseIterable, Identifiable {
     var lockReason: String {
         guard let level = requiredLevel else { return "" }
         let currentLevel = AchievementManager.shared.currentLevel.level
-        if currentLevel < level { return "레벨 \(level) 필요" }
+        if currentLevel < level { return String(format: NSLocalizedString("settings.level.required", comment: ""), level) }
         return ""
     }
 
@@ -990,11 +968,11 @@ struct FurnitureItem: Identifiable {
     var lockReason: String {
         if let level = requiredLevel {
             let currentLevel = AchievementManager.shared.currentLevel.level
-            if currentLevel < level { return "레벨 \(level) 필요 (현재 Lv.\(currentLevel))" }
+            if currentLevel < level { return String(format: NSLocalizedString("furn.level.required.current", comment: ""), level, currentLevel) }
         }
         if let achievement = requiredAchievement {
             if let ach = AchievementManager.shared.achievements.first(where: { $0.id == achievement }), !ach.unlocked {
-                return "업적 '\(ach.name)' 필요"
+                return String(format: NSLocalizedString("furn.achievement.required", comment: ""), ach.name)
             }
         }
         return ""
@@ -1002,26 +980,26 @@ struct FurnitureItem: Identifiable {
 
     static let all: [FurnitureItem] = [
         // 기본 가구
-        FurnitureItem(id: "sofa", name: "소파", icon: "sofa.fill", defaultNormX: 0.0, defaultNormY: 0.7, width: 49, height: 30, isWallItem: false, requiredLevel: nil, requiredAchievement: nil),
-        FurnitureItem(id: "sideTable", name: "사이드테이블", icon: "table.furniture.fill", defaultNormX: 0.45, defaultNormY: 0.75, width: 18, height: 14, isWallItem: false, requiredLevel: nil, requiredAchievement: nil),
-        FurnitureItem(id: "coffeeMachine", name: "커피머신", icon: "cup.and.saucer.fill", defaultNormX: 0.45, defaultNormY: 0.5, width: 16, height: 28, isWallItem: false, requiredLevel: nil, requiredAchievement: nil),
-        FurnitureItem(id: "plant", name: "화분", icon: "leaf.fill", defaultNormX: 0.7, defaultNormY: 0.65, width: 14, height: 28, isWallItem: false, requiredLevel: nil, requiredAchievement: nil),
-        FurnitureItem(id: "picture", name: "액자", icon: "photo.artframe", defaultNormX: 0.55, defaultNormY: 0.1, width: 20, height: 16, isWallItem: true, requiredLevel: nil, requiredAchievement: nil),
-        FurnitureItem(id: "neonSign", name: "네온간판", icon: "lightbulb.fill", defaultNormX: 0.1, defaultNormY: 0.25, width: 64, height: 16, isWallItem: true, requiredLevel: nil, requiredAchievement: nil),
-        FurnitureItem(id: "rug", name: "러그", icon: "rectangle.fill", defaultNormX: 0.0, defaultNormY: 0.95, width: 100, height: 14, isWallItem: false, requiredLevel: nil, requiredAchievement: nil),
+        FurnitureItem(id: "sofa", name: NSLocalizedString("furn.sofa", comment: ""), icon: "sofa.fill", defaultNormX: 0.0, defaultNormY: 0.7, width: 49, height: 30, isWallItem: false, requiredLevel: nil, requiredAchievement: nil),
+        FurnitureItem(id: "sideTable", name: NSLocalizedString("furn.sideTable", comment: ""), icon: "table.furniture.fill", defaultNormX: 0.45, defaultNormY: 0.75, width: 18, height: 14, isWallItem: false, requiredLevel: nil, requiredAchievement: nil),
+        FurnitureItem(id: "coffeeMachine", name: NSLocalizedString("furn.coffeeMachine", comment: ""), icon: "cup.and.saucer.fill", defaultNormX: 0.45, defaultNormY: 0.5, width: 16, height: 28, isWallItem: false, requiredLevel: nil, requiredAchievement: nil),
+        FurnitureItem(id: "plant", name: NSLocalizedString("furn.plant", comment: ""), icon: "leaf.fill", defaultNormX: 0.7, defaultNormY: 0.65, width: 14, height: 28, isWallItem: false, requiredLevel: nil, requiredAchievement: nil),
+        FurnitureItem(id: "picture", name: NSLocalizedString("furn.picture", comment: ""), icon: "photo.artframe", defaultNormX: 0.55, defaultNormY: 0.1, width: 20, height: 16, isWallItem: true, requiredLevel: nil, requiredAchievement: nil),
+        FurnitureItem(id: "neonSign", name: NSLocalizedString("furn.neonSign", comment: ""), icon: "lightbulb.fill", defaultNormX: 0.1, defaultNormY: 0.25, width: 64, height: 16, isWallItem: true, requiredLevel: nil, requiredAchievement: nil),
+        FurnitureItem(id: "rug", name: NSLocalizedString("furn.rug", comment: ""), icon: "rectangle.fill", defaultNormX: 0.0, defaultNormY: 0.95, width: 100, height: 14, isWallItem: false, requiredLevel: nil, requiredAchievement: nil),
         // 추가 악세서리
-        FurnitureItem(id: "bookshelf", name: "책장", icon: "books.vertical.fill", defaultNormX: 0.8, defaultNormY: 0.4, width: 20, height: 36, isWallItem: false, requiredLevel: 5, requiredAchievement: nil),
-        FurnitureItem(id: "aquarium", name: "어항", icon: "fish.fill", defaultNormX: 0.6, defaultNormY: 0.7, width: 22, height: 18, isWallItem: false, requiredLevel: 8, requiredAchievement: nil),
-        FurnitureItem(id: "arcade", name: "오락기", icon: "gamecontroller.fill", defaultNormX: 0.85, defaultNormY: 0.55, width: 16, height: 30, isWallItem: false, requiredLevel: 10, requiredAchievement: "complete_50"),
-        FurnitureItem(id: "whiteboard", name: "화이트보드", icon: "rectangle.and.pencil.and.ellipsis", defaultNormX: 0.35, defaultNormY: 0.08, width: 30, height: 22, isWallItem: true, requiredLevel: 7, requiredAchievement: nil),
-        FurnitureItem(id: "lamp", name: "스탠드 조명", icon: "lamp.floor.fill", defaultNormX: 0.9, defaultNormY: 0.6, width: 10, height: 30, isWallItem: false, requiredLevel: 3, requiredAchievement: nil),
-        FurnitureItem(id: "cat", name: "고양이", icon: "cat.fill", defaultNormX: 0.3, defaultNormY: 0.85, width: 12, height: 10, isWallItem: false, requiredLevel: 15, requiredAchievement: "night_owl_10"),
+        FurnitureItem(id: "bookshelf", name: NSLocalizedString("furn.bookshelf", comment: ""), icon: "books.vertical.fill", defaultNormX: 0.8, defaultNormY: 0.4, width: 20, height: 36, isWallItem: false, requiredLevel: 5, requiredAchievement: nil),
+        FurnitureItem(id: "aquarium", name: NSLocalizedString("furn.aquarium", comment: ""), icon: "fish.fill", defaultNormX: 0.6, defaultNormY: 0.7, width: 22, height: 18, isWallItem: false, requiredLevel: 8, requiredAchievement: nil),
+        FurnitureItem(id: "arcade", name: NSLocalizedString("furn.arcade", comment: ""), icon: "gamecontroller.fill", defaultNormX: 0.85, defaultNormY: 0.55, width: 16, height: 30, isWallItem: false, requiredLevel: 10, requiredAchievement: "complete_50"),
+        FurnitureItem(id: "whiteboard", name: NSLocalizedString("furn.whiteboard", comment: ""), icon: "rectangle.and.pencil.and.ellipsis", defaultNormX: 0.35, defaultNormY: 0.08, width: 30, height: 22, isWallItem: true, requiredLevel: 7, requiredAchievement: nil),
+        FurnitureItem(id: "lamp", name: NSLocalizedString("furn.lamp", comment: ""), icon: "lamp.floor.fill", defaultNormX: 0.9, defaultNormY: 0.6, width: 10, height: 30, isWallItem: false, requiredLevel: 3, requiredAchievement: nil),
+        FurnitureItem(id: "cat", name: NSLocalizedString("furn.cat", comment: ""), icon: "cat.fill", defaultNormX: 0.3, defaultNormY: 0.85, width: 12, height: 10, isWallItem: false, requiredLevel: 15, requiredAchievement: "night_owl_10"),
         FurnitureItem(id: "tv", name: "TV", icon: "tv.fill", defaultNormX: 0.7, defaultNormY: 0.15, width: 28, height: 18, isWallItem: true, requiredLevel: 12, requiredAchievement: nil),
-        FurnitureItem(id: "fan", name: "선풍기", icon: "fan.fill", defaultNormX: 0.5, defaultNormY: 0.65, width: 12, height: 22, isWallItem: false, requiredLevel: 6, requiredAchievement: nil),
-        FurnitureItem(id: "calendar", name: "달력", icon: "calendar", defaultNormX: 0.8, defaultNormY: 0.12, width: 14, height: 14, isWallItem: true, requiredLevel: 4, requiredAchievement: nil),
-        FurnitureItem(id: "poster", name: "포스터", icon: "doc.richtext.fill", defaultNormX: 0.45, defaultNormY: 0.08, width: 16, height: 20, isWallItem: true, requiredLevel: 9, requiredAchievement: nil),
-        FurnitureItem(id: "trashcan", name: "휴지통", icon: "trash.fill", defaultNormX: 0.95, defaultNormY: 0.85, width: 10, height: 12, isWallItem: false, requiredLevel: 2, requiredAchievement: nil),
-        FurnitureItem(id: "cushion", name: "쿠션", icon: "circle.fill", defaultNormX: 0.15, defaultNormY: 0.88, width: 12, height: 8, isWallItem: false, requiredLevel: nil, requiredAchievement: nil),
+        FurnitureItem(id: "fan", name: NSLocalizedString("furn.fan", comment: ""), icon: "fan.fill", defaultNormX: 0.5, defaultNormY: 0.65, width: 12, height: 22, isWallItem: false, requiredLevel: 6, requiredAchievement: nil),
+        FurnitureItem(id: "calendar", name: NSLocalizedString("furn.calendar", comment: ""), icon: "calendar", defaultNormX: 0.8, defaultNormY: 0.12, width: 14, height: 14, isWallItem: true, requiredLevel: 4, requiredAchievement: nil),
+        FurnitureItem(id: "poster", name: NSLocalizedString("furn.poster", comment: ""), icon: "doc.richtext.fill", defaultNormX: 0.45, defaultNormY: 0.08, width: 16, height: 20, isWallItem: true, requiredLevel: 9, requiredAchievement: nil),
+        FurnitureItem(id: "trashcan", name: NSLocalizedString("furn.trashcan", comment: ""), icon: "trash.fill", defaultNormX: 0.95, defaultNormY: 0.85, width: 10, height: 12, isWallItem: false, requiredLevel: 2, requiredAchievement: nil),
+        FurnitureItem(id: "cushion", name: NSLocalizedString("furn.cushion", comment: ""), icon: "circle.fill", defaultNormX: 0.15, defaultNormY: 0.88, width: 12, height: 8, isWallItem: false, requiredLevel: nil, requiredAchievement: nil),
     ]
 }
 
@@ -1053,9 +1031,9 @@ struct CoffeeSupportTier: Identifiable, Hashable {
     }
 
     static let presets: [CoffeeSupportTier] = [
-        CoffeeSupportTier(id: "starter", title: "아메리카노", subtitle: "가볍게 응원하기", amount: 3000, icon: "cup.and.saucer.fill"),
-        CoffeeSupportTier(id: "booster", title: "라떼", subtitle: "조금 더 든든하게", amount: 5000, icon: "mug.fill"),
-        CoffeeSupportTier(id: "nightshift", title: "야근 세트", subtitle: "큰 힘이 되는 한 잔", amount: 10000, icon: "takeoutbag.and.cup.and.straw.fill")
+        CoffeeSupportTier(id: "starter", title: NSLocalizedString("coffee.tier.americano", comment: ""), subtitle: NSLocalizedString("coffee.tier.americano.sub", comment: ""), amount: 3000, icon: "cup.and.saucer.fill"),
+        CoffeeSupportTier(id: "booster", title: NSLocalizedString("coffee.tier.latte", comment: ""), subtitle: NSLocalizedString("coffee.tier.latte.sub", comment: ""), amount: 5000, icon: "mug.fill"),
+        CoffeeSupportTier(id: "nightshift", title: NSLocalizedString("coffee.tier.nightshift", comment: ""), subtitle: NSLocalizedString("coffee.tier.nightshift.sub", comment: ""), amount: 10000, icon: "takeoutbag.and.cup.and.straw.fill")
     ]
 }
 
@@ -1872,7 +1850,7 @@ struct SettingsView: View {
 
     @State private var selectedSettingsTab = 0
     @State private var selectedTemplateKind: AutomationTemplateKind = .planner
-    @State private var cacheSize: String = "계산 중..."
+    @State private var cacheSize: String = NSLocalizedString("settings.calculating", comment: "")
     @State private var showClearConfirm = false
     @State private var clearAllMode = false
     @State private var showTokenResetConfirm = false
@@ -1931,60 +1909,61 @@ struct SettingsView: View {
             editingCompanyName = settings.companyName
             calculateCacheSize()
         }
-        .alert(clearAllMode ? "전체 데이터 삭제" : "오래된 캐시 삭제", isPresented: $showClearConfirm) {
-            Button("삭제", role: .destructive) {
+        .alert(clearAllMode ? NSLocalizedString("theme.alert.clear.all", comment: "") : NSLocalizedString("theme.alert.clear.old", comment: ""), isPresented: $showClearConfirm) {
+            Button(NSLocalizedString("delete", comment: ""), role: .destructive) {
                 if clearAllMode { clearAllData() } else { clearOldCache() }
             }
-            Button("취소", role: .cancel) {}
+            Button(NSLocalizedString("cancel", comment: ""), role: .cancel) {}
         } message: {
             Text(clearAllMode
-                 ? "모든 세션 기록, 토큰 사용 이력, 오피스 레이아웃, 업적 데이터가 삭제됩니다. 이 작업은 되돌릴 수 없습니다."
-                 : "완료된 세션 기록과 오래된 토큰 이력을 삭제합니다. 현재 진행 중인 세션과 설정은 유지됩니다.")
+                 ? NSLocalizedString("theme.alert.clear.all.msg", comment: "")
+                 : NSLocalizedString("theme.alert.clear.old.msg", comment: ""))
         }
-        .alert("토큰 이력 초기화", isPresented: $showTokenResetConfirm) {
-            Button("초기화", role: .destructive) {
+        .alert(NSLocalizedString("theme.alert.token.reset", comment: ""), isPresented: $showTokenResetConfirm) {
+            Button(NSLocalizedString("theme.alert.token.reset.btn", comment: ""), role: .destructive) {
                 tokenTracker.clearAllEntries()
             }
-            Button("취소", role: .cancel) {}
+            Button(NSLocalizedString("cancel", comment: ""), role: .cancel) {}
         } message: {
-            Text("오늘/주간 토큰 사용량 기록을 바로 비웁니다. 보호 모드가 잘못 걸렸을 때 즉시 다시 입력할 수 있습니다.")
+            Text(NSLocalizedString("theme.alert.token.reset.msg", comment: ""))
         }
-        .alert("양식 전체 초기화", isPresented: $showTemplateResetConfirm) {
-            Button("초기화", role: .destructive) {
+        .alert(NSLocalizedString("theme.alert.template.reset", comment: ""), isPresented: $showTemplateResetConfirm) {
+            Button(NSLocalizedString("theme.alert.template.reset.btn", comment: ""), role: .destructive) {
                 templateStore.resetAll()
             }
-            Button("취소", role: .cancel) {}
+            Button(NSLocalizedString("cancel", comment: ""), role: .cancel) {}
         } message: {
-            Text("사용자가 수정한 기획자/디자이너/리뷰어/QA/보고자/SRE 양식을 모두 기본값으로 되돌립니다.")
+            Text(NSLocalizedString("theme.alert.template.reset.msg", comment: ""))
         }
-        .alert("언어 변경", isPresented: $showLanguageRestartAlert) {
-            Button("재시작", role: .destructive) {
+        .alert(NSLocalizedString("theme.alert.language.change", comment: ""), isPresented: $showLanguageRestartAlert) {
+            Button(NSLocalizedString("settings.restart", comment: ""), role: .destructive) {
                 if let lang = pendingLanguage {
                     settings.appLanguage = lang
-                    // 세션 저장 후 앱 재시작
                     SessionManager.shared.saveSessions(immediately: true)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        let url = URL(fileURLWithPath: Bundle.main.resourcePath!)
-                        let path = url.deletingLastPathComponent().deletingLastPathComponent().absoluteString
+                    // 앱 재시작: 현재 앱 경로를 열고 종료
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        let appPath = Bundle.main.bundlePath
                         let task = Process()
                         task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-                        task.arguments = [path]
+                        task.arguments = ["-n", appPath]  // -n: new instance
                         try? task.run()
-                        NSApp.terminate(nil)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            NSApp.terminate(nil)
+                        }
                     }
                 }
             }
-            Button("취소", role: .cancel) { pendingLanguage = nil }
+            Button(NSLocalizedString("cancel", comment: ""), role: .cancel) { pendingLanguage = nil }
         } message: {
             let langName: String = {
                 switch pendingLanguage {
-                case "ko": return "한국어"
+                case "ko": return NSLocalizedString("theme.lang.korean", comment: "")
                 case "en": return "English"
                 case "ja": return "日本語"
-                default: return "시스템 기본"
+                default: return NSLocalizedString("settings.language.system", comment: "")
                 }
             }()
-            Text("언어를 \(langName)(으)로 변경합니다.\n앱을 재시작해야 적용됩니다.")
+            Text(String(format: NSLocalizedString("theme.alert.language.msg", comment: ""), langName))
         }
     }
 
@@ -2034,10 +2013,10 @@ struct SettingsView: View {
 
     private var generalTab: some View {
         VStack(spacing: 14) {
-            settingsSection(title: "프로필", subtitle: "앱 이름과 회사 정보") {
+            settingsSection(title: NSLocalizedString("theme.section.profile", comment: ""), subtitle: NSLocalizedString("theme.section.profile.subtitle", comment: "")) {
                 VStack(spacing: 10) {
-                    securityRow(label: "앱 이름") {
-                        TextField("앱 이름", text: $editingAppName)
+                    securityRow(label: NSLocalizedString("theme.label.app.name", comment: "")) {
+                        TextField(NSLocalizedString("theme.label.app.name", comment: ""), text: $editingAppName)
                             .font(Theme.mono(10)).textFieldStyle(.plain)
                             .padding(6)
                             .background(RoundedRectangle(cornerRadius: 6).fill(Theme.bgSurface))
@@ -2045,8 +2024,8 @@ struct SettingsView: View {
                             .frame(maxWidth: 180)
                             .onSubmit { settings.appDisplayName = editingAppName; settings.requestRefreshIfNeeded() }
                     }
-                    securityRow(label: "회사") {
-                        TextField("회사 이름", text: $editingCompanyName)
+                    securityRow(label: NSLocalizedString("theme.label.company", comment: "")) {
+                        TextField(NSLocalizedString("theme.label.company.placeholder", comment: ""), text: $editingCompanyName)
                             .font(Theme.mono(10)).textFieldStyle(.plain)
                             .padding(6)
                             .background(RoundedRectangle(cornerRadius: 6).fill(Theme.bgSurface))
@@ -2054,9 +2033,9 @@ struct SettingsView: View {
                             .frame(maxWidth: 180)
                             .onSubmit { settings.companyName = editingCompanyName; settings.requestRefreshIfNeeded() }
                     }
-                    securityRow(label: "시크릿 키") {
+                    securityRow(label: NSLocalizedString("theme.label.secret.key", comment: "")) {
                         HStack(spacing: 6) {
-                            SecureField("키 입력", text: $secretKeyInput)
+                            SecureField(NSLocalizedString("theme.label.secret.key.placeholder", comment: ""), text: $secretKeyInput)
                                 .font(Theme.mono(10)).textFieldStyle(.plain)
                                 .padding(6)
                                 .background(RoundedRectangle(cornerRadius: 6).fill(Theme.bgSurface))
@@ -2064,7 +2043,7 @@ struct SettingsView: View {
                                     secretKeyResult == .wrong ? Theme.red : Theme.border, lineWidth: 0.5))
                                 .frame(maxWidth: 140)
                                 .onSubmit { applySecretKey() }
-                            Button("적용") { applySecretKey() }
+                            Button(NSLocalizedString("theme.label.apply", comment: "")) { applySecretKey() }
                                 .font(Theme.mono(9, weight: .bold))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 10).padding(.vertical, 6)
@@ -2073,19 +2052,19 @@ struct SettingsView: View {
                         }
                     }
                     if secretKeyResult == .success {
-                        statusHint(icon: "checkmark.circle.fill", text: "콘텐츠가 해제되었습니다.", tint: Theme.green)
+                        statusHint(icon: "checkmark.circle.fill", text: NSLocalizedString("theme.secret.unlocked", comment: ""), tint: Theme.green)
                     } else if secretKeyResult == .wrong {
-                        statusHint(icon: "xmark.circle.fill", text: "올바르지 않은 키입니다.", tint: Theme.red)
+                        statusHint(icon: "xmark.circle.fill", text: NSLocalizedString("theme.secret.invalid", comment: ""), tint: Theme.red)
                     }
                 }
             }
 
-            settingsSection(title: "언어 / Language", subtitle: settings.currentLanguageLabel) {
+            settingsSection(title: NSLocalizedString("theme.section.language", comment: ""), subtitle: settings.currentLanguageLabel) {
                 VStack(spacing: 10) {
-                    securityRow(label: "앱 언어") {
+                    securityRow(label: NSLocalizedString("theme.label.app.language", comment: "")) {
                         HStack(spacing: 8) {
-                            langButton("시스템", code: "auto")
-                            langButton("한국어", code: "ko")
+                            langButton(NSLocalizedString("theme.lang.system", comment: ""), code: "auto")
+                            langButton(NSLocalizedString("theme.lang.korean", comment: ""), code: "ko")
                             langButton("English", code: "en")
                             langButton("日本語", code: "ja")
                         }
@@ -2093,18 +2072,18 @@ struct SettingsView: View {
                 }
             }
 
-            settingsSection(title: "터미널", subtitle: settings.rawTerminalMode ? "일반 터미널" : "도피스 터미널") {
+            settingsSection(title: NSLocalizedString("theme.section.terminal", comment: ""), subtitle: settings.rawTerminalMode ? NSLocalizedString("theme.terminal.raw", comment: "") : NSLocalizedString("theme.terminal.doffice", comment: "")) {
                 VStack(spacing: 10) {
-                    securityRow(label: "일반 터미널 (iTerm)") {
+                    securityRow(label: NSLocalizedString("theme.label.raw.terminal", comment: "")) {
                         Toggle("", isOn: $settings.rawTerminalMode)
                             .toggleStyle(.switch).tint(Theme.green).labelsHidden()
                             .onChange(of: settings.rawTerminalMode) { _, _ in settings.requestRefreshIfNeeded() }
                     }
-                    securityRow(label: "자동 새로고침") {
+                    securityRow(label: NSLocalizedString("theme.label.auto.refresh", comment: "")) {
                         Toggle("", isOn: $settings.autoRefreshOnSettingsChange)
                             .toggleStyle(.switch).tint(Theme.accent).labelsHidden()
                     }
-                    securityRow(label: "튜토리얼 다시 보기") {
+                    securityRow(label: NSLocalizedString("theme.label.tutorial.reset", comment: "")) {
                         Button(action: { settings.hasCompletedOnboarding = false; dismiss() }) {
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 9, weight: .bold)).foregroundColor(Theme.textDim)
@@ -2113,20 +2092,20 @@ struct SettingsView: View {
                 }
             }
 
-            settingsSection(title: "성능", subtitle: settings.performanceMode ? "수동 활성" : (settings.autoPerformanceMode ? "자동" : "비활성")) {
+            settingsSection(title: NSLocalizedString("settings.performance", comment: ""), subtitle: settings.performanceMode ? NSLocalizedString("settings.performance.manual", comment: "") : (settings.autoPerformanceMode ? NSLocalizedString("settings.performance.auto", comment: "") : NSLocalizedString("settings.performance.off", comment: ""))) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Toggle("성능 모드 (애니메이션/효과 줄임)", isOn: $settings.performanceMode)
+                    Toggle(NSLocalizedString("settings.performance.mode", comment: ""), isOn: $settings.performanceMode)
                         .font(Theme.mono(10, weight: .medium))
-                    Toggle("자동 성능 모드 (세션 10개 이상)", isOn: $settings.autoPerformanceMode)
+                    Toggle(NSLocalizedString("settings.performance.auto.mode", comment: ""), isOn: $settings.autoPerformanceMode)
                         .font(Theme.mono(10, weight: .medium))
-                    Text("성능 모드에서는 오피스 애니메이션, 배경 효과가 줄어들고 프레임 레이트가 낮아집니다.")
+                    Text(NSLocalizedString("settings.performance.desc", comment: ""))
                         .font(Theme.mono(8)).foregroundColor(Theme.textDim)
                 }
             }
 
-            settingsSection(title: "앱 정보", subtitle: "v\(UpdateChecker.shared.currentVersion)") {
+            settingsSection(title: NSLocalizedString("settings.appinfo", comment: ""), subtitle: "v\(UpdateChecker.shared.currentVersion)") {
                 VStack(spacing: 10) {
-                    securityRow(label: "현재 버전") {
+                    securityRow(label: NSLocalizedString("settings.appinfo.version", comment: "")) {
                         Text("v\(UpdateChecker.shared.currentVersion)")
                             .font(Theme.mono(10, weight: .bold)).foregroundColor(Theme.textPrimary)
                     }
@@ -2140,7 +2119,7 @@ struct SettingsView: View {
                                 .appButtonSurface(tone: .accent, compact: true)
                         }.buttonStyle(.plain)
                         Button(action: { UpdateChecker.shared.performUpdate() }) {
-                            Text("업데이트").font(Theme.mono(9, weight: .bold))
+                            Text(NSLocalizedString("settings.appinfo.update", comment: "")).font(Theme.mono(9, weight: .bold))
                                 .appButtonSurface(tone: .green, compact: true)
                         }.buttonStyle(.plain)
                         Spacer()
@@ -2154,14 +2133,14 @@ struct SettingsView: View {
 
     private var displayTab: some View {
         VStack(spacing: 14) {
-            settingsSection(title: "테마", subtitle: "라이트 / 다크 모드") {
+            settingsSection(title: NSLocalizedString("settings.theme", comment: ""), subtitle: NSLocalizedString("settings.theme.subtitle", comment: "")) {
                 HStack(spacing: 10) {
                     themeButton(title: "Light", icon: "sun.max.fill", isDark: false)
                     themeButton(title: "Dark", icon: "moon.fill", isDark: true)
                 }
             }
 
-            settingsSection(title: "배경 무드", subtitle: currentTheme.displayName) {
+            settingsSection(title: NSLocalizedString("settings.backdrop", comment: ""), subtitle: currentTheme.displayName) {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
                     ForEach(quickBackgroundThemes, id: \.rawValue) { theme in
                         quickBackgroundButton(theme)
@@ -2169,7 +2148,7 @@ struct SettingsView: View {
                 }
             }
 
-            settingsSection(title: "글자 크기", subtitle: fontSizeLabel) {
+            settingsSection(title: NSLocalizedString("settings.fontsize", comment: ""), subtitle: fontSizeLabel) {
                 VStack(spacing: 10) {
                     HStack(spacing: 6) {
                         ForEach(fontSizeOptions, id: \.value) { opt in
@@ -2198,7 +2177,7 @@ struct SettingsView: View {
 
     private var officeTab: some View {
         VStack(spacing: 14) {
-            settingsSection(title: "레이아웃", subtitle: currentOfficePreset.displayName) {
+            settingsSection(title: NSLocalizedString("settings.layout", comment: ""), subtitle: currentOfficePreset.displayName) {
                 VStack(spacing: 8) {
                     ForEach(OfficePreset.allCases) { preset in
                         officePresetButton(preset)
@@ -2206,10 +2185,10 @@ struct SettingsView: View {
                 }
             }
 
-            settingsSection(title: "카메라 시점", subtitle: settings.officeViewMode == "side" ? "포커스" : "전체") {
+            settingsSection(title: NSLocalizedString("settings.camera", comment: ""), subtitle: settings.officeViewMode == "side" ? NSLocalizedString("settings.camera.focus", comment: "") : NSLocalizedString("settings.camera.full", comment: "")) {
                 HStack(spacing: 8) {
-                    officeCameraButton(title: "전체", icon: "rectangle.expand.vertical", mode: "grid")
-                    officeCameraButton(title: "포커스", icon: "scope", mode: "side")
+                    officeCameraButton(title: NSLocalizedString("settings.camera.full", comment: ""), icon: "rectangle.expand.vertical", mode: "grid")
+                    officeCameraButton(title: NSLocalizedString("settings.camera.focus", comment: ""), icon: "scope", mode: "side")
                 }
             }
         }
@@ -2220,18 +2199,18 @@ struct SettingsView: View {
     private var tokenTab: some View {
         let protectionReason = tokenTracker.startBlockReason(isAutomation: false)
         return VStack(spacing: 14) {
-            settingsSection(title: "사용량", subtitle: "오늘 / 이번 주") {
+            settingsSection(title: NSLocalizedString("settings.usage", comment: ""), subtitle: NSLocalizedString("settings.usage.subtitle", comment: "")) {
                 VStack(spacing: 12) {
                     HStack(spacing: 10) {
                         usageMetricCard(
-                            title: "오늘",
+                            title: NSLocalizedString("settings.usage.today", comment: ""),
                             value: tokenTracker.formatTokens(tokenTracker.todayTokens),
                             secondary: "$" + String(format: "%.2f", tokenTracker.todayCost),
                             tint: Theme.accent,
                             progress: tokenTracker.dailyUsagePercent
                         )
                         usageMetricCard(
-                            title: "이번 주",
+                            title: NSLocalizedString("settings.usage.week", comment: ""),
                             value: tokenTracker.formatTokens(tokenTracker.weekTokens),
                             secondary: "$" + String(format: "%.2f", tokenTracker.weekCost),
                             tint: Theme.cyan,
@@ -2240,8 +2219,8 @@ struct SettingsView: View {
                     }
 
                     HStack(spacing: 12) {
-                        tokenLimitField(title: "일간 한도", value: $tokenTracker.dailyTokenLimit)
-                        tokenLimitField(title: "주간 한도", value: $tokenTracker.weeklyTokenLimit)
+                        tokenLimitField(title: NSLocalizedString("settings.token.daily.limit", comment: ""), value: $tokenTracker.dailyTokenLimit)
+                        tokenLimitField(title: NSLocalizedString("settings.token.weekly.limit", comment: ""), value: $tokenTracker.weeklyTokenLimit)
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
@@ -2260,7 +2239,7 @@ struct SettingsView: View {
                                 Image(systemName: "checkmark.shield.fill")
                                     .font(.system(size: Theme.iconSize(11), weight: .bold))
                                     .foregroundColor(Theme.green)
-                                Text("현재는 새 입력이 가능한 상태입니다. 한도를 너무 낮게 잡아도 즉시 막히지 않도록 보호선을 사용자 한도에 맞춰 계산합니다.")
+                                Text(NSLocalizedString("settings.token.ok.desc", comment: ""))
                                     .font(Theme.mono(8))
                                     .foregroundColor(Theme.textSecondary)
                                     .fixedSize(horizontal: false, vertical: true)
@@ -2271,7 +2250,7 @@ struct SettingsView: View {
                             Button(action: {
                                 tokenTracker.applyRecommendedMinimumLimits()
                             }) {
-                                Text("권장 하한 적용")
+                                Text(NSLocalizedString("settings.token.apply.min", comment: ""))
                                     .font(Theme.mono(9, weight: .bold))
                                     .foregroundColor(Theme.cyan)
                                     .padding(.horizontal, 12)
@@ -2287,7 +2266,7 @@ struct SettingsView: View {
                             Button(action: {
                                 showTokenResetConfirm = true
                             }) {
-                                Text("토큰 이력 초기화")
+                                Text(NSLocalizedString("settings.token.reset", comment: ""))
                                     .font(Theme.mono(9, weight: .bold))
                                     .foregroundColor(Theme.orange)
                                     .padding(.horizontal, 12)
@@ -2310,11 +2289,11 @@ struct SettingsView: View {
                 }
             }
 
-            settingsSection(title: "자동화 보호", subtitle: "토큰/재시도 상한") {
+            settingsSection(title: NSLocalizedString("settings.automation", comment: ""), subtitle: NSLocalizedString("settings.automation.subtitle", comment: "")) {
                 VStack(spacing: 10) {
                     settingsToggleRow(
-                        title: "AI 병렬 서브에이전트 허용",
-                        subtitle: settings.allowParallelSubagents ? "허용" : "기본 차단",
+                        title: NSLocalizedString("settings.automation.parallel", comment: ""),
+                        subtitle: settings.allowParallelSubagents ? NSLocalizedString("settings.automation.allowed", comment: "") : NSLocalizedString("settings.automation.blocked", comment: ""),
                         isOn: Binding(
                             get: { settings.allowParallelSubagents },
                             set: { settings.allowParallelSubagents = $0 }
@@ -2323,8 +2302,8 @@ struct SettingsView: View {
                     )
 
                     settingsToggleRow(
-                        title: "터미널 전용 모드 경량 사이드바",
-                        subtitle: settings.terminalSidebarLightweight ? "활성" : "비활성",
+                        title: NSLocalizedString("settings.automation.terminal.light", comment: ""),
+                        subtitle: settings.terminalSidebarLightweight ? NSLocalizedString("settings.enabled", comment: "") : NSLocalizedString("settings.disabled", comment: ""),
                         isOn: Binding(
                             get: { settings.terminalSidebarLightweight },
                             set: { settings.terminalSidebarLightweight = $0 }
@@ -2334,8 +2313,8 @@ struct SettingsView: View {
 
                     HStack(spacing: 10) {
                         limitStepperCard(
-                            title: "리뷰 최대",
-                            subtitle: "자동 재검토",
+                            title: NSLocalizedString("settings.automation.review.max", comment: ""),
+                            subtitle: NSLocalizedString("settings.automation.review.sub", comment: ""),
                             value: Binding(
                                 get: { settings.reviewerMaxPasses },
                                 set: { settings.reviewerMaxPasses = min(3, max(0, $0)) }
@@ -2345,7 +2324,7 @@ struct SettingsView: View {
                         )
                         limitStepperCard(
                             title: "QA 최대",
-                            subtitle: "자동 재테스트",
+                            subtitle: NSLocalizedString("settings.automation.qa.sub", comment: ""),
                             value: Binding(
                                 get: { settings.qaMaxPasses },
                                 set: { settings.qaMaxPasses = min(3, max(0, $0)) }
@@ -2356,8 +2335,8 @@ struct SettingsView: View {
                     }
 
                     limitStepperCard(
-                        title: "개발 재작업 최대",
-                        subtitle: "자동 피드백 반영",
+                        title: NSLocalizedString("settings.automation.revision.max", comment: ""),
+                        subtitle: NSLocalizedString("settings.automation.revision.sub", comment: ""),
                         value: Binding(
                             get: { settings.automationRevisionLimit },
                             set: { settings.automationRevisionLimit = min(5, max(1, $0)) }
@@ -2370,7 +2349,7 @@ struct SettingsView: View {
                         Image(systemName: "person.3.sequence.fill")
                             .font(.system(size: Theme.iconSize(11), weight: .bold))
                             .foregroundColor(Theme.orange)
-                        Text("직원은 최대 13명까지 권장합니다. 그 이상은 세션 수와 메모리 사용량이 급격히 늘 수 있어 수동 추가도 막습니다.")
+                        Text(NSLocalizedString("settings.automation.worker.limit", comment: ""))
                             .font(Theme.mono(8))
                             .foregroundColor(Theme.textSecondary)
                     }
@@ -2391,7 +2370,7 @@ struct SettingsView: View {
         let templateBinding = templateStore.binding(for: selectedKind)
 
         return VStack(spacing: 14) {
-            settingsSection(title: "워크플로 양식", subtitle: selectedKind.displayName) {
+            settingsSection(title: NSLocalizedString("settings.template.workflow", comment: ""), subtitle: selectedKind.displayName) {
                 VStack(alignment: .leading, spacing: 10) {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 2), spacing: 8) {
                         ForEach(AutomationTemplateKind.allCases) { kind in
@@ -2412,19 +2391,19 @@ struct SettingsView: View {
                 }
             }
 
-            settingsSection(title: "편집기", subtitle: "바로 저장") {
+            settingsSection(title: NSLocalizedString("settings.template.editor", comment: ""), subtitle: NSLocalizedString("settings.template.autosave", comment: "")) {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(spacing: 8) {
                         statusHint(
                             icon: templateStore.isCustomized(selectedKind) ? "slider.horizontal.3" : "checkmark.circle.fill",
-                            text: templateStore.isCustomized(selectedKind) ? "사용자 수정본 사용 중" : "기본 양식 사용 중",
+                            text: templateStore.isCustomized(selectedKind) ? NSLocalizedString("settings.template.custom", comment: "") : NSLocalizedString("settings.template.default", comment: ""),
                             tint: templateStore.isCustomized(selectedKind) ? Theme.orange : Theme.green
                         )
                         Spacer()
                         Button(action: {
                             templateStore.reset(selectedKind)
                         }) {
-                            Text("현재 양식 초기화")
+                            Text(NSLocalizedString("settings.template.reset.current", comment: ""))
                                 .font(Theme.mono(9, weight: .bold))
                                 .appButtonSurface(tone: .orange, compact: true)
                         }
@@ -2433,7 +2412,7 @@ struct SettingsView: View {
                         Button(action: {
                             showTemplateResetConfirm = true
                         }) {
-                            Text("전체 초기화")
+                            Text(NSLocalizedString("settings.template.reset.all", comment: ""))
                                 .font(Theme.mono(9, weight: .bold))
                                 .appButtonSurface(tone: .red, compact: true)
                         }
@@ -2456,7 +2435,7 @@ struct SettingsView: View {
                         )
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("사용 가능한 플레이스홀더")
+                        Text(NSLocalizedString("settings.template.placeholders", comment: ""))
                             .font(Theme.mono(9, weight: .bold))
                             .foregroundColor(Theme.textDim)
 
@@ -2469,10 +2448,10 @@ struct SettingsView: View {
 
                     if !selectedKind.pinnedLines.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("고정 자동화 상태 줄")
+                            Text(NSLocalizedString("settings.template.pinned", comment: ""))
                                 .font(Theme.mono(9, weight: .bold))
                                 .foregroundColor(Theme.textDim)
-                            Text("아래 줄은 워크플로우가 끊기지 않도록 앱이 뒤에서 자동으로 덧붙입니다. 본문 양식은 자유롭게 바꾸셔도 됩니다.")
+                            Text(NSLocalizedString("settings.template.pinned.desc", comment: ""))
                                 .font(Theme.mono(8))
                                 .foregroundColor(Theme.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -2500,68 +2479,68 @@ struct SettingsView: View {
     private var securityTab: some View {
         VStack(spacing: 14) {
             // 세션 잠금 + 결제일
-            settingsSection(title: "세션 보호", subtitle: settings.lockPIN.isEmpty ? "잠금 미설정" : "잠금 설정됨") {
+            settingsSection(title: NSLocalizedString("settings.security.session", comment: ""), subtitle: settings.lockPIN.isEmpty ? NSLocalizedString("settings.security.lock.off", comment: "") : NSLocalizedString("settings.security.lock.on", comment: "")) {
                 VStack(spacing: 10) {
-                    securityRow(label: "잠금 PIN") {
-                        SecureField("4자리 PIN", text: $settings.lockPIN)
+                    securityRow(label: NSLocalizedString("settings.security.pin", comment: "")) {
+                        SecureField(NSLocalizedString("settings.security.pin.placeholder", comment: ""), text: $settings.lockPIN)
                             .font(Theme.monoSmall).textFieldStyle(.plain)
                             .frame(width: 100).padding(6)
                             .background(RoundedRectangle(cornerRadius: 6).fill(Theme.bgSurface))
                             .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.border, lineWidth: 0.5))
                     }
-                    securityRow(label: "자동 잠금") {
+                    securityRow(label: NSLocalizedString("settings.security.autolock", comment: "")) {
                         Picker("", selection: $settings.autoLockMinutes) {
-                            Text("사용 안 함").tag(0)
-                            Text("1분").tag(1); Text("3분").tag(3)
-                            Text("5분").tag(5); Text("10분").tag(10)
+                            Text(NSLocalizedString("settings.none", comment: "")).tag(0)
+                            Text(NSLocalizedString("settings.1min", comment: "")).tag(1); Text(NSLocalizedString("settings.3min", comment: "")).tag(3)
+                            Text(NSLocalizedString("settings.5min", comment: "")).tag(5); Text(NSLocalizedString("settings.10min", comment: "")).tag(10)
                         }.frame(width: 120)
                     }
-                    securityRow(label: "결제일 알림") {
+                    securityRow(label: NSLocalizedString("settings.security.billing", comment: "")) {
                         Picker("", selection: $settings.billingDay) {
-                            Text("미설정").tag(0)
-                            ForEach(1...31, id: \.self) { Text("\($0)일").tag($0) }
+                            Text(NSLocalizedString("settings.notset", comment: "")).tag(0)
+                            ForEach(1...31, id: \.self) { day in Text(String(format: NSLocalizedString("settings.day.format", comment: ""), day)).tag(day) }
                         }.frame(width: 100)
                     }
                 }
             }
 
             // 비용 제한
-            settingsSection(title: "비용 제한", subtitle: settings.dailyCostLimit > 0 ? "$\(String(format: "%.0f", settings.dailyCostLimit))/일" : "무제한") {
+            settingsSection(title: NSLocalizedString("settings.security.cost", comment: ""), subtitle: settings.dailyCostLimit > 0 ? "$\(String(format: "%.0f", settings.dailyCostLimit))/" + NSLocalizedString("settings.day", comment: "") : NSLocalizedString("settings.unlimited", comment: "")) {
                 VStack(spacing: 10) {
-                    securityRow(label: "일일 제한 ($)") {
+                    securityRow(label: NSLocalizedString("settings.security.cost.daily", comment: "")) {
                         TextField("0", value: $settings.dailyCostLimit, format: .number)
                             .font(Theme.monoSmall).textFieldStyle(.plain)
                             .frame(width: 80).padding(6)
                             .background(RoundedRectangle(cornerRadius: 6).fill(Theme.bgSurface))
                             .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.border, lineWidth: 0.5))
                     }
-                    securityRow(label: "세션별 제한 ($)") {
+                    securityRow(label: NSLocalizedString("settings.security.cost.session", comment: "")) {
                         TextField("0", value: $settings.perSessionCostLimit, format: .number)
                             .font(Theme.monoSmall).textFieldStyle(.plain)
                             .frame(width: 80).padding(6)
                             .background(RoundedRectangle(cornerRadius: 6).fill(Theme.bgSurface))
                             .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.border, lineWidth: 0.5))
                     }
-                    Toggle("80% 도달 시 경고", isOn: $settings.costWarningAt80)
+                    Toggle(NSLocalizedString("settings.security.cost.warn80", comment: ""), isOn: $settings.costWarningAt80)
                         .font(Theme.mono(10, weight: .medium))
                         .tint(Theme.accent)
                 }
             }
 
             // 보호 기능 통합
-            settingsSection(title: "보호 기능", subtitle: "위험 감지 및 감사") {
+            settingsSection(title: NSLocalizedString("settings.security.protection", comment: ""), subtitle: NSLocalizedString("settings.security.protection.subtitle", comment: "")) {
                 VStack(spacing: 10) {
-                    Toggle("위험 명령 감지", isOn: Binding(
+                    Toggle(NSLocalizedString("settings.security.danger.detect", comment: ""), isOn: Binding(
                         get: { DangerousCommandDetector.shared.enabled },
                         set: { DangerousCommandDetector.shared.enabled = $0 }
                     )).font(Theme.mono(10, weight: .medium)).tint(Theme.accent)
 
-                    Toggle("민감 파일 보호", isOn: Binding(
+                    Toggle(NSLocalizedString("settings.security.sensitive.file", comment: ""), isOn: Binding(
                         get: { SensitiveFileShield.shared.enabled },
                         set: { SensitiveFileShield.shared.enabled = $0 }
                     )).font(Theme.mono(10, weight: .medium)).tint(Theme.accent)
 
-                    Toggle("감사 로그 기록", isOn: Binding(
+                    Toggle(NSLocalizedString("settings.security.audit.log", comment: ""), isOn: Binding(
                         get: { AuditLog.shared.enabled },
                         set: { AuditLog.shared.enabled = $0 }
                     )).font(Theme.mono(10, weight: .medium)).tint(Theme.accent)
@@ -2579,7 +2558,7 @@ struct SettingsView: View {
                         }) {
                             HStack(spacing: 4) {
                                 Image(systemName: "arrow.down.doc").font(.system(size: 10))
-                                Text("로그 내보내기").font(Theme.mono(9, weight: .medium))
+                                Text(NSLocalizedString("settings.security.log.export", comment: "")).font(Theme.mono(9, weight: .medium))
                             }
                             .foregroundColor(Theme.accent)
                             .padding(.horizontal, 10).padding(.vertical, 6)
@@ -2589,7 +2568,7 @@ struct SettingsView: View {
                         Button(action: { AuditLog.shared.clear() }) {
                             HStack(spacing: 4) {
                                 Image(systemName: "trash").font(.system(size: 10))
-                                Text("로그 삭제").font(Theme.mono(9, weight: .medium))
+                                Text(NSLocalizedString("settings.security.log.delete", comment: "")).font(Theme.mono(9, weight: .medium))
                             }
                             .foregroundColor(Theme.red)
                             .padding(.horizontal, 10).padding(.vertical, 6)
@@ -2605,17 +2584,17 @@ struct SettingsView: View {
 
     private var dataTab: some View {
         VStack(spacing: 14) {
-            settingsSection(title: "저장 공간", subtitle: cacheSize) {
+            settingsSection(title: NSLocalizedString("settings.data.storage", comment: ""), subtitle: cacheSize) {
                 VStack(alignment: .leading, spacing: 12) {
-                    dataRow(icon: "doc.text.fill", title: "세션 기록", detail: "\(SessionStore.shared.sessionCount)개", tint: Theme.accent)
-                    dataRow(icon: "bolt.fill", title: "토큰 이력", detail: tokenTracker.formatTokens(tokenTracker.weekTokens), tint: Theme.yellow)
-                    dataRow(icon: "building.2.fill", title: "오피스 레이아웃", detail: "UserDefaults", tint: Theme.cyan)
-                    dataRow(icon: "trophy.fill", title: "업적 데이터", detail: "UserDefaults", tint: Theme.purple)
-                    dataRow(icon: "person.2.fill", title: "캐릭터 데이터", detail: "UserDefaults", tint: Theme.green)
+                    dataRow(icon: "doc.text.fill", title: NSLocalizedString("settings.data.sessions", comment: ""), detail: String(format: NSLocalizedString("settings.data.count", comment: ""), SessionStore.shared.sessionCount), tint: Theme.accent)
+                    dataRow(icon: "bolt.fill", title: NSLocalizedString("settings.data.tokens", comment: ""), detail: tokenTracker.formatTokens(tokenTracker.weekTokens), tint: Theme.yellow)
+                    dataRow(icon: "building.2.fill", title: NSLocalizedString("settings.data.office.layout", comment: ""), detail: "UserDefaults", tint: Theme.cyan)
+                    dataRow(icon: "trophy.fill", title: NSLocalizedString("settings.data.achievements", comment: ""), detail: "UserDefaults", tint: Theme.purple)
+                    dataRow(icon: "person.2.fill", title: NSLocalizedString("settings.data.characters", comment: ""), detail: "UserDefaults", tint: Theme.green)
                 }
             }
 
-            settingsSection(title: "캐시 관리", subtitle: "불필요한 데이터를 정리합니다") {
+            settingsSection(title: NSLocalizedString("settings.data.cache", comment: ""), subtitle: NSLocalizedString("settings.data.cache.subtitle", comment: "")) {
                 VStack(spacing: 10) {
                     Button(action: {
                         clearAllMode = false
@@ -2623,9 +2602,9 @@ struct SettingsView: View {
                     }) {
                         HStack(spacing: 8) {
                             Image(systemName: "wind").font(.system(size: Theme.iconSize(11), weight: .bold))
-                            Text("오래된 캐시 삭제").font(Theme.mono(11, weight: .semibold))
+                            Text(NSLocalizedString("settings.data.cache.old", comment: "")).font(Theme.mono(11, weight: .semibold))
                             Spacer()
-                            Text("완료된 세션, 지난 토큰 이력")
+                            Text(NSLocalizedString("settings.data.cache.old.desc", comment: ""))
                                 .font(Theme.mono(8)).foregroundColor(Theme.textDim)
                         }
                         .foregroundColor(Theme.orange)
@@ -2638,9 +2617,9 @@ struct SettingsView: View {
                     }) {
                         HStack(spacing: 8) {
                             Image(systemName: "trash.fill").font(.system(size: Theme.iconSize(11), weight: .bold))
-                            Text("전체 데이터 삭제").font(Theme.mono(11, weight: .semibold))
+                            Text(NSLocalizedString("settings.data.delete.all", comment: "")).font(Theme.mono(11, weight: .semibold))
                             Spacer()
-                            Text("모든 데이터 초기화")
+                            Text(NSLocalizedString("settings.data.delete.all.desc", comment: ""))
                                 .font(Theme.mono(8)).foregroundColor(Theme.textDim)
                         }
                         .foregroundColor(Theme.red)
@@ -2745,10 +2724,10 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("설정")
+                        Text(NSLocalizedString("settings.title", comment: ""))
                             .font(Theme.mono(16, weight: .black))
                             .foregroundColor(Theme.textPrimary)
-                        Text("작업 공간의 톤과 리듬을 한 번에 다듬습니다.")
+                        Text(NSLocalizedString("settings.subtitle", comment: ""))
                             .font(Theme.mono(10))
                             .foregroundColor(Theme.textSecondary)
                     }
@@ -2824,7 +2803,7 @@ struct SettingsView: View {
 
     private var settingPreviewCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("미리보기")
+            Text(NSLocalizedString("settings.preview", comment: ""))
                 .font(Theme.mono(9, weight: .bold))
                 .foregroundColor(Theme.textDim)
 
@@ -2839,7 +2818,7 @@ struct SettingsView: View {
                         .foregroundColor(Theme.textSecondary)
                 }
 
-                Text("이 설정으로 오피스와 터미널이 이렇게 보입니다.")
+                Text(NSLocalizedString("settings.preview.desc", comment: ""))
                     .font(Theme.monoNormal)
                     .foregroundColor(Theme.textPrimary)
             }
@@ -3245,8 +3224,8 @@ enum CoffeeSupportProvider: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .kakaoBank: return "카카오뱅크"
-        case .toss: return "토스"
+        case .kakaoBank: return NSLocalizedString("coffee.bank.kakao", comment: "")
+        case .toss: return NSLocalizedString("coffee.bank.toss", comment: "")
         }
     }
 
@@ -3284,8 +3263,8 @@ enum CoffeeSupportProvider: String, CaseIterable, Identifiable {
 
     var subtitle: String {
         switch self {
-        case .kakaoBank: return "카카오뱅크 앱 또는 웹 열기"
-        case .toss: return "토스 앱 또는 웹 열기"
+        case .kakaoBank: return NSLocalizedString("coffee.bank.kakao.subtitle", comment: "")
+        case .toss: return NSLocalizedString("coffee.bank.toss.subtitle", comment: "")
         }
     }
 }
@@ -3325,7 +3304,7 @@ struct CoffeeSupportPopoverView: View {
                 VStack(spacing: 0) {
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 5) {
-                            Text(settings.trimmedCoffeeSupportBankName.isEmpty ? "카카오뱅크" : settings.trimmedCoffeeSupportBankName)
+                            Text(settings.trimmedCoffeeSupportBankName.isEmpty ? NSLocalizedString("coffee.bank.kakao", comment: "") : settings.trimmedCoffeeSupportBankName)
                                 .font(Theme.mono(9, weight: .semibold))
                                 .foregroundColor(Theme.textDim)
                             Text(settings.trimmedCoffeeSupportAccountNumber.isEmpty ? "7777015832634" : settings.trimmedCoffeeSupportAccountNumber)
@@ -3343,7 +3322,7 @@ struct CoffeeSupportPopoverView: View {
                             HStack(spacing: 5) {
                                 Image(systemName: copied ? "checkmark" : "doc.on.doc.fill")
                                     .font(.system(size: Theme.iconSize(10), weight: .bold))
-                                Text(copied ? "복사됨" : "복사")
+                                Text(copied ? NSLocalizedString("coffee.copied", comment: "") : NSLocalizedString("coffee.copy", comment: ""))
                                     .font(Theme.mono(9, weight: .bold))
                             }
                             .foregroundColor(copied ? Theme.green : Theme.orange)
@@ -3375,7 +3354,7 @@ struct CoffeeSupportPopoverView: View {
                     Image(systemName: "info.circle")
                         .font(.system(size: Theme.iconSize(9)))
                         .foregroundColor(Theme.textDim)
-                    Text("앱을 열 수 없으면 공식 웹사이트로 이동합니다. 계좌는 자동 복사됩니다.")
+                    Text(NSLocalizedString("coffee.fallback.info", comment: ""))
                         .font(Theme.mono(8))
                         .foregroundColor(Theme.textDim)
                         .fixedSize(horizontal: false, vertical: true)
@@ -3387,7 +3366,7 @@ struct CoffeeSupportPopoverView: View {
                         Image(systemName: "exclamationmark.circle.fill")
                             .font(.system(size: Theme.iconSize(11), weight: .bold))
                             .foregroundColor(Theme.orange)
-                        Text("은행명과 계좌번호를 입력하면 바로 후원 기능을 사용할 수 있습니다.")
+                        Text(NSLocalizedString("coffee.setup.hint", comment: ""))
                             .font(Theme.mono(9))
                             .foregroundColor(Theme.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -3395,7 +3374,7 @@ struct CoffeeSupportPopoverView: View {
 
                     if let onRequestSettings {
                         Button(action: onRequestSettings) {
-                            Text("후원 설정 열기")
+                            Text(NSLocalizedString("coffee.open.settings", comment: ""))
                                 .font(Theme.mono(9, weight: .bold))
                                 .foregroundColor(Theme.orange)
                                 .padding(.horizontal, 12).padding(.vertical, 8)
@@ -3455,7 +3434,7 @@ struct CoffeeSupportPopoverView: View {
 
                 Spacer(minLength: 0)
 
-                Text("열기")
+                Text(NSLocalizedString("coffee.open", comment: ""))
                     .font(Theme.mono(8, weight: .bold))
                     .foregroundColor(provider.tint)
                     .padding(.horizontal, 9)
@@ -3480,21 +3459,21 @@ struct CoffeeSupportPopoverView: View {
 
     private func openProvider(_ provider: CoffeeSupportProvider) {
         guard copySupportAccount(showFeedback: false) else {
-            feedback = Feedback(icon: "exclamationmark.triangle.fill", text: "후원 계좌가 비어 있습니다.", tint: Theme.orange)
+            feedback = Feedback(icon: "exclamationmark.triangle.fill", text: NSLocalizedString("coffee.account.empty", comment: ""), tint: Theme.orange)
             return
         }
 
         if let appURL = provider.appURL, NSWorkspace.shared.open(appURL) {
-            feedback = Feedback(icon: "arrow.up.right.square.fill", text: "\(provider.title)을 열었습니다. 계좌도 함께 복사했습니다.", tint: provider.tint)
+            feedback = Feedback(icon: "arrow.up.right.square.fill", text: String(format: NSLocalizedString("coffee.opened", comment: ""), provider.title), tint: provider.tint)
             return
         }
 
         if let fallbackURL = provider.fallbackURL, NSWorkspace.shared.open(fallbackURL) {
-            feedback = Feedback(icon: "safari.fill", text: "\(provider.title) 앱을 찾지 못해 공식 웹사이트를 열었습니다. 계좌는 복사되어 있습니다.", tint: provider.tint)
+            feedback = Feedback(icon: "safari.fill", text: String(format: NSLocalizedString("coffee.fallback.opened", comment: ""), provider.title), tint: provider.tint)
             return
         }
 
-        feedback = Feedback(icon: "doc.on.doc.fill", text: "\(provider.title)을 열지 못해 계좌만 복사했습니다.", tint: provider.tint)
+        feedback = Feedback(icon: "doc.on.doc.fill", text: String(format: NSLocalizedString("coffee.copy.only", comment: ""), provider.title), tint: provider.tint)
     }
 
     @discardableResult
@@ -3506,7 +3485,7 @@ struct CoffeeSupportPopoverView: View {
         NSPasteboard.general.setString(accountText, forType: .string)
 
         if showFeedback {
-            feedback = Feedback(icon: "doc.on.doc.fill", text: "후원 계좌를 복사했습니다.", tint: Theme.orange)
+            feedback = Feedback(icon: "doc.on.doc.fill", text: NSLocalizedString("coffee.account.copied", comment: ""), tint: Theme.orange)
         }
         return true
     }
@@ -3521,15 +3500,15 @@ struct AccessoryView: View {
     @Environment(\.dismiss) var dismiss
     @State private var selectedTab = 0  // 0=악세서리, 1=배경
 
-    private let accessoryTabs: [(String, String)] = [("sofa.fill", "악세서리"), ("photo.fill", "배경")]
+    private let accessoryTabs: [(String, String)] = [("sofa.fill", NSLocalizedString("accessory.tab.furniture", comment: "")), ("photo.fill", NSLocalizedString("accessory.tab.background", comment: ""))]
 
     var body: some View {
         VStack(spacing: 0) {
             DSModalHeader(
                 icon: "paintpalette.fill",
                 iconColor: Theme.purple,
-                title: "꾸미기",
-                subtitle: "오피스 악세서리 및 배경 관리",
+                title: NSLocalizedString("accessory.title", comment: ""),
+                subtitle: NSLocalizedString("accessory.subtitle", comment: ""),
                 onClose: { dismiss() }
             )
 
@@ -3578,12 +3557,12 @@ struct AccessoryView: View {
 
                 // ── 가구 배치 ──
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("배치").font(Theme.pixel).foregroundColor(Theme.textDim).tracking(1.5)
+                    Text(NSLocalizedString("accessory.placement", comment: "")).font(Theme.pixel).foregroundColor(Theme.textDim).tracking(1.5)
 
                     Button(action: { settings.isEditMode = true; dismiss() }) {
                         HStack(spacing: 8) {
                             Image(systemName: "hand.draw.fill").font(.system(size: Theme.iconSize(12))).foregroundColor(Theme.textOnAccent)
-                            Text("드래그로 가구 배치하기").font(Theme.mono(11, weight: .bold)).foregroundColor(Theme.textOnAccent)
+                            Text(NSLocalizedString("accessory.drag.hint", comment: "")).font(Theme.mono(11, weight: .bold)).foregroundColor(Theme.textOnAccent)
                             Spacer()
                             Image(systemName: "arrow.right.circle.fill").font(.system(size: Theme.iconSize(14))).foregroundColor(Theme.textOnAccent.opacity(0.7))
                         }
@@ -3595,7 +3574,7 @@ struct AccessoryView: View {
                     Button(action: { settings.resetFurniturePositions() }) {
                         HStack(spacing: 6) {
                             Image(systemName: "arrow.counterclockwise").font(.system(size: Theme.iconSize(10))).foregroundColor(Theme.textDim)
-                            Text("기본 배치로 초기화").font(Theme.mono(10)).foregroundColor(Theme.textSecondary)
+                            Text(NSLocalizedString("accessory.reset.placement", comment: "")).font(Theme.mono(10)).foregroundColor(Theme.textSecondary)
                         }
                         .padding(.vertical, 8).padding(.horizontal, 12)
                         .background(RoundedRectangle(cornerRadius: 8).fill(Theme.bgSurface)
@@ -3612,7 +3591,7 @@ struct AccessoryView: View {
         ScrollView(.vertical, showsIndicators: true) {
             VStack(spacing: 12) {
                 HStack {
-                    Text("배경 테마").font(Theme.pixel).foregroundColor(Theme.textDim).tracking(1.5)
+                    Text(NSLocalizedString("accessory.bg.theme", comment: "")).font(Theme.pixel).foregroundColor(Theme.textDim).tracking(1.5)
                     Spacer()
                     Text(currentTheme.displayName).font(Theme.mono(9, weight: .bold)).foregroundColor(Theme.purple)
                 }

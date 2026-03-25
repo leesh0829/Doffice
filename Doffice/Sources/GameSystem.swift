@@ -23,35 +23,35 @@ struct WorkerLevel {
     private static let titleTiers: [TitleTier] = [
         TitleTier(minLevel: 1, title: NSLocalizedString("level.intern", comment: ""), badge: "🌱"),
         TitleTier(minLevel: 2, title: NSLocalizedString("level.junior", comment: ""), badge: "🔰"),
-        TitleTier(minLevel: 3, title: "미들", badge: "⚙️"),
+        TitleTier(minLevel: 3, title: NSLocalizedString("level.middle", comment: ""), badge: "⚙️"),
         TitleTier(minLevel: 5, title: NSLocalizedString("level.senior", comment: ""), badge: "🔧"),
         TitleTier(minLevel: 7, title: NSLocalizedString("level.lead", comment: ""), badge: "⭐"),
-        TitleTier(minLevel: 10, title: "아키텍트", badge: "🏗"),
+        TitleTier(minLevel: 10, title: NSLocalizedString("level.architect", comment: ""), badge: "🏗"),
         TitleTier(minLevel: 13, title: NSLocalizedString("level.cto", comment: ""), badge: "🎯"),
         TitleTier(minLevel: 16, title: NSLocalizedString("level.legend", comment: ""), badge: "🏆"),
-        TitleTier(minLevel: 20, title: "신", badge: "👑"),
-        TitleTier(minLevel: 25, title: "우주", badge: "🌌"),
+        TitleTier(minLevel: 20, title: NSLocalizedString("level.god", comment: ""), badge: "👑"),
+        TitleTier(minLevel: 25, title: NSLocalizedString("level.cosmos", comment: ""), badge: "🌌"),
         TitleTier(minLevel: 30, title: NSLocalizedString("level.saint", comment: ""), badge: "🌠"),
-        TitleTier(minLevel: 35, title: "은하", badge: "🌌"),
-        TitleTier(minLevel: 40, title: "초신성", badge: "☄️"),
-        TitleTier(minLevel: 50, title: "차원", badge: "🌀"),
-        TitleTier(minLevel: 60, title: "특이점", badge: "♾️"),
-        TitleTier(minLevel: 75, title: "초월", badge: "🔱"),
-        TitleTier(minLevel: 90, title: "불멸", badge: "💎"),
-        TitleTier(minLevel: 100, title: "절대자", badge: "🪐"),
-        TitleTier(minLevel: 120, title: "신화", badge: "🔥"),
-        TitleTier(minLevel: 150, title: "창세", badge: "☀️"),
-        TitleTier(minLevel: 200, title: "태초", badge: "🌅"),
-        TitleTier(minLevel: 250, title: "무한", badge: "∞"),
-        TitleTier(minLevel: 300, title: "영겁", badge: "🕳️"),
-        TitleTier(minLevel: 400, title: "시간의 제왕", badge: "⏳"),
-        TitleTier(minLevel: 500, title: "차원의 군주", badge: "🌐"),
-        TitleTier(minLevel: 750, title: "다중우주의 관측자", badge: "👁️"),
-        TitleTier(minLevel: 1000, title: "종말의 개척자", badge: "🕊️"),
-        TitleTier(minLevel: 1500, title: "존재의 근원", badge: "🔮"),
-        TitleTier(minLevel: 2000, title: "최초이자 최후", badge: "⚛️"),
-        TitleTier(minLevel: 5000, title: "이름 없는 자", badge: "🌑"),
-        TitleTier(minLevel: 10000, title: "개념 그 자체", badge: "💠"),
+        TitleTier(minLevel: 35, title: NSLocalizedString("level.galaxy", comment: ""), badge: "🌌"),
+        TitleTier(minLevel: 40, title: NSLocalizedString("level.supernova", comment: ""), badge: "☄️"),
+        TitleTier(minLevel: 50, title: NSLocalizedString("level.dimension", comment: ""), badge: "🌀"),
+        TitleTier(minLevel: 60, title: NSLocalizedString("level.singularity", comment: ""), badge: "♾️"),
+        TitleTier(minLevel: 75, title: NSLocalizedString("level.transcendence", comment: ""), badge: "🔱"),
+        TitleTier(minLevel: 90, title: NSLocalizedString("level.immortal", comment: ""), badge: "💎"),
+        TitleTier(minLevel: 100, title: NSLocalizedString("level.absolute", comment: ""), badge: "🪐"),
+        TitleTier(minLevel: 120, title: NSLocalizedString("level.myth", comment: ""), badge: "🔥"),
+        TitleTier(minLevel: 150, title: NSLocalizedString("level.genesis", comment: ""), badge: "☀️"),
+        TitleTier(minLevel: 200, title: NSLocalizedString("level.origin", comment: ""), badge: "🌅"),
+        TitleTier(minLevel: 250, title: NSLocalizedString("level.infinity", comment: ""), badge: "∞"),
+        TitleTier(minLevel: 300, title: NSLocalizedString("level.eternity", comment: ""), badge: "🕳️"),
+        TitleTier(minLevel: 400, title: NSLocalizedString("level.time.lord", comment: ""), badge: "⏳"),
+        TitleTier(minLevel: 500, title: NSLocalizedString("level.dimension.lord", comment: ""), badge: "🌐"),
+        TitleTier(minLevel: 750, title: NSLocalizedString("level.multiverse.observer", comment: ""), badge: "👁️"),
+        TitleTier(minLevel: 1000, title: NSLocalizedString("level.end.pioneer", comment: ""), badge: "🕊️"),
+        TitleTier(minLevel: 1500, title: NSLocalizedString("level.source.of.being", comment: ""), badge: "🔮"),
+        TitleTier(minLevel: 2000, title: NSLocalizedString("level.first.and.last", comment: ""), badge: "⚛️"),
+        TitleTier(minLevel: 5000, title: NSLocalizedString("level.nameless", comment: ""), badge: "🌑"),
+        TitleTier(minLevel: 10000, title: NSLocalizedString("level.concept.itself", comment: ""), badge: "💠"),
     ]
 
     // ── 레벨별 필요 XP 계산 (지수적 증가) ──
@@ -120,6 +120,16 @@ enum AchievementRarity: String, Codable {
     case legendary = "전설"
     case mythic = "신화"
 
+    var displayName: String {
+        switch self {
+        case .common: return NSLocalizedString("rarity.common", comment: "")
+        case .rare: return NSLocalizedString("rarity.rare", comment: "")
+        case .epic: return NSLocalizedString("rarity.epic", comment: "")
+        case .legendary: return NSLocalizedString("rarity.legendary", comment: "")
+        case .mythic: return NSLocalizedString("rarity.mythic", comment: "")
+        }
+    }
+
     var color: Color {
         switch self {
         case .common: return Theme.textSecondary
@@ -150,6 +160,18 @@ struct Achievement: Identifiable, Codable {
     let rarity: AchievementRarity
     var unlocked: Bool = false
     var unlockedAt: Date?
+
+    var localizedName: String {
+        let key = "achievement.\(id).name"
+        let localized = NSLocalizedString(key, comment: "")
+        return localized == key ? name : localized
+    }
+
+    var localizedDescription: String {
+        let key = "achievement.\(id).desc"
+        let localized = NSLocalizedString(key, comment: "")
+        return localized == key ? description : localized
+    }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1159,11 +1181,11 @@ struct AchievementToastView: View {
                 .frame(width: 28, height: 28)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(achievement.name)
+                    Text(achievement.localizedName)
                         .font(Theme.mono(10, weight: .bold))
                         .foregroundColor(Theme.textPrimary)
                         .lineLimit(1)
-                    Text("도전과제 달성")
+                    Text(NSLocalizedString("game.achievement.unlocked", comment: ""))
                         .font(Theme.mono(8, weight: .medium))
                         .foregroundColor(achievement.rarity.color)
                 }
@@ -1187,7 +1209,7 @@ struct AchievementToastView: View {
             )
         }
         .buttonStyle(.plain)
-        .help("클릭해서 닫기")
+        .help(NSLocalizedString("game.toast.dismiss", comment: ""))
         .scaleEffect(isVisible ? 1 : 0.97)
         .opacity(isVisible ? 1 : 0)
         .onAppear {
@@ -1255,8 +1277,8 @@ struct AchievementCollectionView: View {
             DSModalHeader(
                 icon: "trophy.fill",
                 iconColor: Theme.yellow,
-                title: "도전과제",
-                subtitle: "\(mgr.unlockedCount)/\(mgr.achievements.count) 달성 · \(completionPercent)%",
+                title: NSLocalizedString("sidebar.achievements", comment: ""),
+                subtitle: "\(mgr.unlockedCount)/\(mgr.achievements.count) · \(completionPercent)%",
                 trailing: AnyView(
                     DSProgressBar(value: Double(mgr.unlockedCount) / Double(max(1, mgr.achievements.count)), tint: Theme.yellow)
                         .frame(width: 80)
@@ -1370,9 +1392,9 @@ struct AchievementCollectionView: View {
 
     private var filterBar: some View {
         HStack(spacing: 6) {
-            filterTab(label: "전체", rarity: nil, count: mgr.achievements.count, unlocked: mgr.unlockedCount)
+            filterTab(label: NSLocalizedString("status.all", comment: ""), rarity: nil, count: mgr.achievements.count, unlocked: mgr.unlockedCount)
             ForEach([AchievementRarity.mythic, .legendary, .epic, .rare, .common], id: \.rawValue) { r in
-                filterTab(label: r.rawValue, rarity: r,
+                filterTab(label: r.displayName, rarity: r,
                           count: mgr.achievements.filter { $0.rarity == r }.count,
                           unlocked: mgr.achievements.filter { $0.rarity == r && $0.unlocked }.count)
             }
@@ -1457,7 +1479,7 @@ struct AchievementCollectionView: View {
     private func sectionHeader(rarity: AchievementRarity, unlocked: Int, total: Int, progress: Double) -> some View {
         HStack(spacing: 8) {
             RoundedRectangle(cornerRadius: 2).fill(rarity.color).frame(width: 3, height: 14)
-            Text(rarity.rawValue.uppercased())
+            Text(rarity.displayName.uppercased())
                 .font(Theme.mono(10, weight: .heavy))
                 .foregroundColor(rarity.color).tracking(2)
 
@@ -1559,7 +1581,7 @@ struct AchievementDetailCard: View {
             HStack {
                 HStack(spacing: 5) {
                     Circle().fill(achievement.rarity.color).frame(width: 7, height: 7)
-                    Text(achievement.rarity.rawValue.uppercased())
+                    Text(achievement.rarity.displayName.uppercased())
                         .font(Theme.mono(9, weight: .heavy))
                         .foregroundColor(achievement.rarity.color).tracking(2)
                 }
@@ -1598,13 +1620,13 @@ struct AchievementDetailCard: View {
             .padding(.vertical, 10)
 
             // ── 이름 ──
-            Text(achievement.name)
+            Text(achievement.localizedName)
                 .font(Theme.mono(18, weight: .bold))
                 .foregroundColor(Theme.textPrimary)
                 .padding(.top, 4)
 
             // ── 설명 ──
-            Text(achievement.description)
+            Text(achievement.localizedDescription)
                 .font(Theme.mono(12))
                 .foregroundColor(Theme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -1618,12 +1640,12 @@ struct AchievementDetailCard: View {
                     .padding(.horizontal, 16)
 
                 HStack(spacing: 0) {
-                    detailItem(label: "보상", value: "+\(achievement.xpReward) XP", color: Theme.yellow)
+                    detailItem(label: NSLocalizedString("game.reward", comment: ""), value: "+\(achievement.xpReward) XP", color: Theme.yellow)
                     detailDivider
-                    detailItem(label: "등급", value: achievement.rarity.rawValue, color: achievement.rarity.color)
+                    detailItem(label: NSLocalizedString("game.grade", comment: ""), value: achievement.rarity.displayName, color: achievement.rarity.color)
                     detailDivider
                     if let date = achievement.unlockedAt {
-                        detailItem(label: "달성일", value: fmtDateFull(date), color: Theme.green)
+                        detailItem(label: NSLocalizedString("game.unlock.date", comment: ""), value: fmtDateFull(date), color: Theme.green)
                     }
                 }
                 .padding(.horizontal, 12)
@@ -1713,11 +1735,11 @@ struct AchievementCard: View {
                     .frame(width: 40, height: 40)
                 Text(achievement.icon).font(Theme.scaled(22))
             }
-            Text(achievement.name)
+            Text(achievement.localizedName)
                 .font(Theme.mono(10, weight: .bold))
                 .foregroundColor(Theme.textPrimary)
                 .lineLimit(1)
-            Text(achievement.description)
+            Text(achievement.localizedDescription)
                 .font(Theme.mono(8))
                 .foregroundColor(Theme.textSecondary)
                 .lineLimit(2).multilineTextAlignment(.center)
@@ -1748,7 +1770,7 @@ struct AchievementCard: View {
                 .font(Theme.mono(8, weight: .medium))
                 .foregroundColor(Theme.textDim.opacity(0.2))
             if isHovered {
-                Text(achievement.description)
+                Text(achievement.localizedDescription)
                     .font(Theme.mono(7))
                     .foregroundColor(Theme.textDim.opacity(0.4))
                     .lineLimit(2).multilineTextAlignment(.center)

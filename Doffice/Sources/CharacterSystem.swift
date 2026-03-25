@@ -56,42 +56,42 @@ enum WorkerJob: String, Codable, CaseIterable, Identifiable {
     var description: String {
         switch self {
         case .developer:
-            return "실제 구현과 코드 변경을 담당합니다."
+            return NSLocalizedString("job.desc.developer", comment: "")
         case .qa:
-            return "개발 완료 후 코드 변경이 있었을 때 직접 테스트를 수행합니다."
+            return NSLocalizedString("job.desc.qa", comment: "")
         case .reporter:
-            return "작업 결과물과 요구사항을 최종 Markdown 보고서로 정리합니다."
+            return NSLocalizedString("job.desc.reporter", comment: "")
         case .boss:
-            return "일은 하지 않고 분위기만 잡습니다."
+            return NSLocalizedString("job.desc.boss", comment: "")
         case .planner:
-            return "요구사항과 수용 기준을 먼저 정리하는 역할입니다."
+            return NSLocalizedString("job.desc.planner", comment: "")
         case .reviewer:
-            return "구현 이후 변경 사항을 검토하고 위험을 찾는 역할입니다."
+            return NSLocalizedString("job.desc.reviewer", comment: "")
         case .designer:
-            return "UI/UX와 시각 품질을 다듬는 역할입니다."
+            return NSLocalizedString("job.desc.designer", comment: "")
         case .sre:
-            return "배포 안정성, 실행 환경, 운영 리스크를 보는 역할입니다."
+            return NSLocalizedString("job.desc.sre", comment: "")
         }
     }
 
     var relationshipHint: String {
         switch self {
         case .developer:
-            return "핵심 구현 담당"
+            return NSLocalizedString("job.hint.developer", comment: "")
         case .qa:
-            return "개발 완료 후 검증"
+            return NSLocalizedString("job.hint.qa", comment: "")
         case .reporter:
-            return "최종 보고서 작성"
+            return NSLocalizedString("job.hint.reporter", comment: "")
         case .boss:
-            return "관전 및 한마디"
+            return NSLocalizedString("job.hint.boss", comment: "")
         case .planner:
-            return "개발 전 요구사항 정리"
+            return NSLocalizedString("job.hint.planner", comment: "")
         case .reviewer:
-            return "개발 후 코드 검토"
+            return NSLocalizedString("job.hint.reviewer", comment: "")
         case .designer:
-            return "디자인/경험 보강"
+            return NSLocalizedString("job.hint.designer", comment: "")
         case .sre:
-            return "배포/운영 안정성 확인"
+            return NSLocalizedString("job.hint.sre", comment: "")
         }
     }
 
@@ -249,7 +249,9 @@ class CharacterRegistry: ObservableObject {
 
     private let saveKey = "WorkManCharacters"
     private let manualUnlockKey = "WorkManCharacterManualUnlocks"
-    let bossLines: [String] = [
+    private static let bossLineCount = 115
+
+    private static let defaultBossLines: [String] = [
         "열심히 일해라. 내가 보고 있다.",
         "나는 돈이 제일 좋아",
         "자기전에 생각 많이 날거야",
@@ -366,6 +368,15 @@ class CharacterRegistry: ObservableObject {
         "웃겼으면 인정, 안 웃겼으면 더 인정."
     ]
 
+    var bossLines: [String] {
+        (0..<Self.bossLineCount).map { i in
+            let key = "boss.line.\(i + 1)"
+            let localized = NSLocalizedString(key, comment: "")
+            if localized != key { return localized }
+            return i < Self.defaultBossLines.count ? Self.defaultBossLines[i] : Self.defaultBossLines[i % Self.defaultBossLines.count]
+        }
+    }
+
     init() {
         loadOrCreate()
     }
@@ -410,7 +421,7 @@ class CharacterRegistry: ObservableObject {
         }
         allCharacters[idx].isHired = true
         allCharacters[idx].hiredAt = Date()
-        allCharacters[idx].archetype = Self.personalities.randomElement() ?? "신입"
+        allCharacters[idx].archetype = Self.personalities.randomElement() ?? NSLocalizedString("char.newbie", comment: "")
         save()
     }
 
@@ -436,8 +447,8 @@ class CharacterRegistry: ObservableObject {
             }
             allCharacters[i].isHired = true
             if allCharacters[i].hiredAt == nil { allCharacters[i].hiredAt = Date() }
-            if allCharacters[i].archetype.isEmpty || allCharacters[i].archetype == "신입" {
-                allCharacters[i].archetype = Self.personalities.randomElement() ?? "신입"
+            if allCharacters[i].archetype.isEmpty || allCharacters[i].archetype == "신입" || allCharacters[i].archetype == NSLocalizedString("char.newbie", comment: "") {
+                allCharacters[i].archetype = Self.personalities.randomElement() ?? NSLocalizedString("char.newbie", comment: "")
             }
         }
         save()
@@ -488,8 +499,8 @@ class CharacterRegistry: ObservableObject {
                 name: .workmanRoleNotice,
                 object: nil,
                 userInfo: [
-                    "title": "\(role.displayName) 경고",
-                    "message": "개발자를 제외한 직업은 자동 검증, 문서화, 추가 세션 등으로 토큰 사용량이 더 늘어날 수 있습니다."
+                    "title": String(format: NSLocalizedString("char.job.warning.title", comment: ""), role.displayName),
+                    "message": NSLocalizedString("char.job.warning.message", comment: "")
                 ]
             )
         }
@@ -540,7 +551,7 @@ class CharacterRegistry: ObservableObject {
     }
 
     func bossLine(frame: Int) -> String {
-        guard !bossLines.isEmpty else { return "열심히 일해라." }
+        guard !bossLines.isEmpty else { return NSLocalizedString("boss.fallback", comment: "") }
         let step = max(0, frame / Int(OfficeConstants.fps * 5))
         return bossLines[step % bossLines.count]
     }
@@ -796,8 +807,8 @@ struct CharacterCollectionView: View {
             DSModalHeader(
                 icon: "person.3.fill",
                 iconColor: Theme.accent,
-                title: "캐릭터",
-                subtitle: "\(registry.hiredCharacters.count)명 고용 / \(registry.allCharacters.count)명 전체",
+                title: NSLocalizedString("char.title", comment: ""),
+                subtitle: String(format: NSLocalizedString("char.subtitle", comment: ""), registry.hiredCharacters.count, registry.allCharacters.count),
                 onClose: { dismiss() }
             )
 
@@ -833,7 +844,7 @@ struct CharacterCollectionView: View {
                 Button(action: { withAnimation(.easeInOut(duration: 0.2)) { showPipeline.toggle() } }) {
                     HStack(spacing: 4) {
                         Image(systemName: "arrow.triangle.swap").font(.system(size: 9, weight: .bold))
-                        Text("파이프라인").font(Theme.mono(8, weight: .medium))
+                        Text(NSLocalizedString("char.pipeline", comment: "")).font(Theme.mono(8, weight: .medium))
                         Image(systemName: showPipeline ? "chevron.up" : "chevron.down").font(.system(size: 7, weight: .bold))
                     }
                     .foregroundColor(Theme.textDim)
@@ -847,29 +858,29 @@ struct CharacterCollectionView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 0) {
-                            pipelineStep(icon: "list.bullet.rectangle.portrait.fill", label: "기획", color: Theme.cyan, isFirst: true)
+                            pipelineStep(icon: "list.bullet.rectangle.portrait.fill", label: NSLocalizedString("char.pipeline.plan", comment: ""), color: Theme.cyan, isFirst: true)
                             pipelineArrow()
-                            pipelineStep(icon: "paintbrush.pointed.fill", label: "디자인", color: Theme.pink)
+                            pipelineStep(icon: "paintbrush.pointed.fill", label: NSLocalizedString("char.pipeline.design", comment: ""), color: Theme.pink)
                             pipelineArrow()
-                            pipelineStep(icon: "hammer.fill", label: "개발", color: Theme.accent, highlight: true)
+                            pipelineStep(icon: "hammer.fill", label: NSLocalizedString("char.pipeline.dev", comment: ""), color: Theme.accent, highlight: true)
                             pipelineArrow()
-                            pipelineStep(icon: "checklist.checked", label: "리뷰", color: Theme.orange)
+                            pipelineStep(icon: "checklist.checked", label: NSLocalizedString("char.pipeline.review", comment: ""), color: Theme.orange)
                             pipelineArrow()
-                            pipelineStep(icon: "checkmark.seal.fill", label: "QA", color: Theme.green)
+                            pipelineStep(icon: "checkmark.seal.fill", label: NSLocalizedString("char.pipeline.qa", comment: ""), color: Theme.green)
                             pipelineArrow()
-                            pipelineStep(icon: "doc.text.fill", label: "보고", color: Theme.purple)
+                            pipelineStep(icon: "doc.text.fill", label: NSLocalizedString("char.pipeline.report", comment: ""), color: Theme.purple)
                             Text("·").font(Theme.mono(10)).foregroundColor(Theme.textDim).padding(.horizontal, 4)
-                            pipelineStep(icon: "server.rack", label: "SRE", color: Theme.red, isLast: true)
+                            pipelineStep(icon: "server.rack", label: NSLocalizedString("char.pipeline.sre", comment: ""), color: Theme.red, isLast: true)
                         }
                     }
                     HStack(spacing: 12) {
                         HStack(spacing: 4) {
                             Image(systemName: "forward.fill").font(.system(size: 7)).foregroundColor(Theme.green)
-                            Text("없는 역할은 자동 스킵").font(Theme.mono(7)).foregroundColor(Theme.textDim)
+                            Text(NSLocalizedString("char.pipeline.skip", comment: "")).font(Theme.mono(7)).foregroundColor(Theme.textDim)
                         }
                         HStack(spacing: 4) {
                             Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 7)).foregroundColor(Theme.yellow)
-                            Text("개발 외 역할은 추가 토큰 소모").font(Theme.mono(7, weight: .medium)).foregroundColor(Theme.yellow)
+                            Text(NSLocalizedString("char.pipeline.extra.tokens", comment: "")).font(Theme.mono(7, weight: .medium)).foregroundColor(Theme.yellow)
                         }
                     }
                 }
@@ -881,7 +892,7 @@ struct CharacterCollectionView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     // 고용 중
                     if !filteredHired.isEmpty {
-                        sectionHeader("고용 중", count: filteredHired.count, color: Theme.green, icon: "person.fill.checkmark")
+                        sectionHeader(NSLocalizedString("char.section.hired", comment: ""), count: filteredHired.count, color: Theme.green, icon: "person.fill.checkmark")
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(filteredHired) { char in
                                 CharacterCard(character: char, isHired: true, editingId: $editingId, editName: $editName)
@@ -899,7 +910,7 @@ struct CharacterCollectionView: View {
 
                     // 대기 중 (잠금 해제된 것만)
                     if !filteredAvailable.isEmpty {
-                        sectionHeader("대기 중", count: filteredAvailable.count, color: Theme.textSecondary, icon: "person.fill.questionmark")
+                        sectionHeader(NSLocalizedString("char.section.available", comment: ""), count: filteredAvailable.count, color: Theme.textSecondary, icon: "person.fill.questionmark")
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(filteredAvailable) { char in
                                 CharacterCard(character: char, isHired: false, editingId: $editingId, editName: $editName)
@@ -920,7 +931,7 @@ struct CharacterCollectionView: View {
                             }.padding(.vertical, 6)
                         }
 
-                        sectionHeader("잠금", count: filteredLocked.count, color: Theme.yellow.opacity(0.6), icon: "lock.fill")
+                        sectionHeader(NSLocalizedString("char.section.locked", comment: ""), count: filteredLocked.count, color: Theme.yellow.opacity(0.6), icon: "lock.fill")
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(filteredLocked) { char in
                                 LockedCharacterCard(character: char)
@@ -1127,7 +1138,7 @@ struct CharacterCard: View {
                 // Status indicators (compact, right-aligned)
                 VStack(alignment: .trailing, spacing: 4) {
                     if character.isOnVacation {
-                        Text("휴가").font(Theme.mono(7, weight: .bold)).foregroundColor(Theme.orange)
+                        Text(NSLocalizedString("char.vacation", comment: "")).font(Theme.mono(7, weight: .bold)).foregroundColor(Theme.orange)
                             .padding(.horizontal, 5).padding(.vertical, 2)
                             .background(Theme.orange.opacity(0.1)).cornerRadius(4)
                     }
@@ -1141,7 +1152,7 @@ struct CharacterCard: View {
             if isHired {
                 HStack(spacing: 6) {
                     Button(action: { registry.setVacation(!character.isOnVacation, for: character.id) }) {
-                        Text(character.isOnVacation ? "업무 복귀" : "휴가")
+                        Text(character.isOnVacation ? NSLocalizedString("char.return.to.work", comment: "") : NSLocalizedString("char.vacation", comment: ""))
                             .font(Theme.mono(9, weight: .bold))
                             .foregroundColor(character.isOnVacation ? Theme.green : Theme.orange)
                             .frame(maxWidth: .infinity)
@@ -1153,7 +1164,7 @@ struct CharacterCard: View {
                     }.buttonStyle(.plain)
 
                     Button(action: { registry.fire(character.id) }) {
-                        Text("해고")
+                        Text(NSLocalizedString("char.fire", comment: ""))
                             .font(Theme.mono(9, weight: .bold))
                             .foregroundColor(Theme.red)
                             .frame(maxWidth: .infinity)
@@ -1166,7 +1177,7 @@ struct CharacterCard: View {
                 }
             } else {
                 Button(action: { registry.hire(character.id) }) {
-                    Text("고용")
+                    Text(NSLocalizedString("char.hire", comment: ""))
                         .font(Theme.mono(9, weight: .bold))
                         .foregroundColor(Theme.green)
                         .frame(maxWidth: .infinity)

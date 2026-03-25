@@ -43,6 +43,8 @@
 		A20008 /* OfficeLayoutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20008 /* OfficeLayoutStore.swift */; };
 		A30001 /* GitDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30001 /* GitDataProvider.swift */; };
 		A30002 /* GitPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30002 /* GitPanelView.swift */; };
+		A10015 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = V10001 /* Localizable.strings */; };
+		A10016 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = V10002 /* InfoPlist.strings */; };
 		DABD99DB56A43993BD71CB63 /* SensitiveFileShield.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCDF8262B8C09E5CB418BA0D /* SensitiveFileShield.swift */; };
 		FC234AD686A13A3048D439D8 /* DangerousCommandDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C60E443524B7F6AE927F898 /* DangerousCommandDetector.swift */; };
 /* End PBXBuildFile section */
@@ -452,7 +454,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 3.1.0;
+				MARKETING_VERSION = 3.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.junha.doffice;
 				PRODUCT_NAME = Doffice;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -480,7 +482,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 3.1.0;
+				MARKETING_VERSION = 3.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.junha.doffice;
 				PRODUCT_NAME = Doffice;
 				SWIFT_EMIT_LOC_STRINGS = YES;

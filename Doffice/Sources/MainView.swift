@@ -132,11 +132,11 @@ struct MainView: View {
                     Image(systemName: "arrow.clockwise.circle.fill")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(Theme.accent)
-                    Text("설정이 변경되었습니다")
+                    Text(NSLocalizedString("main.settings.changed", comment: ""))
                         .font(Theme.mono(11, weight: .medium))
                         .foregroundColor(Theme.textPrimary)
                     Spacer()
-                    Button("새로고침") {
+                    Button(NSLocalizedString("main.refresh", comment: "")) {
                         settings.pendingRefresh = false
                         manager.refresh()
                     }
@@ -182,7 +182,7 @@ struct MainView: View {
     private var bodyWithAlerts: some View {
         bodyWithSheets
         .alert(NSLocalizedString("claude.not.installed", comment: ""), isPresented: $showClaudeNotInstalledAlert) {
-            Button("설치 방법 보기") {
+            Button(NSLocalizedString("main.install.guide", comment: "")) {
                 if let url = URL(string: "https://docs.anthropic.com/en/docs/claude-code/overview") {
                     NSWorkspace.shared.open(url)
                 }
@@ -313,7 +313,7 @@ struct MainView: View {
                             .overlay(RoundedRectangle(cornerRadius: 5).stroke(Theme.border.opacity(0.3), lineWidth: 1))
                     }
                     .buttonStyle(.plain)
-                    .help(settings.officeViewMode == "grid" ? "선택 캐릭터 포커스로 전환" : "오피스 전체 보기로 전환")
+                    .help(settings.officeViewMode == "grid" ? NSLocalizedString("main.office.focus.toggle", comment: "") : NSLocalizedString("main.office.grid.toggle", comment: ""))
 
                     // 확장/축소
                     Button(action: {
@@ -329,7 +329,7 @@ struct MainView: View {
                             .overlay(RoundedRectangle(cornerRadius: 5).stroke(Theme.border.opacity(0.3), lineWidth: 1))
                     }
                     .buttonStyle(.plain)
-                    .help(officeExpanded ? "오피스 축소" : "오피스 확장")
+                    .help(officeExpanded ? NSLocalizedString("main.office.shrink", comment: "") : NSLocalizedString("main.office.expand", comment: ""))
                 }
                 .padding(4)
             }
@@ -412,7 +412,7 @@ struct MainView: View {
         let monthCost = String(format: "$%.2f", tracker.weekCost * 4.3)
         let tokens = tracker.todayTokens
 
-        billingAlertMessage = "이번 달 예상 사용량:\n토큰: \(tokens > 1000 ? String(format: "%.1fK", Double(tokens)/1000) : "\(tokens)") · 비용: \(costStr)\n\n결제일이 되었습니다. Claude 구독 현황을 확인해보세요."
+        billingAlertMessage = String(format: NSLocalizedString("main.billing.alert", comment: ""), tokens > 1000 ? String(format: "%.1fK", Double(tokens)/1000) : "\(tokens)", costStr)
 
         withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
             showBillingAlert = true
@@ -429,7 +429,7 @@ struct MainView: View {
                 try FileManager.default.copyItem(at: url, to: dest)
             } catch {
                 let alert = NSAlert()
-                alert.messageText = "로그 내보내기 실패"
+                alert.messageText = NSLocalizedString("main.log.export.fail", comment: "")
                 alert.informativeText = error.localizedDescription
                 alert.alertStyle = .warning
                 alert.runModal()
@@ -466,7 +466,7 @@ struct MainView: View {
         HStack(spacing: Theme.sp2) {
             Color.clear.frame(width: 68, height: 1)
 
-            chromeIconButton(sidebarCollapsed ? "sidebar.left" : "sidebar.leading", help: sidebarCollapsed ? "사이드바 열기" : "사이드바 닫기") {
+            chromeIconButton(sidebarCollapsed ? "sidebar.left" : "sidebar.leading", help: sidebarCollapsed ? NSLocalizedString("main.sidebar.open", comment: "") : NSLocalizedString("main.sidebar.close", comment: "")) {
                 withAnimation(.easeInOut(duration: 0.2)) { sidebarCollapsed.toggle() }
             }
 
@@ -502,9 +502,9 @@ struct MainView: View {
                     }
                 }
                 Divider()
-                Button("현재 레이아웃 저장...") {
+                Button(NSLocalizedString("main.save.layout", comment: "")) {
                     settings.saveCurrentAsPreset(
-                        name: "프리셋 \(settings.layoutPresets.count + 1)",
+                        name: String(format: NSLocalizedString("main.preset.name", comment: ""), settings.layoutPresets.count + 1),
                         viewModeRaw: viewModeRaw,
                         sidebarWidth: Double(sidebarWidth)
                     )
@@ -516,7 +516,7 @@ struct MainView: View {
             }
             .menuStyle(.borderlessButton)
             .frame(width: 28)
-            .help("레이아웃 프리셋")
+            .help(NSLocalizedString("main.layout.preset", comment: ""))
 
             Spacer()
 
@@ -530,7 +530,7 @@ struct MainView: View {
                     .padding(.horizontal, Theme.sp2).padding(.vertical, 3)
                     .background(RoundedRectangle(cornerRadius: Theme.cornerSmall).fill(Theme.accentBg(Theme.green)))
                     .overlay(RoundedRectangle(cornerRadius: Theme.cornerSmall).stroke(Theme.accentBorder(Theme.green), lineWidth: 1))
-                }.buttonStyle(.plain).help("업데이트 가능")
+                }.buttonStyle(.plain).help(NSLocalizedString("main.update.available", comment: ""))
             }
 
             // Claude 버전
@@ -556,11 +556,11 @@ struct MainView: View {
 
             // 유틸리티 버튼들
             HStack(spacing: 0) {
-                chromeIconButton("rectangle.on.rectangle", help: "오피스 분리") { openOfficeWindow() }
-                chromeIconButton("ladybug.fill", help: "버그 신고") { showBugReport = true }
+                chromeIconButton("rectangle.on.rectangle", help: NSLocalizedString("main.office.detach", comment: "")) { openOfficeWindow() }
+                chromeIconButton("ladybug.fill", help: NSLocalizedString("main.bug.report", comment: "")) { showBugReport = true }
                 chromeIconButton("gearshape.fill", help: NSLocalizedString("settings", comment: "")) { showSettings = true }
-                chromeIconButton("arrow.clockwise", help: "새로고침 (⌘R)") { manager.refresh() }
-                chromeIconButton(settings.isLocked ? "lock.fill" : "lock.open", help: "세션 잠금") {
+                chromeIconButton("arrow.clockwise", help: NSLocalizedString("main.refresh.shortcut", comment: "")) { manager.refresh() }
+                chromeIconButton(settings.isLocked ? "lock.fill" : "lock.open", help: NSLocalizedString("main.session.lock", comment: "")) {
                     if settings.lockPIN.isEmpty { settings.isLocked.toggle() } else { settings.isLocked = true }
                 }
             }
@@ -601,7 +601,7 @@ struct MainView: View {
             if manager.userVisibleTabs.isEmpty {
                 HStack(spacing: 4) {
                     Circle().fill(Theme.textDim.opacity(0.7)).frame(width: 4, height: 4)
-                    Text("세션 없음")
+                    Text(NSLocalizedString("main.no.sessions", comment: ""))
                         .font(Theme.monoSmall)
                         .foregroundColor(Theme.textSecondary)
                 }
@@ -609,19 +609,19 @@ struct MainView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         if activeTabCount > 0 {
-                            AppStatusBadge(title: "활성 \(activeTabCount)", symbol: "bolt.circle.fill", tint: Theme.green)
+                            AppStatusBadge(title: String(format: NSLocalizedString("main.active.count", comment: ""), activeTabCount), symbol: "bolt.circle.fill", tint: Theme.green)
                         }
                         if processingTabCount > 0 {
-                            AppStatusBadge(title: "작업 중 \(processingTabCount)", symbol: "gearshape.2.fill", tint: Theme.accent)
+                            AppStatusBadge(title: String(format: NSLocalizedString("main.processing.count", comment: ""), processingTabCount), symbol: "gearshape.2.fill", tint: Theme.accent)
                         }
                         if attentionTabCount > 0 {
                             Button(action: { showActionCenter = true }) {
-                                AppStatusBadge(title: "확인 필요 \(attentionTabCount)", symbol: "exclamationmark.triangle.fill", tint: Theme.red)
+                                AppStatusBadge(title: String(format: NSLocalizedString("main.attention.count", comment: ""), attentionTabCount), symbol: "exclamationmark.triangle.fill", tint: Theme.red)
                             }.buttonStyle(.plain)
                         }
                         if completedTabCount > 0 {
                             Button(action: { showActionCenter = true }) {
-                                AppStatusBadge(title: "완료 \(completedTabCount)", symbol: "checkmark.circle.fill", tint: Theme.green)
+                                AppStatusBadge(title: String(format: NSLocalizedString("main.completed.count", comment: ""), completedTabCount), symbol: "checkmark.circle.fill", tint: Theme.green)
                             }.buttonStyle(.plain)
                         }
                     }
@@ -638,20 +638,20 @@ struct MainView: View {
         .background(Theme.bg)
         .overlay(alignment: .top) { Rectangle().fill(Theme.border).frame(height: 1) }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("세션 상태 요약")
+        .accessibilityLabel(NSLocalizedString("main.a11y.session.summary", comment: ""))
         .accessibilityValue(statusBarAccessibilitySummary)
     }
 
     private var statusBarAccessibilitySummary: String {
         if manager.userVisibleTabs.isEmpty {
-            return "활성 세션 없음"
+            return NSLocalizedString("main.a11y.no.active", comment: "")
         }
 
         return [
-            activeTabCount > 0 ? "활성 \(activeTabCount)개" : nil,
-            processingTabCount > 0 ? "작업 중 \(processingTabCount)개" : nil,
-            attentionTabCount > 0 ? "확인 필요 \(attentionTabCount)개" : nil,
-            completedTabCount > 0 ? "완료 \(completedTabCount)개" : nil
+            activeTabCount > 0 ? String(format: NSLocalizedString("main.a11y.active", comment: ""), activeTabCount) : nil,
+            processingTabCount > 0 ? String(format: NSLocalizedString("main.a11y.processing", comment: ""), processingTabCount) : nil,
+            attentionTabCount > 0 ? String(format: NSLocalizedString("main.a11y.attention", comment: ""), attentionTabCount) : nil,
+            completedTabCount > 0 ? String(format: NSLocalizedString("main.a11y.completed", comment: ""), completedTabCount) : nil
         ]
         .compactMap { $0 }
         .joined(separator: ", ")
@@ -713,8 +713,8 @@ struct BillingAlertOverlay: View {
                 VStack(spacing: 8) {
                     ForEach(message.components(separatedBy: "\n").filter { !$0.isEmpty }, id: \.self) { line in
                         Text(line)
-                            .font(Theme.mono(10, weight: line.contains("결제일") ? .bold : .regular))
-                            .foregroundColor(line.contains("결제일") ? Theme.orange : Theme.textSecondary)
+                            .font(Theme.mono(10, weight: line.contains(NSLocalizedString("main.billing.page", comment: "")) ? .bold : .regular))
+                            .foregroundColor(line.contains(NSLocalizedString("main.billing.page", comment: "")) ? Theme.orange : Theme.textSecondary)
                             .multilineTextAlignment(.center)
                     }
                 }
@@ -728,7 +728,7 @@ struct BillingAlertOverlay: View {
 
                 HStack(spacing: 10) {
                     Button(action: onDismiss) {
-                        Text("확인")
+                        Text(NSLocalizedString("main.billing.confirm", comment: ""))
                             .font(Theme.mono(11, weight: .bold))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
@@ -743,7 +743,7 @@ struct BillingAlertOverlay: View {
                         }
                         onDismiss()
                     }) {
-                        Text("결제 페이지")
+                        Text(NSLocalizedString("main.billing.page", comment: ""))
                             .font(Theme.mono(11, weight: .bold))
                             .foregroundColor(Theme.orange)
                             .frame(maxWidth: .infinity)
@@ -821,7 +821,7 @@ struct DailyRewardOverlay: View {
                 .frame(height: 100)
 
                 // 제목
-                Text(reward.isMilestone ? reward.milestoneLabel : "출석 체크!")
+                Text(reward.isMilestone ? reward.milestoneLabel : NSLocalizedString("main.attendance.check", comment: ""))
                     .font(Theme.mono(16, weight: .black))
                     .foregroundColor(Theme.textPrimary)
                     .padding(.bottom, 4)
@@ -833,9 +833,9 @@ struct DailyRewardOverlay: View {
 
                 // XP 보상 카드
                 HStack(spacing: 20) {
-                    rewardBadge(label: "기본", value: "+\(reward.xp)", color: Theme.accent)
+                    rewardBadge(label: NSLocalizedString("main.attendance.basic", comment: ""), value: "+\(reward.xp)", color: Theme.accent)
                     if reward.bonusXP > 0 {
-                        rewardBadge(label: "보너스", value: "+\(reward.bonusXP)", color: Theme.yellow)
+                        rewardBadge(label: NSLocalizedString("main.attendance.bonus", comment: ""), value: "+\(reward.bonusXP)", color: Theme.yellow)
                     }
                 }
                 .padding(.bottom, 16)
@@ -865,7 +865,7 @@ struct DailyRewardOverlay: View {
                             }
                         }
                     }
-                    Text("주간 출석 현황")
+                    Text(NSLocalizedString("main.attendance.weekly", comment: ""))
                         .font(Theme.mono(8))
                         .foregroundColor(Theme.textDim)
                 }
@@ -873,7 +873,7 @@ struct DailyRewardOverlay: View {
 
                 // 확인 버튼
                 Button(action: onDismiss) {
-                    Text("확인")
+                    Text(NSLocalizedString("confirm", comment: ""))
                         .font(Theme.mono(12, weight: .bold))
                         .foregroundColor(.white)
                         .frame(width: 120)
@@ -945,11 +945,11 @@ struct SessionLockOverlay: View {
                     .font(.system(size: 40))
                     .foregroundColor(Theme.yellow)
 
-                Text("세션 잠금 중")
+                Text(NSLocalizedString("main.session.locked", comment: ""))
                     .font(Theme.mono(16, weight: .bold))
                     .foregroundColor(Theme.textPrimary)
 
-                Text("세션은 계속 실행 중입니다")
+                Text(NSLocalizedString("main.session.still.running", comment: ""))
                     .font(Theme.mono(10))
                     .foregroundColor(Theme.textDim)
 
@@ -979,7 +979,7 @@ struct SessionLockOverlay: View {
                             .foregroundColor(Theme.red)
                     }
                 } else {
-                    Button("잠금 해제") {
+                    Button(NSLocalizedString("main.unlock", comment: "")) {
                         settings.isLocked = false
                     }
                     .buttonStyle(.plain)
@@ -1011,8 +1011,8 @@ struct BugReportView: View {
             DSModalHeader(
                 icon: "ladybug.fill",
                 iconColor: Theme.red,
-                title: "버그 신고",
-                subtitle: "문제를 빠르게 파악할 수 있도록 핵심 정보만 정리해 보내세요.",
+                title: NSLocalizedString("main.bug.title", comment: ""),
+                subtitle: NSLocalizedString("main.bug.subtitle", comment: ""),
                 onClose: { dismiss() }
             )
 
@@ -1021,10 +1021,10 @@ struct BugReportView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: Theme.iconSize(34)))
                         .foregroundColor(Theme.green)
-                    Text("전송 준비가 끝났습니다")
+                    Text(NSLocalizedString("main.bug.sent.title", comment: ""))
                         .font(Theme.mono(12, weight: .bold))
                         .foregroundColor(Theme.textPrimary)
-                    Text("메일 앱이 열렸다면 내용을 확인한 뒤 보내면 됩니다.")
+                    Text(NSLocalizedString("main.bug.sent.message", comment: ""))
                         .font(Theme.mono(8))
                         .foregroundColor(Theme.textSecondary)
                 }
@@ -1033,20 +1033,20 @@ struct BugReportView: View {
                 .appPanelStyle(fill: Theme.bgCard.opacity(0.98), strokeOpacity: 0.22, shadow: false)
             } else {
                 reportSection(
-                    title: "문제 요약",
-                    subtitle: "어떤 화면에서 무엇이 기대와 다르게 보였는지 짧게 적어주세요."
+                    title: NSLocalizedString("main.bug.summary.title", comment: ""),
+                    subtitle: NSLocalizedString("main.bug.summary.subtitle", comment: "")
                 ) {
-                    TextField("어떤 문제가 발생했나요?", text: $title)
+                    TextField(NSLocalizedString("main.bug.summary.placeholder", comment: ""), text: $title)
                         .textFieldStyle(.plain)
                         .font(Theme.monoSmall)
                         .appFieldStyle(emphasized: true)
-                        .accessibilityLabel("버그 제목")
-                        .accessibilityHint("문제를 한 문장으로 요약합니다")
+                        .accessibilityLabel(NSLocalizedString("main.bug.summary.title", comment: ""))
+                        .accessibilityHint(NSLocalizedString("main.bug.summary.subtitle", comment: ""))
                 }
 
                 reportSection(
-                    title: "상세 설명",
-                    subtitle: "재현 순서나 기대한 동작을 적어주면 원인을 더 빨리 찾을 수 있습니다."
+                    title: NSLocalizedString("main.bug.detail.title", comment: ""),
+                    subtitle: NSLocalizedString("main.bug.detail.subtitle", comment: "")
                 ) {
                     TextEditor(text: $description)
                         .font(Theme.monoSmall)
@@ -1054,36 +1054,36 @@ struct BugReportView: View {
                         .frame(height: 130)
                         .scrollContentBackground(.hidden)
                         .appFieldStyle()
-                        .accessibilityLabel("버그 상세 설명")
+                        .accessibilityLabel(NSLocalizedString("main.bug.detail.title", comment: ""))
                 }
 
                 reportSection(
-                    title: "스크린샷",
-                    subtitle: "선택 사항이지만 현재 화면을 함께 보내면 맥락을 더 쉽게 확인할 수 있습니다."
+                    title: NSLocalizedString("main.bug.screenshot.title", comment: ""),
+                    subtitle: NSLocalizedString("main.bug.screenshot.subtitle", comment: "")
                 ) {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 8) {
                             Button(action: captureScreenshot) {
                                 HStack(spacing: 6) {
                                     Image(systemName: "camera.fill")
-                                    Text("현재 화면 캡처")
+                                    Text(NSLocalizedString("main.bug.capture", comment: ""))
                                 }
                                 .font(Theme.mono(9, weight: .bold))
                                 .appButtonSurface(tone: .accent, compact: true)
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel("현재 화면 캡처")
+                            .accessibilityLabel(NSLocalizedString("main.bug.capture", comment: ""))
 
                             Button(action: pickImage) {
                                 HStack(spacing: 6) {
                                     Image(systemName: "photo")
-                                    Text("파일 선택")
+                                    Text(NSLocalizedString("main.bug.choose.file", comment: ""))
                                 }
                                 .font(Theme.mono(9, weight: .bold))
                                 .appButtonSurface(tone: .neutral, compact: true)
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel("스크린샷 파일 선택")
+                            .accessibilityLabel(NSLocalizedString("main.bug.choose.file", comment: ""))
 
                             Spacer()
 
@@ -1091,7 +1091,7 @@ struct BugReportView: View {
                                 HStack(spacing: 6) {
                                     Image(systemName: "checkmark.circle.fill")
                                         .foregroundColor(Theme.green)
-                                    Text("첨부됨")
+                                    Text(NSLocalizedString("main.bug.attached", comment: ""))
                                         .font(Theme.mono(8, weight: .bold))
                                         .foregroundColor(Theme.green)
                                     Button(action: { screenshotImage = nil }) {
@@ -1099,7 +1099,7 @@ struct BugReportView: View {
                                             .foregroundColor(Theme.textDim)
                                     }
                                     .buttonStyle(.plain)
-                                    .accessibilityLabel("첨부한 스크린샷 제거")
+                                    .accessibilityLabel(NSLocalizedString("delete", comment: ""))
                                 }
                             }
                         }
@@ -1121,7 +1121,7 @@ struct BugReportView: View {
 
             HStack {
                 Button(action: { dismiss() }) {
-                    Text(sent ? "닫기" : "취소")
+                    Text(sent ? NSLocalizedString("close", comment: "") : NSLocalizedString("cancel", comment: ""))
                         .font(Theme.mono(10, weight: .bold))
                         .appButtonSurface(tone: .neutral)
                 }
@@ -1138,7 +1138,7 @@ struct BugReportView: View {
                             } else {
                                 Image(systemName: "paperplane.fill")
                             }
-                            Text("보내기")
+                            Text(NSLocalizedString("main.bug.send", comment: ""))
                                 .font(Theme.mono(10, weight: .bold))
                         }
                         .appButtonSurface(tone: .accent, prominent: true)
@@ -1146,7 +1146,7 @@ struct BugReportView: View {
                     .buttonStyle(.plain)
                     .keyboardShortcut(.return)
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending)
-                    .accessibilityLabel("버그 신고 보내기")
+                    .accessibilityLabel(NSLocalizedString("main.bug.send", comment: ""))
                 }
             }
         }
@@ -1319,7 +1319,7 @@ private struct NotificationHandlersModifier: ViewModifier {
                 showClaudeNotInstalledAlert = true
             }
             .onReceive(NotificationCenter.default.publisher(for: .workmanRoleNotice)) { notif in
-                roleNoticeTitle = notif.userInfo?["title"] as? String ?? "직업 안내"
+                roleNoticeTitle = notif.userInfo?["title"] as? String ?? NSLocalizedString("main.job.notice", comment: "")
                 roleNoticeMessage = notif.userInfo?["message"] as? String ?? ""
                 showRoleNoticeAlert = true
             }
