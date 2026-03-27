@@ -27,13 +27,13 @@ struct OfficeSceneView: View {
             return 4  // Very low FPS in performance mode
         }
         let tabs = SessionManager.shared.userVisibleTabs
-        if tabs.contains(where: { $0.isProcessing }) {
-            return OfficeConstants.fps // 24
-        } else if tabs.contains(where: { $0.claudeActivity != .idle }) {
-            return 12
-        } else {
-            return 6
+        // Single pass: determine highest activity level across all tabs
+        var hasActive = false
+        for tab in tabs {
+            if tab.isProcessing { return OfficeConstants.fps } // 24 — early exit
+            if tab.claudeActivity != .idle { hasActive = true }
         }
+        return hasActive ? 12 : 6
     }
 
     init(store: OfficeSceneStore = .shared) {
@@ -669,17 +669,18 @@ struct OfficeSceneView: View {
     }
 
     private func hitTestCharacter(at point: CGPoint) -> String? {
-        charactersSortedByDistance(from: point)
-            .first(where: { $0.distance < 12 })?
-            .id
-    }
-
-    private func charactersSortedByDistance(from point: CGPoint) -> [(id: String, distance: CGFloat)] {
-        controller.characters.map { id, character in
-            let distance = hypot(character.pixelX - point.x, character.pixelY - point.y)
-            return (id: id, distance: distance)
+        // Find nearest character within threshold without sorting all characters
+        let threshold: CGFloat = 12
+        var bestId: String?
+        var bestDist: CGFloat = threshold
+        for (id, character) in controller.characters {
+            let dist = hypot(character.pixelX - point.x, character.pixelY - point.y)
+            if dist < bestDist {
+                bestDist = dist
+                bestId = id
+            }
         }
-        .sorted { $0.distance < $1.distance }
+        return bestId
     }
 
     // MARK: - Scene Coordinates

@@ -107,16 +107,15 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
+      <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "5CC8C7C004C4591B513168F5"
-            BuildableName = "Doffice.app"
-            BlueprintName = "Doffice"
-            ReferencedContainer = "container:Projects/App/Doffice.xcodeproj">
+            BlueprintIdentifier = "83C9B5D1938C22907FF6E247"
+            BuildableName = "DesignSystem.framework"
+            BlueprintName = "DesignSystem"
+            ReferencedContainer = "container:Projects/DesignSystem/DesignSystem.xcodeproj">
          </BuildableReference>
-      </BuildableProductRunnable>
+      </MacroExpansion>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -124,16 +123,15 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
+      <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "5CC8C7C004C4591B513168F5"
-            BuildableName = "Doffice.app"
-            BlueprintName = "Doffice"
-            ReferencedContainer = "container:Projects/App/Doffice.xcodeproj">
+            BlueprintIdentifier = "83C9B5D1938C22907FF6E247"
+            BuildableName = "DesignSystem.framework"
+            BlueprintName = "DesignSystem"
+            ReferencedContainer = "container:Projects/DesignSystem/DesignSystem.xcodeproj">
          </BuildableReference>
-      </BuildableProductRunnable>
+      </MacroExpansion>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">

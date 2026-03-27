@@ -304,9 +304,17 @@ class PluginHost: ObservableObject {
             let baseURL = URL(fileURLWithPath: pluginPath)
             let manifestURL = baseURL.appendingPathComponent("plugin.json")
 
-            guard let data = try? Data(contentsOf: manifestURL),
-                  let manifest = try? JSONDecoder().decode(PluginManifest.self, from: data),
-                  let contributes = manifest.contributes else { continue }
+            // Use cached manifest to avoid redundant disk I/O + JSON decoding
+            let manifest: PluginManifest
+            if let cached = PluginManager.shared.manifestCache[pluginPath] {
+                manifest = cached
+            } else {
+                guard let data = try? Data(contentsOf: manifestURL),
+                      let decoded = try? JSONDecoder().decode(PluginManifest.self, from: data) else { continue }
+                manifest = decoded
+                PluginManager.shared.manifestCache[pluginPath] = manifest
+            }
+            guard let contributes = manifest.contributes else { continue }
 
             let pluginName = manifest.name
 
@@ -732,6 +740,8 @@ class PluginManager: ObservableObject {
     private let storageKey = "WorkManPlugins"
     private let pluginBaseDir: URL
     private var currentFetchTask: URLSessionDataTask?
+    /// Manifest cache to avoid redundant disk I/O + JSON decoding during reload
+    private var manifestCache: [String: PluginManifest] = [:]
 
     /// 레지스트리 URL — GitHub Pages 또는 raw 파일
     /// 기여자는 이 저장소에 PR로 registry.json에 자기 플러그인을 추가
@@ -762,6 +772,7 @@ class PluginManager: ObservableObject {
         if let data = try? JSONEncoder().encode(plugins) {
             UserDefaults.standard.set(data, forKey: storageKey)
         }
+        manifestCache.removeAll()
     }
 
     // MARK: - 활성 플러그인 경로 목록 (세션에 주입)

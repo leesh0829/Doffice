@@ -103,6 +103,7 @@ class BrowserManager: ObservableObject {
     private let savedTabsKey = "browser_saved_tabs"
     private let maxHistoryEntries = 500
     private var terminationObserver: NSObjectProtocol?
+    private var historySaveWorkItem: DispatchWorkItem?
 
     init() {
         loadBookmarks()
@@ -110,11 +111,13 @@ class BrowserManager: ObservableObject {
         restoreTabs()
         if tabs.isEmpty { createNewTab() }
 
-        // Save tabs when app is about to terminate
+        // Save tabs and flush pending history when app is about to terminate
         terminationObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification,
             object: nil, queue: .main
         ) { [weak self] _ in
+            self?.historySaveWorkItem?.cancel()
+            self?.saveHistory()
             self?.saveTabs()
         }
     }
@@ -208,9 +211,15 @@ class BrowserManager: ObservableObject {
         if let last = history.first, last.url == url { return }
         history.insert(entry, at: 0)
         if history.count > maxHistoryEntries {
-            history = Array(history.prefix(maxHistoryEntries))
+            history.removeLast(history.count - maxHistoryEntries)
         }
-        saveHistory()
+        // Debounce history persistence — navigations can happen in rapid bursts
+        historySaveWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.saveHistory()
+        }
+        historySaveWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: workItem)
     }
 
     func removeHistoryEntry(_ id: UUID) {

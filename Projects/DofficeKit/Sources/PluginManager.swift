@@ -275,6 +275,13 @@ public class PluginHost: ObservableObject {
     }
 
     public func reload() {
+        // Move file I/O and JSON decoding off the main thread
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?._reloadOnBackground()
+        }
+    }
+
+    private func _reloadOnBackground() {
         var newPanels: [LoadedPanel] = []
         var newCommands: [LoadedCommand] = []
         var newStatusBars: [LoadedStatusBarItem] = []
@@ -287,9 +294,17 @@ public class PluginHost: ObservableObject {
             let baseURL = URL(fileURLWithPath: pluginPath)
             let manifestURL = baseURL.appendingPathComponent("plugin.json")
 
-            guard let data = try? Data(contentsOf: manifestURL),
-                  let manifest = try? JSONDecoder().decode(PluginManifest.self, from: data),
-                  let contributes = manifest.contributes else { continue }
+            // Use cached manifest from PluginManager when available
+            let manifest: PluginManifest
+            if let cached = PluginManager.shared.manifestCache[pluginPath] {
+                manifest = cached
+            } else {
+                guard let data = try? Data(contentsOf: manifestURL),
+                      let decoded = try? JSONDecoder().decode(PluginManifest.self, from: data) else { continue }
+                manifest = decoded
+                PluginManager.shared.manifestCache[pluginPath] = manifest
+            }
+            guard let contributes = manifest.contributes else { continue }
 
             let pluginName = manifest.name
 
@@ -639,7 +654,8 @@ public class PluginManager: ObservableObject {
     @Published public var pendingPermission: PermissionRequest?
 
     // 매니페스트 캐시 (detectConflicts 성능 개선)
-    private var manifestCache: [String: PluginManifest] = [:]  // pluginPath → manifest
+    /// Manifest cache shared with PluginHost to avoid redundant disk I/O + JSON decoding
+    var manifestCache: [String: PluginManifest] = [:]  // pluginPath → manifest
 
     // 핫 리로드
     private var fileWatchers: [String: DispatchSourceFileSystemObject] = [:]
@@ -934,12 +950,20 @@ public class PluginManager: ObservableObject {
 
     /// 플러그인 의존성 충족 여부 확인
     public func validateDependencies(for pluginPath: String) -> [DependencyIssue] {
-        let baseURL = URL(fileURLWithPath: pluginPath)
-        let manifestURL = baseURL.appendingPathComponent("plugin.json")
-
-        guard let data = try? Data(contentsOf: manifestURL),
-              let manifest = try? JSONDecoder().decode(PluginManifest.self, from: data),
-              let requires = manifest.requires, !requires.isEmpty else {
+        let manifest: PluginManifest
+        if let cached = manifestCache[pluginPath] {
+            manifest = cached
+        } else {
+            let baseURL = URL(fileURLWithPath: pluginPath)
+            let manifestURL = baseURL.appendingPathComponent("plugin.json")
+            guard let data = try? Data(contentsOf: manifestURL),
+                  let decoded = try? JSONDecoder().decode(PluginManifest.self, from: data) else {
+                return []
+            }
+            manifest = decoded
+            manifestCache[pluginPath] = manifest
+        }
+        guard let requires = manifest.requires, !requires.isEmpty else {
             return []
         }
 
@@ -994,11 +1018,19 @@ public class PluginManager: ObservableObject {
     /// 플러그인이 기여하는 확장 포인트 요약
     public func contributionSummary(for plugin: PluginEntry) -> [ContributionBadge] {
         let baseURL = URL(fileURLWithPath: plugin.localPath)
-        let manifestURL = baseURL.appendingPathComponent("plugin.json")
-
-        guard let data = try? Data(contentsOf: manifestURL),
-              let manifest = try? JSONDecoder().decode(PluginManifest.self, from: data),
-              let c = manifest.contributes else {
+        let manifest: PluginManifest
+        if let cached = manifestCache[plugin.localPath] {
+            manifest = cached
+        } else {
+            let manifestURL = baseURL.appendingPathComponent("plugin.json")
+            guard let data = try? Data(contentsOf: manifestURL),
+                  let decoded = try? JSONDecoder().decode(PluginManifest.self, from: data) else {
+                return []
+            }
+            manifest = decoded
+            manifestCache[plugin.localPath] = manifest
+        }
+        guard let c = manifest.contributes else {
             return []
         }
 
