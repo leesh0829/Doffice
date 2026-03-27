@@ -3612,6 +3612,8 @@ struct NewTabSheet: View {
         .frame(width: max(560, min(560 * AppSettings.shared.fontSizeScale, 800)),
                height: min(720, (NSScreen.main?.visibleFrame.height ?? 800) * 0.85))
         .background(Theme.bg)
+        .compositingGroup()
+        .clipped()
         .sheet(isPresented: $showSavePreset) {
             SavePresetSheet(draft: currentDraftSnapshot())
         }
