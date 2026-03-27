@@ -418,15 +418,27 @@ extension OfficeMap {
     func moveHorizontalWall(to newRow: Int) -> Bool {
         guard newRow >= 5, newRow <= 16 else { return false }
 
-        let verticalWallCol = (0..<cols).first { c in
-            (2..<rows-1).allSatisfy { r in tiles[r][c] == .wall || tiles[r][c] == .door } &&
-            c > 1 && c < cols - 1
-        } ?? 28
+        let verticalWallCol: Int = {
+            for c in 0..<cols {
+                guard c > 1, c < cols - 1 else { continue }
+                let isWallColumn = (2..<rows-1).allSatisfy { r in
+                    tiles[r][c] == .wall || tiles[r][c] == .door
+                }
+                if isWallColumn { return c }
+            }
+            return 28
+        }()
 
         // 기존 가로 벽 제거
-        let currentWallRow = (2..<rows-1).first { r in
-            ((verticalWallCol+1)..<cols-1).allSatisfy { c in tiles[r][c] == .wall }
-        } ?? 11
+        let currentWallRow: Int = {
+            for r in 2..<rows-1 {
+                let isWallRow = ((verticalWallCol+1)..<cols-1).allSatisfy { c in
+                    tiles[r][c] == .wall
+                }
+                if isWallRow { return r }
+            }
+            return 11
+        }()
 
         if currentWallRow == newRow { return true }
 

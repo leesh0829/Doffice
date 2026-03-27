@@ -1,6 +1,6 @@
 import ProjectDescription
 
-let infoPlist: [String: InfoPlist.Value] = [
+let infoPlist: [String: Plist.Value] = [
     "CFBundleDevelopmentRegion": "$(DEVELOPMENT_LANGUAGE)",
     "CFBundleExecutable": "$(EXECUTABLE_NAME)",
     "CFBundleIdentifier": "$(PRODUCT_BUNDLE_IDENTIFIER)",
@@ -34,12 +34,12 @@ let project = Project(
         ]
     ),
     targets: [
-        Target(
+        .target(
             name: "Doffice",
-            platform: .macOS,
+            destinations: .macOS,
             product: .app,
             bundleId: "com.junha.doffice",
-            deploymentTarget: .macOS(targetVersion: "14.0"),
+            deploymentTargets: .macOS("14.0"),
             infoPlist: .extendingDefault(with: infoPlist),
             sources: ["Sources/**"],
             resources: [
