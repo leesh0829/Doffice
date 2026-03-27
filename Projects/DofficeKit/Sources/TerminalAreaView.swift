@@ -3270,6 +3270,7 @@ public struct NewTabSheet: View {
     public init() {}
     @EnvironmentObject var manager: SessionManager; @Environment(\.dismiss) var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @StateObject private var settings = AppSettings.shared
     @StateObject private var preferences = NewSessionPreferencesStore.shared
     @State private var projectName = ""
     @State private var projectPath = ""
@@ -3324,6 +3325,20 @@ public struct NewTabSheet: View {
 
     private var selectedProvider: AgentProvider {
         selectedModel.provider
+    }
+
+    private var sheetVisibleFrame: CGRect {
+        NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
+    }
+
+    private var preferredSheetWidth: CGFloat {
+        let baseWidth = 640 * min(max(settings.fontSizeScale, 1.0), 1.08)
+        return min(max(560, baseWidth), max(560, sheetVisibleFrame.width - 80))
+    }
+
+    private var preferredSheetHeight: CGFloat {
+        let baseHeight = 720 * min(max(settings.fontSizeScale, 1.0), 1.05)
+        return min(max(620, baseHeight), max(560, sheetVisibleFrame.height - 90))
     }
 
     private var trustWarningText: String {
@@ -3486,10 +3501,11 @@ public struct NewTabSheet: View {
                 }
                 .padding(20)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
             sessionConfigBottomBar
         }
-        .frame(width: max(560, 560 * AppSettings.shared.fontSizeScale), height: max(660, 660 * AppSettings.shared.fontSizeScale))
+        .frame(width: preferredSheetWidth, height: preferredSheetHeight)
         .background(Theme.bg)
         .sheet(isPresented: $showSavePreset) {
             SavePresetSheet(draft: currentDraftSnapshot())
@@ -3501,37 +3517,13 @@ public struct NewTabSheet: View {
     private var sessionConfigQuickStartSection: some View {
         configSection(title: NSLocalizedString("terminal.quickstart", comment: ""), subtitle: NSLocalizedString("terminal.quickstart.subtitle", comment: "")) {
             VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 8) {
-                    Button(action: { applyLastDraftIfAvailable() }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "clock.arrow.circlepath")
-                            Text(NSLocalizedString("terminal.load.last.settings", comment: ""))
-                        }
-                        .font(Theme.mono(9, weight: .bold))
-                        .appButtonSurface(tone: .neutral, compact: true)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(preferences.lastDraft == nil)
-                    .accessibilityLabel(NSLocalizedString("terminal.load.last.a11y", comment: ""))
-
-                    if !projectPath.isEmpty {
-                        Button(action: {
-                            preferences.toggleFavorite(projectName: resolvedProjectName, projectPath: projectPath)
-                        }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: isCurrentProjectFavorite ? "star.fill" : "star")
-                                Text(isCurrentProjectFavorite ? NSLocalizedString("terminal.favorite.on", comment: "") : NSLocalizedString("terminal.favorite.off", comment: ""))
-                            }
-                            .font(Theme.mono(9, weight: .bold))
-                            .appButtonSurface(tone: .yellow, compact: true)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(isCurrentProjectFavorite ? NSLocalizedString("terminal.favorite.a11y.on", comment: "") : NSLocalizedString("terminal.favorite.a11y.off", comment: ""))
-                    }
+                ViewThatFits(in: .horizontal) {
+                    quickStartActionsRow
+                    quickStartActionsColumn
                 }
 
                 optionGroup(title: NSLocalizedString("terminal.recommended.presets", comment: "")) {
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 8)], spacing: 8) {
                         ForEach(NewSessionPreset.allCases) { preset in
                             selectionChip(
                                 title: preset.title,
@@ -3552,7 +3544,7 @@ public struct NewTabSheet: View {
                 // 사용자 저장 프리셋
                 if !CustomPresetStore.shared.presets.isEmpty {
                     optionGroup(title: NSLocalizedString("terminal.my.presets", comment: "")) {
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 8)], spacing: 8) {
                             ForEach(CustomPresetStore.shared.presets) { preset in
                                 selectionChip(
                                     title: preset.name,
@@ -3650,7 +3642,7 @@ public struct NewTabSheet: View {
         configSection(title: NSLocalizedString("terminal.config.execution", comment: ""), subtitle: NSLocalizedString("terminal.config.execution.subtitle", comment: "")) {
             VStack(alignment: .leading, spacing: 14) {
                 optionGroup(title: "Agent") {
-                    HStack(spacing: 8) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 8)], spacing: 8) {
                         ForEach(AgentProvider.allCases) { provider in
                             selectionChip(
                                 title: provider.displayName,
@@ -3667,7 +3659,7 @@ public struct NewTabSheet: View {
 
                 optionGroup(title: NSLocalizedString("terminal.config.model", comment: "")) {
                     if selectedProvider == .claude {
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 8)], spacing: 8) {
                             ForEach(selectedProvider.models) { model in
                                 selectionChip(
                                     title: model.displayName,
@@ -3722,7 +3714,7 @@ public struct NewTabSheet: View {
 
                 if selectedProvider == .claude {
                     optionGroup(title: "Effort") {
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 8)], spacing: 8) {
                             ForEach(EffortLevel.allCases) { level in
                                 selectionChip(
                                     title: effortTitle(level),
@@ -3738,7 +3730,7 @@ public struct NewTabSheet: View {
                     }
 
                     optionGroup(title: NSLocalizedString("terminal.config.permission", comment: "")) {
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 8)], spacing: 8) {
                             ForEach(PermissionMode.allCases) { mode in
                                 selectionChip(
                                     title: mode.displayName,
@@ -3754,7 +3746,7 @@ public struct NewTabSheet: View {
                     }
                 } else {
                     optionGroup(title: "Sandbox") {
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 8)], spacing: 8) {
                             ForEach(CodexSandboxMode.allCases) { mode in
                                 selectionChip(
                                     title: mode.displayName,
@@ -3770,7 +3762,7 @@ public struct NewTabSheet: View {
                     }
 
                     optionGroup(title: "Approval") {
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 8)], spacing: 8) {
                             ForEach(CodexApprovalPolicy.allCases) { mode in
                                 selectionChip(
                                     title: mode.displayName,
@@ -3787,6 +3779,56 @@ public struct NewTabSheet: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var quickStartActionsRow: some View {
+        HStack(spacing: 8) {
+            lastDraftButton
+            if !projectPath.isEmpty {
+                favoriteProjectButton
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    @ViewBuilder
+    private var quickStartActionsColumn: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            lastDraftButton
+            if !projectPath.isEmpty {
+                favoriteProjectButton
+            }
+        }
+    }
+
+    private var lastDraftButton: some View {
+        Button(action: { applyLastDraftIfAvailable() }) {
+            HStack(spacing: 6) {
+                Image(systemName: "clock.arrow.circlepath")
+                Text(NSLocalizedString("terminal.load.last.settings", comment: ""))
+            }
+            .font(Theme.mono(9, weight: .bold))
+            .appButtonSurface(tone: .neutral, compact: true)
+        }
+        .buttonStyle(.plain)
+        .disabled(preferences.lastDraft == nil)
+        .accessibilityLabel(NSLocalizedString("terminal.load.last.a11y", comment: ""))
+    }
+
+    private var favoriteProjectButton: some View {
+        Button(action: {
+            preferences.toggleFavorite(projectName: resolvedProjectName, projectPath: projectPath)
+        }) {
+            HStack(spacing: 6) {
+                Image(systemName: isCurrentProjectFavorite ? "star.fill" : "star")
+                Text(isCurrentProjectFavorite ? NSLocalizedString("terminal.favorite.on", comment: "") : NSLocalizedString("terminal.favorite.off", comment: ""))
+            }
+            .font(Theme.mono(9, weight: .bold))
+            .appButtonSurface(tone: .yellow, compact: true)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isCurrentProjectFavorite ? NSLocalizedString("terminal.favorite.a11y.on", comment: "") : NSLocalizedString("terminal.favorite.a11y.off", comment: ""))
     }
 
     @ViewBuilder
