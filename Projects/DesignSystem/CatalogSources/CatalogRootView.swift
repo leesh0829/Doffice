@@ -22,6 +22,24 @@ struct CatalogRootView: View {
         case skeleton = "Skeleton"
         case accordion = "Accordion"
         case keyboard = "Keyboard"
+        case avatar = "Avatar"
+        case toggle = "Toggle"
+        case tooltip = "Tooltip"
+        case divider = "Divider"
+        case badgeCount = "Badge Count"
+        case segmented = "Segmented"
+        case search = "Search"
+        case codeBlock = "Code Block"
+        case timeline = "Timeline"
+        case colorPicker = "Color Picker"
+        case ring = "Ring"
+        case diff = "Diff"
+        case splitPane = "Split Pane"
+        case shortcutRecorder = "Shortcut Rec."
+        case syntax = "Syntax"
+        case chart = "Chart"
+        case commandPalette = "Cmd Palette"
+        case contextMenu = "Context Menu"
 
         var id: String { rawValue }
 
@@ -43,6 +61,24 @@ struct CatalogRootView: View {
             case .skeleton: return "rectangle.dashed"
             case .accordion: return "rectangle.expand.vertical"
             case .keyboard: return "keyboard"
+            case .avatar: return "person.crop.circle.fill"
+            case .toggle: return "switch.2"
+            case .tooltip: return "text.bubble"
+            case .divider: return "minus"
+            case .badgeCount: return "app.badge.fill"
+            case .segmented: return "rectangle.split.3x1"
+            case .search: return "magnifyingglass"
+            case .codeBlock: return "chevron.left.forwardslash.chevron.right"
+            case .timeline: return "clock.arrow.circlepath"
+            case .colorPicker: return "eyedropper"
+            case .ring: return "circle.circle"
+            case .diff: return "plus.forwardslash.minus"
+            case .splitPane: return "rectangle.split.2x1"
+            case .shortcutRecorder: return "record.circle"
+            case .syntax: return "paintbrush.pointed.fill"
+            case .chart: return "chart.bar.fill"
+            case .commandPalette: return "command"
+            case .contextMenu: return "cursorarrow.and.square.on.square.dashed"
             }
         }
     }
@@ -92,6 +128,24 @@ struct CatalogRootView: View {
         case .skeleton: SkeletonCatalog()
         case .accordion: AccordionCatalog()
         case .keyboard: KeyboardCatalog()
+        case .avatar: AvatarCatalog()
+        case .toggle: ToggleCatalog()
+        case .tooltip: TooltipCatalog()
+        case .divider: DividerCatalog()
+        case .badgeCount: BadgeCountCatalog()
+        case .segmented: SegmentedCatalog()
+        case .search: SearchCatalog()
+        case .codeBlock: CodeBlockCatalog()
+        case .timeline: TimelineCatalog()
+        case .colorPicker: ColorPickerCatalog()
+        case .ring: RingCatalog()
+        case .diff: DiffCatalog()
+        case .splitPane: SplitPaneCatalog()
+        case .shortcutRecorder: ShortcutRecorderCatalog()
+        case .syntax: SyntaxCatalog()
+        case .chart: ChartCatalog()
+        case .commandPalette: CommandPaletteCatalog()
+        case .contextMenu: ContextMenuCatalog()
         case .none:
             Text("Select a section")
                 .font(Theme.mono(14))

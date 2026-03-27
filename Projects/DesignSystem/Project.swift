@@ -41,5 +41,16 @@ let project = Project(
                 .target(name: "DesignSystem"),
             ]
         ),
+        .target(
+            name: "DesignSystemTests",
+            destinations: .macOS,
+            product: .unitTests,
+            bundleId: "com.junha.doffice.designsystem.tests",
+            deploymentTargets: .macOS("14.0"),
+            sources: ["Tests/**"],
+            dependencies: [
+                .target(name: "DesignSystem"),
+            ]
+        ),
     ]
 )
