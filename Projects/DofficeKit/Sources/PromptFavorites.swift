@@ -160,11 +160,13 @@ public struct FavoritesPanelView: View {
             FavoriteEditSheet(favorite: nil) { newFav in
                 store.add(newFav)
             }
+            .dofficeSheetPresentation()
         }
         .sheet(item: $editingFavorite) { fav in
             FavoriteEditSheet(favorite: fav) { updated in
                 store.update(updated)
             }
+            .dofficeSheetPresentation()
         }
     }
 

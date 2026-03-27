@@ -26,6 +26,10 @@ public class OfficeCharacterController: ObservableObject {
         rebuildWalkableCache()
     }
 
+    public var hasAnimatedMovement: Bool {
+        characters.values.contains { isWalkingState($0.state) }
+    }
+
     public func refreshLayout(with tabs: [TerminalTab]) {
         map.rebuildWalkability()
         rebuildWalkableCache()

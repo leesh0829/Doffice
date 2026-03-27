@@ -364,6 +364,7 @@ public final class OfficeSceneStore: ObservableObject {
     }
 
     private var lastAdvanceTime: TimeInterval = 0
+    private var accumulatedAdvanceTime: TimeInterval = 0
     private var lastChromeCaptureTime: TimeInterval = 0
     private var lastSyncSignature: Int?
     private var backgroundSnapshotSignature: Int?
@@ -387,25 +388,42 @@ public final class OfficeSceneStore: ObservableObject {
 
     public func advance(with tabs: [TerminalTab], activeTabId: String?, focusMode: Bool, fps: Double = OfficeConstants.fps) {
         let now = Date().timeIntervalSinceReferenceDate
-        let effectiveFPS = max(fps, 1)
-        let elapsed = now - lastAdvanceTime
-        if elapsed < (0.85 / effectiveFPS) {
-            return
-        }
+        let elapsed = lastAdvanceTime == 0 ? (1.0 / OfficeConstants.fps) : (now - lastAdvanceTime)
         lastAdvanceTime = now
-        let prevCharacters = controller.characters
-        frame += 1
+
         syncCharactersIfNeeded(with: tabs)
-        let dt = min(elapsed, 0.25)  // cap delta to prevent physics jumps after long pauses
-        controller.tick(deltaTime: dt)
-        updateCamera(activeTabId: activeTabId, focusMode: focusMode)
+
+        let preferredFPS = max(fps, 1)
+        let effectiveFPS = controller.hasAnimatedMovement ? OfficeConstants.fps : preferredFPS
+        let step = 1.0 / effectiveFPS
+        accumulatedAdvanceTime += min(elapsed, 0.25)  // cap delta to prevent physics jumps after long pauses
+
+        guard accumulatedAdvanceTime >= step else { return }
+
+        let prevCharacters = controller.characters
+        let maxCatchUpSteps = max(1, Int(ceil(0.25 / step)))
+        var steps = 0
+
+        // Fixed-step simulation keeps pixel movement cadence stable even if the main-thread timer jitters.
+        while accumulatedAdvanceTime >= step && steps < maxCatchUpSteps {
+            frame += 1
+            controller.tick(deltaTime: step)
+            updateCamera(activeTabId: activeTabId, focusMode: focusMode)
+            accumulatedAdvanceTime -= step
+            steps += 1
+        }
+
+        if steps == maxCatchUpSteps {
+            accumulatedAdvanceTime = min(accumulatedAdvanceTime, step)
+        }
+
         // Mark redraw needed if any character state actually changed
         let changed = prevCharacters.count != controller.characters.count ||
             prevCharacters.contains { id, ch in
                 guard let newCh = controller.characters[id] else { return true }
                 return ch.pixelX != newCh.pixelX || ch.pixelY != newCh.pixelY || ch.frame != newCh.frame
             }
-        needsRedraw = changed
+        needsRedraw = changed || steps > 0
     }
 
     public func refreshLayout(with tabs: [TerminalTab]) {

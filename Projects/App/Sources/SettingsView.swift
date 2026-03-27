@@ -1547,6 +1547,7 @@ struct SettingsView: View {
             .padding(20)
             .frame(width: 400)
             .background(Theme.bg)
+            .dofficeSheetPresentation()
         }
     }
 
@@ -3730,4 +3731,3 @@ private func drawAccessoryPreviewRoom(
 // ═══════════════════════════════════════════════════════
 // MARK: - Shared Pixel Furniture Renderer
 // ═══════════════════════════════════════════════════════
-

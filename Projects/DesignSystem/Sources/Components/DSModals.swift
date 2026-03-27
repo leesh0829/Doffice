@@ -155,3 +155,17 @@ public struct DSSection<Content: View>: View {
         .overlay(RoundedRectangle(cornerRadius: Theme.cornerLarge).stroke(Theme.border, lineWidth: 1))
     }
 }
+
+public extension View {
+    @ViewBuilder
+    func dofficeSheetPresentation() -> some View {
+        if #available(macOS 15.0, *) {
+            self
+                .presentationSizing(.fitted)
+                .presentationBackground(Theme.bg)
+        } else {
+            self
+                .presentationBackground(Theme.bg)
+        }
+    }
+}

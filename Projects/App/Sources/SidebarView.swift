@@ -623,10 +623,11 @@ struct SidebarView: View {
         .sheet(isPresented: $showCharacterSheet) {
             CharacterCollectionView()
                 .frame(minWidth: 940, idealWidth: 1040, minHeight: 760, idealHeight: 840)
+                .dofficeSheetPresentation()
         }
-        .sheet(isPresented: $showAccessorySheet) { AccessoryView().frame(minWidth: 480, minHeight: 560) }
-        .sheet(isPresented: $showReportSheet) { ReportCenterView().frame(minWidth: 760, minHeight: 620) }
-        .sheet(isPresented: $showAchievementSheet) { AchievementCollectionView().frame(minWidth: 880, idealWidth: 960, minHeight: 680, idealHeight: 740) }
+        .sheet(isPresented: $showAccessorySheet) { AccessoryView().frame(minWidth: 480, minHeight: 560).dofficeSheetPresentation() }
+        .sheet(isPresented: $showReportSheet) { ReportCenterView().frame(minWidth: 760, minHeight: 620).dofficeSheetPresentation() }
+        .sheet(isPresented: $showAchievementSheet) { AchievementCollectionView().frame(minWidth: 880, idealWidth: 960, minHeight: 680, idealHeight: 740).dofficeSheetPresentation() }
     }
 
     private var lightweightManagementButtons: some View {
@@ -640,10 +641,11 @@ struct SidebarView: View {
         .sheet(isPresented: $showCharacterSheet) {
             CharacterCollectionView()
                 .frame(minWidth: 940, idealWidth: 1040, minHeight: 760, idealHeight: 840)
+                .dofficeSheetPresentation()
         }
-        .sheet(isPresented: $showAccessorySheet) { AccessoryView().frame(minWidth: 480, minHeight: 560) }
-        .sheet(isPresented: $showReportSheet) { ReportCenterView().frame(minWidth: 760, minHeight: 620) }
-        .sheet(isPresented: $showAchievementSheet) { AchievementCollectionView().frame(minWidth: 880, idealWidth: 960, minHeight: 680, idealHeight: 740) }
+        .sheet(isPresented: $showAccessorySheet) { AccessoryView().frame(minWidth: 480, minHeight: 560).dofficeSheetPresentation() }
+        .sheet(isPresented: $showReportSheet) { ReportCenterView().frame(minWidth: 760, minHeight: 620).dofficeSheetPresentation() }
+        .sheet(isPresented: $showAchievementSheet) { AchievementCollectionView().frame(minWidth: 880, idealWidth: 960, minHeight: 680, idealHeight: 740).dofficeSheetPresentation() }
     }
 
     private func lightweightButton(title: String, icon: String, action: @escaping () -> Void) -> some View {

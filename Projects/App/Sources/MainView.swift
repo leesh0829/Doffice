@@ -186,14 +186,15 @@ struct MainView: View {
         .sheet(isPresented: Binding(
             get: { !settings.hasCompletedOnboarding },
             set: { if !$0 { settings.hasCompletedOnboarding = true } }
-        )) { OnboardingView() }
-        .sheet(isPresented: $showSettings) { SettingsView() }
-        .sheet(isPresented: $showBugReport) { BugReportView() }
-        .sheet(isPresented: $showUpdateSheet) { UpdateSheet() }
-        .sheet(isPresented: $manager.showNewTabSheet) { NewTabSheet() }
+        )) { OnboardingView().dofficeSheetPresentation() }
+        .sheet(isPresented: $showSettings) { SettingsView().dofficeSheetPresentation() }
+        .sheet(isPresented: $showBugReport) { BugReportView().dofficeSheetPresentation() }
+        .sheet(isPresented: $showUpdateSheet) { UpdateSheet().dofficeSheetPresentation() }
+        .sheet(isPresented: $manager.showNewTabSheet) { NewTabSheet().dofficeSheetPresentation() }
         .sheet(isPresented: $showActionCenter) {
             ActionCenterView()
                 .frame(minWidth: 500, minHeight: 400)
+                .dofficeSheetPresentation()
         }
     }
 

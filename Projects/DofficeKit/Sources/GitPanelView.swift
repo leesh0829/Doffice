@@ -186,7 +186,7 @@ public struct GitPanelView: View {
             git.stop(); selectedCommitId = nil; selectedFileForDiff = nil; showDiffViewer = false
             if !projectPath.isEmpty { git.start(projectPath: projectPath) }
         }
-        .sheet(isPresented: $showActionSheet) { actionSheet }
+        .sheet(isPresented: $showActionSheet) { actionSheet.dofficeSheetPresentation() }
         .alert(NSLocalizedString("git.discard", comment: ""), isPresented: $showDiscardAlert) {
             Button(NSLocalizedString("cancel", comment: ""), role: .cancel) { fileToDiscard = nil }
             Button(NSLocalizedString("delete", comment: ""), role: .destructive) {

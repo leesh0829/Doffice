@@ -3493,6 +3493,7 @@ public struct NewTabSheet: View {
         .background(Theme.bg)
         .sheet(isPresented: $showSavePreset) {
             SavePresetSheet(draft: currentDraftSnapshot())
+                .dofficeSheetPresentation()
         }
     }
 
