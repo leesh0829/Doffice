@@ -261,6 +261,29 @@ struct MainView: View {
 
     private var bodyWithLifecycle: some View {
         bodyWithAlerts
+        .onChange(of: manager.showNewTabSheet) { _, isPresented in
+            guard isPresented else { return }
+            showSettings = false
+            showBugReport = false
+            showUpdateSheet = false
+            showActionCenter = false
+        }
+        .onChange(of: showSettings) { _, isPresented in
+            guard isPresented, manager.showNewTabSheet else { return }
+            showSettings = false
+        }
+        .onChange(of: showBugReport) { _, isPresented in
+            guard isPresented, manager.showNewTabSheet else { return }
+            showBugReport = false
+        }
+        .onChange(of: showUpdateSheet) { _, isPresented in
+            guard isPresented, manager.showNewTabSheet else { return }
+            showUpdateSheet = false
+        }
+        .onChange(of: showActionCenter) { _, isPresented in
+            guard isPresented, manager.showNewTabSheet else { return }
+            showActionCenter = false
+        }
         .onAppear {
             settings.ensureCoffeeSupportPreset()
             if manager.userVisibleTabs.isEmpty {

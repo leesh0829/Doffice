@@ -487,6 +487,88 @@ public class GitDataProvider: ObservableObject {
         }
     }
 
+    public func commitSelectedFiles(message: String, selectedPaths: [String], completion: ((Bool) -> Void)? = nil) {
+        let trimmedMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedMessage.isEmpty else {
+            lastError = "Commit message cannot be empty"
+            completion?(false)
+            return
+        }
+
+        let stagedPaths = Set(workingDirStaged.map(\.path))
+        let unstagedOnlyPaths = Set(workingDirUnstaged.map(\.path)).subtracting(stagedPaths)
+        let eligiblePaths = stagedPaths.union(unstagedOnlyPaths)
+        let effectiveSelection = Set(selectedPaths).intersection(eligiblePaths)
+
+        guard !effectiveSelection.isEmpty else {
+            lastError = "No files selected to commit"
+            completion?(false)
+            return
+        }
+
+        let pathsToStage = Array(effectiveSelection.intersection(unstagedOnlyPaths)).sorted()
+        let pathsToRestore = Array(stagedPaths.subtracting(effectiveSelection)).sorted()
+        let path = projectPath
+        let safeMessage = trimmedMessage
+            .replacingOccurrences(of: "\"", with: "\\\"")
+            .replacingOccurrences(of: "$", with: "\\$")
+            .replacingOccurrences(of: "`", with: "\\`")
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            func quotedPaths(_ paths: [String]) -> String {
+                paths.map { "\"\(GitDataParser.sanitizePath($0))\"" }.joined(separator: " ")
+            }
+
+            func run(_ command: String) -> String {
+                TerminalTab.shellSync(command) ?? ""
+            }
+
+            func failed(_ output: String) -> Bool {
+                output.contains("fatal") || output.contains("error")
+            }
+
+            var commandError: String?
+            var restoreWarning: String?
+            var commitSucceeded = false
+
+            if !pathsToStage.isEmpty {
+                let output = run("git -C \"\(path)\" add -- \(quotedPaths(pathsToStage)) 2>&1")
+                if failed(output) { commandError = output }
+            }
+
+            if commandError == nil, !pathsToRestore.isEmpty {
+                let output = run("git -C \"\(path)\" restore --staged -- \(quotedPaths(pathsToRestore)) 2>&1")
+                if failed(output) { commandError = output }
+            }
+
+            if commandError == nil {
+                let output = run("git -C \"\(path)\" commit -m \"\(safeMessage)\" 2>&1")
+                commitSucceeded = !failed(output)
+                if !commitSucceeded { commandError = output }
+            }
+
+            if !pathsToRestore.isEmpty {
+                let output = run("git -C \"\(path)\" add -- \(quotedPaths(pathsToRestore)) 2>&1")
+                if failed(output) { restoreWarning = output }
+            }
+
+            if !commitSucceeded, !pathsToStage.isEmpty {
+                let output = run("git -C \"\(path)\" restore --staged -- \(quotedPaths(pathsToStage)) 2>&1")
+                if commandError == nil, failed(output) { commandError = output }
+            }
+
+            DispatchQueue.main.async {
+                if let commandError {
+                    self?.lastError = commandError
+                } else if let restoreWarning {
+                    self?.lastError = "Commit succeeded, but some staged selections could not be restored.\n\(restoreWarning)"
+                }
+                self?.refreshAll()
+                completion?(commitSucceeded)
+            }
+        }
+    }
+
     public func createBranch(name: String, completion: ((Bool) -> Void)? = nil) {
         guard GitDataParser.isValidBranchName(name) else {
             lastError = "Invalid branch name: \(name)"

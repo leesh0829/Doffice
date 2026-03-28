@@ -3426,7 +3426,9 @@ public struct NewTabSheet: View {
                     Image(systemName: "exclamationmark.triangle.fill").font(.system(size: Theme.iconSize(9))).foregroundColor(Theme.yellow)
                     Text(trustWarningText)
                         .font(Theme.mono(9)).foregroundColor(Theme.yellow)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(16).padding(.horizontal, 8)
 
@@ -3438,17 +3440,26 @@ public struct NewTabSheet: View {
                     approveFolderTrustAndLaunch()
                 }) {
                     HStack(spacing: 8) {
-                        Text("❯").font(Theme.mono(12, weight: .bold)).foregroundColor(Theme.green)
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: Theme.iconSize(10), weight: .bold))
+                            .foregroundColor(Theme.green)
                         Text(NSLocalizedString("terminal.trust.yes", comment: ""))
-                            .font(Theme.mono(11, weight: .semibold)).foregroundColor(Theme.textPrimary)
-                        Spacer()
-                        Image(systemName: "checkmark.shield.fill").font(.system(size: Theme.iconSize(12))).foregroundColor(Theme.green)
+                            .font(Theme.mono(11, weight: .semibold))
+                            .foregroundColor(Theme.textPrimary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Image(systemName: "checkmark.shield.fill")
+                            .font(.system(size: Theme.iconSize(12)))
+                            .foregroundColor(Theme.green)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 14).padding(.vertical, 10)
                     .background(RoundedRectangle(cornerRadius: 8).fill(Theme.green.opacity(0.08))
                         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.green.opacity(0.3), lineWidth: 1)))
                 }
                 .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)
                 .keyboardShortcut(.return)
                 .disabled(isCreatingSessions)
                 .accessibilityLabel(NSLocalizedString("terminal.trust.yes.a11y", comment: ""))
@@ -3460,23 +3471,35 @@ public struct NewTabSheet: View {
                     }
                 }) {
                     HStack(spacing: 8) {
-                        Text(" ").font(Theme.mono(12, weight: .bold))
+                        Color.clear.frame(width: 12, height: 12)
                         Text(NSLocalizedString("terminal.trust.no", comment: ""))
-                            .font(Theme.mono(11)).foregroundColor(Theme.textSecondary)
-                        Spacer()
-                        Image(systemName: "xmark.circle").font(.system(size: Theme.iconSize(12))).foregroundColor(Theme.textDim)
+                            .font(Theme.mono(11))
+                            .foregroundColor(Theme.textSecondary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Image(systemName: "xmark.circle")
+                            .font(.system(size: Theme.iconSize(12)))
+                            .foregroundColor(Theme.textDim)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 14).padding(.vertical, 10)
                     .background(RoundedRectangle(cornerRadius: 8).fill(Theme.bgSurface)
                         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.border.opacity(0.3), lineWidth: 1)))
                 }
                 .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)
                 .keyboardShortcut(.escape)
                 .disabled(isCreatingSessions)
                 .accessibilityLabel(NSLocalizedString("terminal.trust.no.a11y", comment: ""))
-            }.padding(.horizontal, 24).padding(.bottom, 20)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 20)
         }
-        .frame(width: max(440, 440 * AppSettings.shared.fontSizeScale), height: max(340, 340 * AppSettings.shared.fontSizeScale))
+        .frame(
+            width: min(max(440, 460 * min(max(settings.fontSizeScale, 1.0), 1.06)), max(420, sheetVisibleFrame.width - 140)),
+            height: min(max(340, 360 * min(max(settings.fontSizeScale, 1.0), 1.04)), max(320, sheetVisibleFrame.height - 180))
+        )
         .background(Theme.bgCard)
     }
 
@@ -4510,6 +4533,7 @@ public struct NewTabSheet: View {
 
         let prompts = Array(tasks.prefix(launchCount)).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
         let draft = currentDraftSnapshot()
+        let chosenProvider = self.selectedProvider
         let selectedModel = self.selectedModel
         let effortLevel = self.effortLevel
         let permissionMode = self.permissionMode
@@ -4541,12 +4565,13 @@ public struct NewTabSheet: View {
                 let tab = manager.addTab(
                     projectName: name,
                     projectPath: path,
-                    provider: selectedProvider,
+                    provider: chosenProvider,
                     initialPrompt: prompt.isEmpty ? nil : prompt,
                     manualLaunch: true,
                     autoStart: false
                 )
                 tab.selectedModel = selectedModel
+                tab.isClaude = selectedModel.provider == .claude
                 tab.effortLevel = effortLevel
                 tab.permissionMode = permissionMode
                 tab.codexSandboxMode = codexSandboxMode

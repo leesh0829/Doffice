@@ -120,9 +120,55 @@ public struct GitPanelView: View {
         let q = searchText
         return base.filter {
             $0.message.localizedCaseInsensitiveContains(q) ||
-            $0.author.localizedCaseInsensitiveContains(q) ||
-            $0.shortHash.localizedCaseInsensitiveContains(q)
+                $0.author.localizedCaseInsensitiveContains(q) ||
+                $0.shortHash.localizedCaseInsensitiveContains(q)
         }
+    }
+
+    private var stagedPaths: Set<String> {
+        Set(git.workingDirStaged.map(\.path))
+    }
+
+    private var unstagedOnlyChanges: [GitFileChange] {
+        git.workingDirUnstaged.filter { !stagedPaths.contains($0.path) }
+    }
+
+    private var pendingPaths: Set<String> {
+        stagedPaths.union(git.workingDirUnstaged.map(\.path))
+    }
+
+    private var pendingFileCount: Int {
+        pendingPaths.count
+    }
+
+    private var selectedCommitPaths: Set<String> {
+        selectedFilesForCommit.intersection(pendingPaths)
+    }
+
+    private var selectedCommitCount: Int {
+        selectedCommitPaths.count
+    }
+
+    private var selectedUnstagedOnlyCount: Int {
+        selectedCommitPaths.intersection(Set(unstagedOnlyChanges.map(\.path))).count
+    }
+
+    private var commitPreviewFiles: [GitFileChange] {
+        let previewPaths = selectedCommitCount > 0 ? Array(selectedCommitPaths).sorted() : git.workingDirStaged.map(\.path)
+        return previewFiles(for: previewPaths)
+    }
+
+    private var stashPreviewFiles: [GitFileChange] {
+        deduplicatedPreviewFiles(git.workingDirStaged + git.workingDirUnstaged.filter { $0.status != .untracked })
+    }
+
+    private var stashExcludedFiles: [GitFileChange] {
+        git.workingDirUnstaged.filter { $0.status == .untracked }
+    }
+
+    private var canRunDirectCommit: Bool {
+        !commitMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            (selectedCommitCount > 0 || !git.workingDirStaged.isEmpty)
     }
 
     // MARK: - Body
@@ -184,7 +230,14 @@ public struct GitPanelView: View {
         .onDisappear { git.stop() }
         .onChange(of: manager.activeTabId) { _, _ in
             git.stop(); selectedCommitId = nil; selectedFileForDiff = nil; showDiffViewer = false
+            selectedFilesForCommit.removeAll()
             if !projectPath.isEmpty { git.start(projectPath: projectPath) }
+        }
+        .onChange(of: git.workingDirStaged.map(\.path)) { _, _ in
+            normalizeSelectedCommitFiles()
+        }
+        .onChange(of: git.workingDirUnstaged.map(\.path)) { _, _ in
+            normalizeSelectedCommitFiles()
         }
         .sheet(isPresented: $showActionSheet) { actionSheet.dofficeSheetPresentation() }
         .alert(NSLocalizedString("git.discard", comment: ""), isPresented: $showDiscardAlert) {
@@ -1291,14 +1344,9 @@ public struct GitPanelView: View {
 
                                 // Select All / Deselect All toggle
                                 Button(action: {
-                                    let allPaths = Set(git.workingDirStaged.map { $0.path })
-                                    if selectedFilesForCommit.count == allPaths.count {
-                                        selectedFilesForCommit.removeAll()
-                                    } else {
-                                        selectedFilesForCommit = allPaths
-                                    }
+                                    toggleCommitSelection(paths: stagedPaths)
                                 }) {
-                                    Text(selectedFilesForCommit.count == git.workingDirStaged.count && !selectedFilesForCommit.isEmpty ? NSLocalizedString("git.deselect.all", comment: "") : NSLocalizedString("git.select.all", comment: ""))
+                                    Text(stagedPaths.isSubset(of: selectedCommitPaths) && !stagedPaths.isEmpty ? NSLocalizedString("git.deselect.all", comment: "") : NSLocalizedString("git.select.all", comment: ""))
                                         .font(Theme.mono(7, weight: .bold))
                                         .foregroundStyle(Theme.accentBackground)
                                         .padding(.horizontal, 6).padding(.vertical, 2)
@@ -1317,12 +1365,12 @@ public struct GitPanelView: View {
                             }
 
                             // Selection count indicator
-                            if !selectedFilesForCommit.isEmpty {
+                            if selectedCommitCount > 0 {
                                 HStack(spacing: 4) {
                                     Image(systemName: "checkmark.square.fill")
                                         .font(.system(size: 8))
                                         .foregroundStyle(Theme.accentBackground)
-                                    Text(String(format: NSLocalizedString("git.files.selected", comment: ""), selectedFilesForCommit.count, git.workingDirStaged.count))
+                                    Text(String(format: NSLocalizedString("git.files.selected", comment: ""), selectedCommitCount, pendingFileCount))
                                         .font(Theme.mono(8))
                                         .foregroundStyle(Theme.accentBackground)
                                 }
@@ -1333,15 +1381,11 @@ public struct GitPanelView: View {
                                 HStack(spacing: 0) {
                                     // Selection checkbox
                                     Button(action: {
-                                        if selectedFilesForCommit.contains(f.path) {
-                                            selectedFilesForCommit.remove(f.path)
-                                        } else {
-                                            selectedFilesForCommit.insert(f.path)
-                                        }
+                                        toggleCommitSelection(f.path)
                                     }) {
-                                        Image(systemName: selectedFilesForCommit.contains(f.path) ? "checkmark.square.fill" : "square")
+                                        Image(systemName: selectedCommitPaths.contains(f.path) ? "checkmark.square.fill" : "square")
                                             .font(.system(size: 11))
-                                            .foregroundColor(selectedFilesForCommit.contains(f.path) ? Theme.accent : Theme.textDim)
+                                            .foregroundColor(selectedCommitPaths.contains(f.path) ? Theme.accent : Theme.textDim)
                                     }
                                     .buttonStyle(.plain)
                                     .padding(.leading, 6)
@@ -1378,6 +1422,18 @@ public struct GitPanelView: View {
                             HStack(spacing: 6) {
                                 sectionHeader(NSLocalizedString("git.changes", comment: ""), count: git.workingDirUnstaged.count, icon: "pencil.circle.fill", color: Theme.orange)
                                 Spacer()
+                                if !unstagedOnlyChanges.isEmpty {
+                                    Button(action: {
+                                        toggleCommitSelection(paths: Set(unstagedOnlyChanges.map(\.path)))
+                                    }) {
+                                        Text(Set(unstagedOnlyChanges.map(\.path)).isSubset(of: selectedCommitPaths) ? NSLocalizedString("git.deselect.all", comment: "") : NSLocalizedString("git.select.all", comment: ""))
+                                            .font(Theme.mono(7, weight: .bold))
+                                            .foregroundStyle(Theme.accentBackground)
+                                            .padding(.horizontal, 6).padding(.vertical, 2)
+                                            .background(RoundedRectangle(cornerRadius: 4).fill(Theme.accent.opacity(0.08)))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                                 Button(action: { git.stageAll(); showSuccessToast(NSLocalizedString("git.staged.all", comment: "")) }) {
                                     Text(NSLocalizedString("git.stage.all", comment: ""))
                                         .font(Theme.mono(7, weight: .bold))
@@ -1389,7 +1445,30 @@ public struct GitPanelView: View {
                             }
 
                             ForEach(git.workingDirUnstaged) { f in
+                                let alreadyStaged = stagedPaths.contains(f.path)
                                 HStack(spacing: 0) {
+                                    if alreadyStaged {
+                                        Text("INDEX")
+                                            .font(Theme.mono(6, weight: .bold))
+                                            .foregroundColor(Theme.green)
+                                            .padding(.horizontal, 5)
+                                            .padding(.vertical, 2)
+                                            .background(RoundedRectangle(cornerRadius: 4).fill(Theme.green.opacity(0.08)))
+                                            .padding(.leading, 6)
+                                            .padding(.trailing, 2)
+                                    } else {
+                                        Button(action: {
+                                            toggleCommitSelection(f.path)
+                                        }) {
+                                            Image(systemName: selectedCommitPaths.contains(f.path) ? "checkmark.square.fill" : "square")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(selectedCommitPaths.contains(f.path) ? Theme.accent : Theme.textDim)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .padding(.leading, 6)
+                                        .padding(.trailing, 2)
+                                    }
+
                                     Button(action: {
                                         selectedFileForDiff = f
                                         git.fetchParsedDiff(path: f.path, staged: false)
@@ -1424,6 +1503,13 @@ public struct GitPanelView: View {
                                     .padding(.trailing, 6)
                                 }
                             }
+
+                            if !unstagedOnlyChanges.isEmpty {
+                                Text("체크한 변경 파일은 커밋 시 자동으로 stage됩니다.")
+                                    .font(Theme.mono(7))
+                                    .foregroundColor(Theme.textDim)
+                                    .padding(.horizontal, 4)
+                            }
                         }
                         .padding(8)
                         .background(RoundedRectangle(cornerRadius: 8).fill(Theme.bgSurface))
@@ -1450,57 +1536,40 @@ public struct GitPanelView: View {
                             .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.border, lineWidth: 1))
 
                         HStack {
-                            if !selectedFilesForCommit.isEmpty {
-                                Text(String(format: NSLocalizedString("git.files.selected", comment: ""), selectedFilesForCommit.count, git.workingDirStaged.count))
+                            if selectedCommitCount > 0 {
+                                Text(String(format: NSLocalizedString("git.files.selected", comment: ""), selectedCommitCount, pendingFileCount))
                                     .font(Theme.mono(8))
                                     .foregroundStyle(Theme.accentBackground)
+                            } else if git.workingDirStaged.isEmpty {
+                                Text("커밋할 파일을 선택하거나 먼저 stage하세요.")
+                                    .font(Theme.mono(8))
+                                    .foregroundColor(Theme.textDim)
                             }
                             Spacer()
+                            if selectedUnstagedOnlyCount > 0 {
+                                Text("자동 stage \(selectedUnstagedOnlyCount)")
+                                    .font(Theme.mono(7, weight: .bold))
+                                    .foregroundColor(Theme.orange)
+                                    .padding(.horizontal, 6).padding(.vertical, 3)
+                                    .background(Capsule().fill(Theme.orange.opacity(0.1)))
+                            }
                             Button(action: {
-                                guard !commitMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-                                let msg = commitMessage
-                                if selectedFilesForCommit.isEmpty || selectedFilesForCommit.count == git.workingDirStaged.count {
-                                    git.commitDirectly(message: msg) { success in
-                                        if success {
-                                            let short = msg.count > 30 ? String(msg.prefix(30)) + "..." : msg
-                                            showSuccessToast(String(format: NSLocalizedString("git.commit.success", comment: ""), short))
-                                        } else {
-                                            showErrorToast(String(format: NSLocalizedString("git.commit.failed", comment: ""), git.lastError ?? NSLocalizedString("git.unknown.error", comment: "")))
-                                        }
-                                    }
-                                } else {
-                                    let allStaged = git.workingDirStaged.map { $0.path }
-                                    let unselected = allStaged.filter { !selectedFilesForCommit.contains($0) }
-                                    for path in unselected { git.unstageFile(path: path) }
-                                    git.commitDirectly(message: msg) { success in
-                                        for path in unselected { git.stageFile(path: path) }
-                                        if success {
-                                            let short = msg.count > 30 ? String(msg.prefix(30)) + "..." : msg
-                                            showSuccessToast(String(format: NSLocalizedString("git.commit.success", comment: ""), short))
-                                        } else {
-                                            showErrorToast(String(format: NSLocalizedString("git.commit.failed", comment: ""), git.lastError ?? NSLocalizedString("git.unknown.error", comment: "")))
-                                        }
-                                    }
-                                }
-                                commitMessage = ""
-                                selectedFilesForCommit.removeAll()
+                                performDirectCommit()
                             }) {
                                 HStack(spacing: 4) {
                                     Image(systemName: "checkmark.circle.fill")
                                         .font(.system(size: 9))
-                                    Text(selectedFilesForCommit.isEmpty ? NSLocalizedString("git.commit", comment: "") : NSLocalizedString("git.commit.selected", comment: ""))
+                                    Text(selectedCommitCount > 0 ? NSLocalizedString("git.commit.selected", comment: "") : NSLocalizedString("git.commit", comment: ""))
                                         .font(Theme.chrome(9, weight: .bold))
                                 }
                                 .foregroundColor(Theme.textOnAccent)
                                 .padding(.horizontal, 12).padding(.vertical, 6)
                                 .background(RoundedRectangle(cornerRadius: 6).fill(
-                                    commitMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                        ? Theme.green.opacity(0.3)
-                                        : Theme.green
+                                    canRunDirectCommit ? Theme.green : Theme.green.opacity(0.3)
                                 ))
                             }
                             .buttonStyle(.plain)
-                            .disabled(commitMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            .disabled(!canRunDirectCommit)
 
                             // Amend button
                             Button(action: { showAmendAlert = true }) {
@@ -1965,8 +2034,8 @@ public struct GitPanelView: View {
             .buttonStyle(.plain)
 
             // File selection count indicator
-            if !selectedFilesForCommit.isEmpty {
-                Text(String(format: NSLocalizedString("git.files.selected", comment: ""), selectedFilesForCommit.count, git.workingDirStaged.count))
+            if selectedCommitCount > 0 {
+                Text(String(format: NSLocalizedString("git.files.selected", comment: ""), selectedCommitCount, pendingFileCount))
                     .font(Theme.mono(7, weight: .bold))
                     .foregroundStyle(Theme.accentBackground)
                     .padding(.horizontal, 6).padding(.vertical, 3)
@@ -2114,6 +2183,84 @@ public struct GitPanelView: View {
         .background(RoundedRectangle(cornerRadius: 8).fill(Theme.bgSurface.opacity(0.5)))
     }
 
+    private func previewFiles(for paths: [String]) -> [GitFileChange] {
+        paths.compactMap { path in
+            git.workingDirStaged.first(where: { $0.path == path }) ??
+                git.workingDirUnstaged.first(where: { $0.path == path })
+        }
+        .sorted { lhs, rhs in
+            lhs.path.localizedStandardCompare(rhs.path) == .orderedAscending
+        }
+    }
+
+    private func deduplicatedPreviewFiles(_ files: [GitFileChange]) -> [GitFileChange] {
+        var seen: Set<String> = []
+        return files.filter { seen.insert($0.path).inserted }
+    }
+
+    private func toggleCommitSelection(_ path: String) {
+        if selectedFilesForCommit.contains(path) {
+            selectedFilesForCommit.remove(path)
+        } else {
+            selectedFilesForCommit.insert(path)
+        }
+    }
+
+    private func toggleCommitSelection(paths: Set<String>) {
+        guard !paths.isEmpty else { return }
+        if paths.isSubset(of: selectedCommitPaths) {
+            selectedFilesForCommit.subtract(paths)
+        } else {
+            selectedFilesForCommit.formUnion(paths)
+        }
+    }
+
+    private func normalizeSelectedCommitFiles() {
+        selectedFilesForCommit = selectedFilesForCommit.intersection(pendingPaths)
+    }
+
+    private func performDirectCommit() {
+        let message = commitMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !message.isEmpty else { return }
+
+        let complete: (Bool) -> Void = { success in
+            if success {
+                let short = message.count > 30 ? String(message.prefix(30)) + "..." : message
+                showSuccessToast(String(format: NSLocalizedString("git.commit.success", comment: ""), short))
+                commitMessage = ""
+                selectedFilesForCommit.removeAll()
+            } else {
+                showErrorToast(String(format: NSLocalizedString("git.commit.failed", comment: ""), git.lastError ?? NSLocalizedString("git.unknown.error", comment: "")))
+            }
+        }
+
+        if selectedCommitCount > 0 {
+            git.commitSelectedFiles(message: message, selectedPaths: Array(selectedCommitPaths), completion: complete)
+        } else {
+            git.commitDirectly(message: message, completion: complete)
+        }
+    }
+
+    private func commitPreviewSubtitle() -> String {
+        if selectedCommitCount > 0 {
+            return "선택된 \(selectedCommitCount)개 파일이 커밋됩니다."
+        }
+        if !git.workingDirStaged.isEmpty {
+            return "선택이 없으면 현재 staged 파일 \(git.workingDirStaged.count)개가 커밋됩니다."
+        }
+        return "현재 staged 파일이 없습니다. 작업 디렉터리에서 파일을 체크하면 직접 커밋할 수 있습니다."
+    }
+
+    private func stashPreviewSubtitle() -> String {
+        if stashPreviewFiles.isEmpty {
+            return "스태시에 포함될 tracked 변경 파일이 없습니다."
+        }
+        if stashExcludedFiles.isEmpty {
+            return "현재 tracked 변경 파일 \(stashPreviewFiles.count)개가 스태시에 담깁니다."
+        }
+        return "tracked 변경 파일 \(stashPreviewFiles.count)개가 담기고, untracked 파일은 제외됩니다."
+    }
+
     private var quickActionGrid: some View {
         let actions: [(String, String, GitAction, Color)] = [
             (NSLocalizedString("git.commit", comment: ""), "checkmark.circle.fill", .commit, Theme.green),
@@ -2167,6 +2314,13 @@ public struct GitPanelView: View {
                         TextEditor(text: $actionInput).font(Theme.monoNormal).frame(height: 80).padding(4)
                             .background(RoundedRectangle(cornerRadius: 6).fill(Theme.bgSurface))
                             .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.border, lineWidth: 1))
+                        actionPreviewSection(
+                            title: "커밋 예정 파일",
+                            subtitle: commitPreviewSubtitle(),
+                            files: commitPreviewFiles,
+                            accent: Theme.green,
+                            emptyMessage: "현재 바로 커밋할 staged 파일이 없습니다."
+                        )
                     }
                 case .branch:
                     VStack(alignment: .leading, spacing: 6) {
@@ -2181,6 +2335,22 @@ public struct GitPanelView: View {
                         TextField(NSLocalizedString("git.stash.message.placeholder", comment: ""), text: $actionInput).font(Theme.monoNormal).textFieldStyle(.plain).padding(8)
                             .background(RoundedRectangle(cornerRadius: 6).fill(Theme.bgSurface))
                             .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.border, lineWidth: 1))
+                        actionPreviewSection(
+                            title: "스태시에 포함됨",
+                            subtitle: stashPreviewSubtitle(),
+                            files: stashPreviewFiles,
+                            accent: Theme.cyan,
+                            emptyMessage: "담길 tracked 변경 파일이 없습니다."
+                        )
+                        if !stashExcludedFiles.isEmpty {
+                            actionPreviewSection(
+                                title: "이번 스태시에서 제외됨",
+                                subtitle: "기본 `git stash push`는 untracked 파일을 담지 않습니다.",
+                                files: stashExcludedFiles,
+                                accent: Theme.orange,
+                                emptyMessage: ""
+                            )
+                        }
                     }
                 case .merge, .checkout:
                     VStack(alignment: .leading, spacing: 6) {
@@ -2230,7 +2400,83 @@ public struct GitPanelView: View {
                 .opacity(needsInput && actionInput.isEmpty ? 0.5 : 1)
             }
         }
-        .padding(20).frame(width: 420).background(Theme.bgCard)
+        .padding(20).frame(width: 520).background(Theme.bgCard)
+    }
+
+    private func actionPreviewSection(title: String, subtitle: String, files: [GitFileChange], accent: Color, emptyMessage: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(accent)
+                    .frame(width: 6, height: 6)
+                Text(title)
+                    .font(Theme.mono(9, weight: .bold))
+                    .foregroundColor(Theme.textPrimary)
+                Spacer()
+                Text("\(files.count)")
+                    .font(Theme.mono(7, weight: .bold))
+                    .foregroundColor(accent)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(accent.opacity(0.10)))
+            }
+
+            Text(subtitle)
+                .font(Theme.mono(7))
+                .foregroundColor(Theme.textDim)
+
+            if files.isEmpty {
+                Text(emptyMessage)
+                    .font(Theme.mono(8))
+                    .foregroundColor(Theme.textMuted)
+                    .padding(.vertical, 4)
+            } else {
+                ScrollView {
+                    VStack(spacing: 6) {
+                        ForEach(files) { file in
+                            actionPreviewFileRow(file)
+                        }
+                    }
+                }
+                .frame(maxHeight: min(180, CGFloat(files.count) * 46))
+            }
+        }
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Theme.bgSurface))
+    }
+
+    private func actionPreviewFileRow(_ file: GitFileChange) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: file.status.icon)
+                .font(.system(size: 9))
+                .foregroundColor(file.status.color)
+                .frame(width: 14)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(file.fileName)
+                    .font(Theme.code(8, weight: .semibold))
+                    .foregroundColor(Theme.textPrimary)
+                    .lineLimit(1)
+                Text(file.path)
+                    .font(Theme.mono(7))
+                    .foregroundColor(Theme.textDim)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+
+            Spacer(minLength: 8)
+
+            Text(file.status.rawValue)
+                .font(Theme.code(7, weight: .bold))
+                .foregroundColor(file.status.color)
+                .padding(.horizontal, Theme.sp1 + 1)
+                .padding(.vertical, 1)
+                .background(RoundedRectangle(cornerRadius: Theme.cornerSmall).fill(Theme.accentBg(file.status.color)))
+                .overlay(RoundedRectangle(cornerRadius: Theme.cornerSmall).stroke(Theme.accentBorder(file.status.color), lineWidth: 1))
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(RoundedRectangle(cornerRadius: 6).fill(file.status.color.opacity(0.04)))
     }
 
     private var needsInput: Bool {
