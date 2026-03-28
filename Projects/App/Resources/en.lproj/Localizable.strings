@@ -2607,3 +2607,20 @@
 "onboard.plugin.achievements" = "Achievements";
 "onboard.plugin.achievements.desc" = "Unlock new challenges";
 "onboard.plugin.hint" = "Install from Settings > Plugins";
+
+/* Git selective commit */
+"git.auto.stage.hint" = "Checked files will be automatically staged on commit.";
+"git.select.or.stage.hint" = "Select files to commit or stage them first.";
+"git.auto.stage.count" = "Auto-stage %d";
+"git.commit.preview.selected" = "%d file(s) selected for commit.";
+"git.commit.preview.staged" = "Without selection, %d staged file(s) will be committed.";
+"git.commit.preview.empty" = "No staged files. Check files in the working directory to commit directly.";
+"git.commit.preview.title" = "Files to Commit";
+"git.commit.preview.no.staged" = "No staged files available for commit.";
+"git.stash.preview.title" = "Included in Stash";
+"git.stash.preview.empty" = "No tracked changes to include in stash.";
+"git.stash.preview.count" = "%d tracked changed file(s) will be stashed.";
+"git.stash.preview.partial" = "%d tracked changed file(s) will be stashed; untracked files are excluded.";
+"git.stash.preview.no.tracked" = "No tracked changed files to stash.";
+"git.stash.excluded.title" = "Excluded from This Stash";
+"git.stash.excluded.hint" = "Default `git stash push` does not include untracked files.";

@@ -2605,3 +2605,20 @@
 "onboard.plugin.achievements" = "도전 과제";
 "onboard.plugin.achievements.desc" = "새로운 업적에 도전하세요";
 "onboard.plugin.hint" = "설정 > 플러그인에서 설치할 수 있습니다";
+
+/* Git selective commit */
+"git.auto.stage.hint" = "체크한 변경 파일은 커밋 시 자동으로 stage됩니다.";
+"git.select.or.stage.hint" = "커밋할 파일을 선택하거나 먼저 stage하세요.";
+"git.auto.stage.count" = "자동 stage %d";
+"git.commit.preview.selected" = "선택된 %d개 파일이 커밋됩니다.";
+"git.commit.preview.staged" = "선택이 없으면 현재 staged 파일 %d개가 커밋됩니다.";
+"git.commit.preview.empty" = "현재 staged 파일이 없습니다. 작업 디렉터리에서 파일을 체크하면 직접 커밋할 수 있습니다.";
+"git.commit.preview.title" = "커밋 예정 파일";
+"git.commit.preview.no.staged" = "현재 바로 커밋할 staged 파일이 없습니다.";
+"git.stash.preview.title" = "스태시에 포함됨";
+"git.stash.preview.empty" = "스태시에 포함될 tracked 변경 파일이 없습니다.";
+"git.stash.preview.count" = "현재 tracked 변경 파일 %d개가 스태시에 담깁니다.";
+"git.stash.preview.partial" = "tracked 변경 파일 %d개가 담기고, untracked 파일은 제외됩니다.";
+"git.stash.preview.no.tracked" = "담길 tracked 변경 파일이 없습니다.";
+"git.stash.excluded.title" = "이번 스태시에서 제외됨";
+"git.stash.excluded.hint" = "기본 `git stash push`는 untracked 파일을 담지 않습니다.";

@@ -234,10 +234,10 @@ public struct GitPanelView: View {
             selectedFilesForCommit.removeAll()
             if !projectPath.isEmpty { git.start(projectPath: projectPath) }
         }
-        .onChange(of: git.workingDirStaged.map(\.path)) { _, _ in
+        .onChange(of: git.workingDirStaged.count) { _, _ in
             normalizeSelectedCommitFiles()
         }
-        .onChange(of: git.workingDirUnstaged.map(\.path)) { _, _ in
+        .onChange(of: git.workingDirUnstaged.count) { _, _ in
             normalizeSelectedCommitFiles()
         }
         .sheet(isPresented: $showActionSheet) { actionSheet.dofficeSheetPresentation() }
@@ -1363,6 +1363,7 @@ public struct GitPanelView: View {
                                         .background(RoundedRectangle(cornerRadius: 4).fill(Theme.orange.opacity(0.08)))
                                 }
                                 .buttonStyle(.plain)
+                                .disabled(git.isCommitting)
                             }
 
                             // Selection count indicator
@@ -1509,7 +1510,7 @@ public struct GitPanelView: View {
                             }
 
                             if !unstagedOnlyChanges.isEmpty {
-                                Text("체크한 변경 파일은 커밋 시 자동으로 stage됩니다.")
+                                Text(NSLocalizedString("git.auto.stage.hint", comment: ""))
                                     .font(Theme.mono(7))
                                     .foregroundColor(Theme.textDim)
                                     .padding(.horizontal, 4)
@@ -1545,13 +1546,13 @@ public struct GitPanelView: View {
                                     .font(Theme.mono(8))
                                     .foregroundStyle(Theme.accentBackground)
                             } else if git.workingDirStaged.isEmpty {
-                                Text("커밋할 파일을 선택하거나 먼저 stage하세요.")
+                                Text(NSLocalizedString("git.select.or.stage.hint", comment: ""))
                                     .font(Theme.mono(8))
                                     .foregroundColor(Theme.textDim)
                             }
                             Spacer()
                             if selectedUnstagedOnlyCount > 0 {
-                                Text("자동 stage \(selectedUnstagedOnlyCount)")
+                                Text(String(format: NSLocalizedString("git.auto.stage.count", comment: ""), selectedUnstagedOnlyCount))
                                     .font(Theme.mono(7, weight: .bold))
                                     .foregroundColor(Theme.orange)
                                     .padding(.horizontal, 6).padding(.vertical, 3)
@@ -2247,22 +2248,22 @@ public struct GitPanelView: View {
 
     private func commitPreviewSubtitle() -> String {
         if selectedCommitCount > 0 {
-            return "선택된 \(selectedCommitCount)개 파일이 커밋됩니다."
+            return String(format: NSLocalizedString("git.commit.preview.selected", comment: ""), selectedCommitCount)
         }
         if !git.workingDirStaged.isEmpty {
-            return "선택이 없으면 현재 staged 파일 \(git.workingDirStaged.count)개가 커밋됩니다."
+            return String(format: NSLocalizedString("git.commit.preview.staged", comment: ""), git.workingDirStaged.count)
         }
-        return "현재 staged 파일이 없습니다. 작업 디렉터리에서 파일을 체크하면 직접 커밋할 수 있습니다."
+        return NSLocalizedString("git.commit.preview.empty", comment: "")
     }
 
     private func stashPreviewSubtitle() -> String {
         if stashPreviewFiles.isEmpty {
-            return "스태시에 포함될 tracked 변경 파일이 없습니다."
+            return NSLocalizedString("git.stash.preview.empty", comment: "")
         }
         if stashExcludedFiles.isEmpty {
-            return "현재 tracked 변경 파일 \(stashPreviewFiles.count)개가 스태시에 담깁니다."
+            return String(format: NSLocalizedString("git.stash.preview.count", comment: ""), stashPreviewFiles.count)
         }
-        return "tracked 변경 파일 \(stashPreviewFiles.count)개가 담기고, untracked 파일은 제외됩니다."
+        return String(format: NSLocalizedString("git.stash.preview.partial", comment: ""), stashPreviewFiles.count)
     }
 
     private var quickActionGrid: some View {
@@ -2319,11 +2320,11 @@ public struct GitPanelView: View {
                             .background(RoundedRectangle(cornerRadius: 6).fill(Theme.bgSurface))
                             .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.border, lineWidth: 1))
                         actionPreviewSection(
-                            title: "커밋 예정 파일",
+                            title: NSLocalizedString("git.commit.preview.title", comment: ""),
                             subtitle: commitPreviewSubtitle(),
                             files: commitPreviewFiles,
                             accent: Theme.green,
-                            emptyMessage: "현재 바로 커밋할 staged 파일이 없습니다."
+                            emptyMessage: NSLocalizedString("git.commit.preview.no.staged", comment: "")
                         )
                     }
                 case .branch:
@@ -2340,16 +2341,16 @@ public struct GitPanelView: View {
                             .background(RoundedRectangle(cornerRadius: 6).fill(Theme.bgSurface))
                             .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.border, lineWidth: 1))
                         actionPreviewSection(
-                            title: "스태시에 포함됨",
+                            title: NSLocalizedString("git.stash.preview.title", comment: ""),
                             subtitle: stashPreviewSubtitle(),
                             files: stashPreviewFiles,
                             accent: Theme.cyan,
-                            emptyMessage: "담길 tracked 변경 파일이 없습니다."
+                            emptyMessage: NSLocalizedString("git.stash.preview.no.tracked", comment: "")
                         )
                         if !stashExcludedFiles.isEmpty {
                             actionPreviewSection(
-                                title: "이번 스태시에서 제외됨",
-                                subtitle: "기본 `git stash push`는 untracked 파일을 담지 않습니다.",
+                                title: NSLocalizedString("git.stash.excluded.title", comment: ""),
+                                subtitle: NSLocalizedString("git.stash.excluded.hint", comment: ""),
                                 files: stashExcludedFiles,
                                 accent: Theme.orange,
                                 emptyMessage: ""
@@ -2404,7 +2405,7 @@ public struct GitPanelView: View {
                 .opacity(needsInput && actionInput.isEmpty ? 0.5 : 1)
             }
         }
-        .padding(20).frame(width: 520).background(Theme.bgCard)
+        .padding(20).frame(width: min(520, max(400, (NSScreen.main?.visibleFrame.width ?? 1440) - 200))).background(Theme.bgCard)
     }
 
     private func actionPreviewSection(title: String, subtitle: String, files: [GitFileChange], accent: Color, emptyMessage: String) -> some View {
@@ -2442,7 +2443,7 @@ public struct GitPanelView: View {
                         }
                     }
                 }
-                .frame(maxHeight: min(180, CGFloat(files.count) * 46))
+                .frame(maxHeight: min(180, max(50, CGFloat(files.count) * 46)))
             }
         }
         .padding(10)

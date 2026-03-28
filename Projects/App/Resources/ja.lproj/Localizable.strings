@@ -2607,3 +2607,20 @@
 "onboard.plugin.achievements" = "チャレンジ";
 "onboard.plugin.achievements.desc" = "新しい実績に挑戦しよう";
 "onboard.plugin.hint" = "設定 > プラグインからインストールできます";
+
+/* Git selective commit */
+"git.auto.stage.hint" = "チェックした変更ファイルはコミット時に自動的にstageされます。";
+"git.select.or.stage.hint" = "コミットするファイルを選択するか、先にstageしてください。";
+"git.auto.stage.count" = "自動stage %d";
+"git.commit.preview.selected" = "選択された%d個のファイルがコミットされます。";
+"git.commit.preview.staged" = "選択がない場合、現在のstaged %d個のファイルがコミ��トされます。";
+"git.commit.preview.empty" = "現在stagedファイルがありません。作業ディレクトリでファイルをチェックすると直接コミットできます。";
+"git.commit.preview.title" = "コミット予定ファイル";
+"git.commit.preview.no.staged" = "現在コミット可能なstagedファイルがありません。";
+"git.stash.preview.title" = "スタッシュに含まれる";
+"git.stash.preview.empty" = "スタッシュに含めるtracked��更ファイルがありません。";
+"git.stash.preview.count" = "現在tracked変更ファイル%d個がスタッシュに入ります。";
+"git.stash.preview.partial" = "tracked変更ファイル%d個が入り、untrackedファイルは除外されます。";
+"git.stash.preview.no.tracked" = "入れるtracked変更ファイルがありません。";
+"git.stash.excluded.title" = "今回のスタッシュから除外";
+"git.stash.excluded.hint" = "デフォルトの`git stash push`はuntrackedファイルを含みません。";
