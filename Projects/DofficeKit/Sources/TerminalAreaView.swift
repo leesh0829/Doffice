@@ -3201,28 +3201,14 @@ public final class NewSessionPreferencesStore: ObservableObject {
         lastDraft = draft
         saveRecents()
         saveLastDraft()
-        trust(projectPath: projectPath)
     }
 
     public func isTrusted(projectPath: String) -> Bool {
         let normalized = normalizeProjectPath(projectPath)
         guard !normalized.isEmpty else { return true }
-        if trustedProjectPaths.contains(where: {
+        return trustedProjectPaths.contains(where: {
             normalized == $0 || normalized.hasPrefix($0 + "/")
-        }) {
-            return true
-        }
-
-        let knownProjectPaths = (recentProjects + favoriteProjects).map(\.path).map(normalizeProjectPath)
-        if knownProjectPaths.contains(where: {
-            !$0.isEmpty && (normalized == $0 || normalized.hasPrefix($0 + "/"))
-        }) {
-            return true
-        }
-
-        return implicitTrustedRoots().contains {
-            normalized == $0 || normalized.hasPrefix($0 + "/")
-        }
+        })
     }
 
     public func trust(projectPath: String) {
@@ -3266,23 +3252,10 @@ public final class NewSessionPreferencesStore: ObservableObject {
 
         let expanded = NSString(string: trimmed).expandingTildeInPath
         let baseURL = URL(fileURLWithPath: expanded, isDirectory: true)
+        let standardized = baseURL.standardizedFileURL.path
+        // resolvingSymlinksInPath can crash on non-existent paths
+        guard FileManager.default.fileExists(atPath: standardized) else { return standardized }
         return baseURL.standardizedFileURL.resolvingSymlinksInPath().path
-    }
-
-    private func implicitTrustedRoots() -> [String] {
-        let home = NSHomeDirectory()
-        let candidates = [
-            home + "/develop",
-            home + "/Developer",
-            home + "/workspace",
-            home + "/workspaces",
-            home + "/code",
-            home + "/src"
-        ]
-
-        return candidates
-            .map(normalizeProjectPath)
-            .filter { !$0.isEmpty && FileManager.default.fileExists(atPath: $0) }
     }
 
     private func load() {
@@ -3452,6 +3425,7 @@ public struct NewTabSheet: View {
         .frame(width: preferredSheetWidth, height: preferredSheetHeight)
         .background(Theme.bg)
         .onAppear {
+            isCreatingSessions = false
             bootstrapFromLastDraftIfNeeded()
         }
         .alert(item: $unavailableProviderAlert) { provider in
@@ -4544,21 +4518,15 @@ public struct NewTabSheet: View {
 
         let expanded = NSString(string: trimmed).expandingTildeInPath
         let baseURL = URL(fileURLWithPath: expanded, isDirectory: true)
+        let standardized = baseURL.standardizedFileURL.path
+        guard FileManager.default.fileExists(atPath: standardized) else { return standardized }
         return baseURL.standardizedFileURL.resolvingSymlinksInPath().path
     }
 
     private var isCurrentProjectTrusted: Bool {
         let normalized = normalizedProjectPath(projectPath)
         guard !normalized.isEmpty else { return true }
-
-        if preferences.isTrusted(projectPath: normalized) {
-            return true
-        }
-
-        return manager.userVisibleTabs.contains { tab in
-            let tabPath = normalizedProjectPath(tab.projectPath)
-            return !tabPath.isEmpty && (normalized == tabPath || normalized.hasPrefix(tabPath + "/"))
-        }
+        return preferences.isTrusted(projectPath: normalized)
     }
 
     private func validateSelectedProjectPath() -> Bool {
@@ -4680,6 +4648,11 @@ public struct NewTabSheet: View {
                         tab.start()
                     }
                 }
+            }
+
+            let resetDelay = min(Double(tabsToStart.count) * 0.18, 0.72) + 0.3
+            DispatchQueue.main.asyncAfter(deadline: .now() + resetDelay) {
+                isCreatingSessions = false
             }
         }
     }
