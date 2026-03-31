@@ -110,8 +110,8 @@ struct SidebarView: View {
     @State private var searchQuery: String = ""
     @State private var isMultiSelectMode = false
     @State private var selectedTabIds: Set<String> = []
-    @AppStorage("workman.sidebarStatusFilter") private var statusFilterRaw: String = SessionStatusFilter.all.rawValue
-    @AppStorage("workman.sidebarSortOption") private var sortOptionRaw: String = SidebarSortOption.recent.rawValue
+    @AppStorage("doffice.sidebarStatusFilter") private var statusFilterRaw: String = SessionStatusFilter.all.rawValue
+    @AppStorage("doffice.sidebarSortOption") private var sortOptionRaw: String = SidebarSortOption.recent.rawValue
 
     private var statusFilter: SessionStatusFilter {
         get { SessionStatusFilter(rawValue: statusFilterRaw) ?? .all }
@@ -1428,7 +1428,7 @@ struct SessionHistoryView: View {
             Rectangle().fill(Theme.border).frame(height: 1)
         }
         .onAppear(perform: reloadHistory)
-        .onReceive(NotificationCenter.default.publisher(for: .workmanSessionStoreDidChange)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: .dofficeSessionStoreDidChange)) { _ in
             reloadHistory()
         }
     }

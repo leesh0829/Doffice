@@ -2632,3 +2632,19 @@
 "git.stash.preview.no.tracked" = "No tracked changed files to stash.";
 "git.stash.excluded.title" = "Excluded from This Stash";
 "git.stash.excluded.hint" = "Default `git stash push` does not include untracked files.";
+
+/* History panel */
+"terminal.mode.history" = "History";
+"history.empty" = "No prompt history yet. Send a prompt to start tracking.";
+"history.reverted" = "Files reverted to pre-prompt state.";
+"history.no.git.diff" = "No git diff available for this entry.";
+"history.revert.confirm.title" = "Revert Changes";
+"history.revert.confirm.message" = "Revert file changes from this prompt? This cannot be undone.";
+"history.revert.action" = "Revert";
+"history.files.changed" = "%d files changed";
+"history.expand" = "Show diff";
+"history.collapse" = "Hide diff";
+"history.just.now" = "Just now";
+
+/* Gemini */
+"gemini.rate.limit" = "Rate limit reached, retrying...";

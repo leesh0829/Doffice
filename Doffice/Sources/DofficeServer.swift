@@ -1,29 +1,29 @@
 import Foundation
 
-// MARK: - WorkManServer
-// Unix domain socket API server for scripting/automation of WorkMan.
+// MARK: - DofficeServer
+// Unix domain socket API server for scripting/automation of Doffice.
 // Protocol: newline-delimited JSON request → JSON response.
 //
 // Usage:
-//   WorkManServer.shared.start()   // call once at app launch
-//   WorkManServer.shared.stop()    // call on termination
+//   DofficeServer.shared.start()   // call once at app launch
+//   DofficeServer.shared.stop()    // call on termination
 //
 // CLI example:
-//   echo '{"command":"list-tabs"}' | nc -U /tmp/workman.sock
+//   echo '{"command":"list-tabs"}' | nc -U /tmp/doffice.sock
 
-final class WorkManServer {
+final class DofficeServer {
 
-    static let shared = WorkManServer()
+    static let shared = DofficeServer()
 
     // MARK: - Configuration
 
-    private let socketPath = "/tmp/workman.sock"
+    private let socketPath = "/tmp/doffice.sock"
     private let maxConnections: Int32 = 8
     private let bufferSize = 8192
 
     // MARK: - State
 
-    private let queue = DispatchQueue(label: "com.doffice.workman-server", qos: .utility)
+    private let queue = DispatchQueue(label: "com.doffice.doffice-server", qos: .utility)
     private var serverFD: Int32 = -1
     private var isRunning = false
     private var acceptSource: DispatchSourceRead?
@@ -32,7 +32,7 @@ final class WorkManServer {
 
     // MARK: - Notification Names (posted on main thread)
 
-    static let openBrowserNotification = Notification.Name("workmanOpenBrowser")
+    static let openBrowserNotification = Notification.Name("dofficeOpenBrowser")
 
     // MARK: - Lifecycle
 
@@ -288,7 +288,7 @@ final class WorkManServer {
             let manager = SessionManager.shared
             guard manager.tabs.contains(where: { $0.id == id }) else { return false }
             manager.selectTab(id)
-            NotificationCenter.default.post(name: .workmanSelectTab, object: id)
+            NotificationCenter.default.post(name: .dofficeSelectTab, object: id)
             return true
         }
         if found {
@@ -311,7 +311,7 @@ final class WorkManServer {
                 initialPrompt: prompt,
                 manualLaunch: true
             )
-            NotificationCenter.default.post(name: .workmanNewTab, object: tab.id)
+            NotificationCenter.default.post(name: .dofficeNewTab, object: tab.id)
             return tab.id
         }
         return successResponse(["id": tabId, "name": resolvedName, "path": resolvedPath])
@@ -322,7 +322,7 @@ final class WorkManServer {
             let manager = SessionManager.shared
             guard manager.tabs.contains(where: { $0.id == id }) else { return false }
             manager.removeTab(id)
-            NotificationCenter.default.post(name: .workmanCloseTab, object: id)
+            NotificationCenter.default.post(name: .dofficeCloseTab, object: id)
             return true
         }
         if found {
@@ -376,7 +376,7 @@ final class WorkManServer {
         }
         DispatchQueue.main.async {
             NotificationCenter.default.post(
-                name: WorkManServer.openBrowserNotification,
+                name: DofficeServer.openBrowserNotification,
                 object: url
             )
         }
@@ -524,6 +524,6 @@ final class WorkManServer {
     }
 
     private func log(_ message: String) {
-        print("[WorkManServer] \(message)")
+        print("[DofficeServer] \(message)")
     }
 }

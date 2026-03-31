@@ -20,7 +20,7 @@ public enum Theme {
     /// 설정 변경 시 캐시 무효화 (NotificationCenter 기반)
     private static let _observer: Void = {
         NotificationCenter.default.addObserver(
-            forName: .workmanRefresh, object: nil, queue: .main
+            forName: .dofficeRefresh, object: nil, queue: .main
         ) { _ in
             _cacheValid = false
             Typography.invalidateCache()

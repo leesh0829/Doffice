@@ -58,7 +58,7 @@ class SwiftTermContainer: NSView, LocalProcessTerminalViewDelegate {
 
         // send-keys 자동화 지원
         sendKeysObserver = NotificationCenter.default.addObserver(
-            forName: .workmanSendKeysToTerminal,
+            forName: .dofficeSendKeysToTerminal,
             object: nil,
             queue: .main
         ) { [weak self] notification in
@@ -182,7 +182,7 @@ class SwiftTermContainer: NSView, LocalProcessTerminalViewDelegate {
     /// 클립보드/스크린샷 이미지를 임시 파일로 저장하고 경로 반환
     private func saveClipboardImage(_ data: Data) -> String? {
         let timestamp = Int(Date().timeIntervalSince1970)
-        let filename = "workman_image_\(timestamp).png"
+        let filename = "doffice_image_\(timestamp).png"
         let tmpDir = NSTemporaryDirectory()
         let filePath = (tmpDir as NSString).appendingPathComponent(filename)
 

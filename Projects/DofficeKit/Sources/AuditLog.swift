@@ -94,8 +94,8 @@ public struct AuditEntry: Codable, Identifiable {
 public class AuditLog: ObservableObject {
     public static let shared = AuditLog()
     private let maxEntries = 5000
-    private let saveKey = "WorkManAuditLog"
-    private let persistenceQueue = DispatchQueue(label: "workman.audit-log", qos: .utility)
+    private let saveKey = "DofficeAuditLog"
+    private let persistenceQueue = DispatchQueue(label: "doffice.audit-log", qos: .utility)
     private var saveWorkItem: DispatchWorkItem?
 
     @Published public var entries: [AuditEntry] = []

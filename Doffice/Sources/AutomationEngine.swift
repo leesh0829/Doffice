@@ -13,7 +13,7 @@ class AutomationEngine: ObservableObject {
     @Published var macros: [AutomationMacro] = []
 
     private var scriptTask: Task<Void, Never>?
-    private let storageKey = "workman.automationMacros"
+    private let storageKey = "doffice.automationMacros"
 
     private init() { loadMacros() }
 
@@ -26,7 +26,7 @@ class AutomationEngine: ObservableObject {
         if AppSettings.shared.rawTerminalMode {
             // Raw 터미널 모드: SwiftTerm에 직접 전송
             NotificationCenter.default.post(
-                name: .workmanSendKeysToTerminal,
+                name: .dofficeSendKeysToTerminal,
                 object: nil,
                 userInfo: ["tabId": tabId, "text": text]
             )
@@ -39,7 +39,7 @@ class AutomationEngine: ObservableObject {
     /// 특정 탭에 특수 키 전송
     func sendSpecialKey(tabId: String, key: AutomationKey) {
         NotificationCenter.default.post(
-            name: .workmanSendKeysToTerminal,
+            name: .dofficeSendKeysToTerminal,
             object: nil,
             userInfo: ["tabId": tabId, "text": key.escapeSequence]
         )
@@ -222,4 +222,4 @@ struct AutomationMacro: Codable, Identifiable {
     }
 }
 
-// Notification.Name.workmanSendKeysToTerminal is declared in WorkManApp.swift
+// Notification.Name.dofficeSendKeysToTerminal is declared in DofficeApp.swift

@@ -92,6 +92,7 @@ struct MainView: View {
             statusBar
         }
         .background(Theme.bg)
+        .compositingGroup()
         .ignoresSafeArea(.all, edges: .top)
         .background(WindowConfigurator())
     }
@@ -124,23 +125,23 @@ struct MainView: View {
             .zIndex(10)
         }
         .overlay {
-            if settings.isLocked {
-                SessionLockOverlay()
-            }
-        }
-        .overlay {
-            if showCommandPalette {
-                CommandPaletteView(
-                    isPresented: $showCommandPalette,
-                    onNewSession: { manager.showNewTabSheet = true },
-                    onSettings: { showSettings = true },
-                    onBugReport: { showBugReport = true },
-                    onExportLog: { exportActiveLog() },
-                    onSetViewMode: { viewModeRaw = $0 }
-                )
-                .transition(.opacity)
-                .animation(.easeOut(duration: 0.15), value: showCommandPalette)
-                .zIndex(20)
+            ZStack {
+                if settings.isLocked {
+                    SessionLockOverlay()
+                }
+                if showCommandPalette {
+                    CommandPaletteView(
+                        isPresented: $showCommandPalette,
+                        onNewSession: { manager.showNewTabSheet = true },
+                        onSettings: { showSettings = true },
+                        onBugReport: { showBugReport = true },
+                        onExportLog: { exportActiveLog() },
+                        onSetViewMode: { viewModeRaw = $0 }
+                    )
+                    .transition(.opacity)
+                    .animation(.easeOut(duration: 0.15), value: showCommandPalette)
+                    .zIndex(20)
+                }
             }
         }
         .overlay(alignment: .bottom) {
@@ -1328,7 +1329,7 @@ struct BugReportView: View {
         if let img = screenshotImage, let tiff = img.tiffRepresentation,
            let bitmap = NSBitmapImageRep(data: tiff),
            let png = bitmap.representation(using: .png, properties: [:]) {
-            let tmpURL = FileManager.default.temporaryDirectory.appendingPathComponent("workman_bug_\(Int(Date().timeIntervalSince1970)).png")
+            let tmpURL = FileManager.default.temporaryDirectory.appendingPathComponent("doffice_bug_\(Int(Date().timeIntervalSince1970)).png")
             try? png.write(to: tmpURL)
             attachmentPath = tmpURL.path
         }
@@ -1396,29 +1397,29 @@ private struct NotificationHandlersModifier: ViewModifier {
 
     private func applyHandlers(_ content: Content) -> some View {
         content
-            .onReceive(NotificationCenter.default.publisher(for: .workmanRefresh)) { _ in manager.refresh() }
-            .onReceive(NotificationCenter.default.publisher(for: .workmanNewTab)) { _ in manager.showNewTabSheet = true }
-            .onReceive(NotificationCenter.default.publisher(for: .workmanCloseTab)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .dofficeRefresh)) { _ in manager.refresh() }
+            .onReceive(NotificationCenter.default.publisher(for: .dofficeNewTab)) { _ in manager.showNewTabSheet = true }
+            .onReceive(NotificationCenter.default.publisher(for: .dofficeCloseTab)) { _ in
                 if let id = manager.activeTabId { manager.removeTab(id) }
             }
             .onDeleteCommand {
                 if let id = manager.activeTabId { manager.removeTab(id) }
             }
-            .onReceive(NotificationCenter.default.publisher(for: .workmanSelectTab)) { notif in
+            .onReceive(NotificationCenter.default.publisher(for: .dofficeSelectTab)) { notif in
                 let tabs = manager.userVisibleTabs
                 if let i = notif.object as? Int, i >= 1, i <= tabs.count { manager.selectTab(tabs[i-1].id) }
             }
-            .onReceive(NotificationCenter.default.publisher(for: .workmanExportLog)) { _ in exportActiveLog() }
-            .onReceive(NotificationCenter.default.publisher(for: .workmanRestartSession)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .dofficeExportLog)) { _ in exportActiveLog() }
+            .onReceive(NotificationCenter.default.publisher(for: .dofficeRestartSession)) { _ in
                 if let tab = manager.activeTab { tab.stop(); tab.start() }
             }
-            .onReceive(NotificationCenter.default.publisher(for: .workmanNextTab)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .dofficeNextTab)) { _ in
                 let tabs = manager.userVisibleTabs
                 guard tabs.count > 1, let currentId = manager.activeTabId,
                       let idx = tabs.firstIndex(where: { $0.id == currentId }) else { return }
                 manager.selectTab(tabs[(idx + 1) % tabs.count].id)
             }
-            .onReceive(NotificationCenter.default.publisher(for: .workmanPreviousTab)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .dofficePreviousTab)) { _ in
                 let tabs = manager.userVisibleTabs
                 guard tabs.count > 1, let currentId = manager.activeTabId,
                       let idx = tabs.firstIndex(where: { $0.id == currentId }) else { return }
@@ -1428,37 +1429,37 @@ private struct NotificationHandlersModifier: ViewModifier {
 
     private func applyPartB(_ content: some View) -> some View {
         content
-            .onReceive(NotificationCenter.default.publisher(for: .workmanCancelProcessing)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .dofficeCancelProcessing)) { _ in
                 if let tab = manager.activeTab { tab.cancelProcessing() }
             }
-            .onReceive(NotificationCenter.default.publisher(for: .workmanClearTerminal)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .dofficeClearTerminal)) { _ in
                 if let tab = manager.activeTab { tab.clearBlocks() }
             }
-            .onReceive(NotificationCenter.default.publisher(for: .workmanToggleOffice)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .dofficeToggleOffice)) { _ in
                 withAnimation(chromeAnimation) { viewModeRaw = viewModeRaw == 1 ? 0 : 1 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: .workmanToggleTerminal)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .dofficeToggleTerminal)) { _ in
                 withAnimation(chromeAnimation) { viewModeRaw = viewModeRaw == 2 ? 0 : 2 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: .workmanClaudeNotInstalled)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .dofficeClaudeNotInstalled)) { _ in
                 showClaudeNotInstalledAlert = true
             }
-            .onReceive(NotificationCenter.default.publisher(for: .workmanRoleNotice)) { notif in
+            .onReceive(NotificationCenter.default.publisher(for: .dofficeRoleNotice)) { notif in
                 roleNoticeTitle = notif.userInfo?["title"] as? String ?? NSLocalizedString("main.job.notice", comment: "")
                 roleNoticeMessage = notif.userInfo?["message"] as? String ?? ""
                 showRoleNoticeAlert = true
             }
-            .onReceive(NotificationCenter.default.publisher(for: .workmanCommandPalette)) { _ in showCommandPalette.toggle() }
-            .onReceive(NotificationCenter.default.publisher(for: .workmanActionCenter)) { _ in showActionCenter = true }
-            .onReceive(NotificationCenter.default.publisher(for: .workmanOpenBrowser)) { notif in
+            .onReceive(NotificationCenter.default.publisher(for: .dofficeCommandPalette)) { _ in showCommandPalette.toggle() }
+            .onReceive(NotificationCenter.default.publisher(for: .dofficeActionCenter)) { _ in showActionCenter = true }
+            .onReceive(NotificationCenter.default.publisher(for: .dofficeOpenBrowser)) { notif in
                 // IPC 서버에서 브라우저 열기 요청 → 터미널 모드(2)로 전환 후 브라우저 뷰 활성화
                 withAnimation(chromeAnimation) { viewModeRaw = 2 }
                 let url = notif.object as? String
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    NotificationCenter.default.post(name: .workmanToggleBrowser, object: url)
+                    NotificationCenter.default.post(name: .dofficeToggleBrowser, object: url)
                 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: .workmanToggleBrowser)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .dofficeToggleBrowser)) { _ in
                 if viewModeRaw != 2 { withAnimation(chromeAnimation) { viewModeRaw = 2 } }
             }
             .onChange(of: viewModeRaw) { _, newValue in

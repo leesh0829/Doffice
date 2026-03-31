@@ -197,7 +197,7 @@ public class AppSettings: ObservableObject {
 
     public func requestRefreshIfNeeded() {
         if autoRefreshOnSettingsChange {
-            NotificationCenter.default.post(name: .workmanRefresh, object: nil)
+            NotificationCenter.default.post(name: .dofficeRefresh, object: nil)
         } else {
             pendingRefresh = true
         }
@@ -836,8 +836,8 @@ SRE_STATUS: CHECKED
 public final class AutomationTemplateStore: ObservableObject {
     public static let shared = AutomationTemplateStore()
 
-    private let saveKey = "workman.automation.templates.v1"
-    private let persistenceQueue = DispatchQueue(label: "workman.automation-template-store", qos: .utility)
+    private let saveKey = "doffice.automation.templates.v1"
+    private let persistenceQueue = DispatchQueue(label: "doffice.automation-template-store", qos: .utility)
     private var saveWorkItem: DispatchWorkItem?
     @Published public private(set) var revision: Int = 0
 

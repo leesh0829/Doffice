@@ -2630,3 +2630,19 @@
 "git.stash.preview.no.tracked" = "담길 tracked 변경 파일이 없습니다.";
 "git.stash.excluded.title" = "이번 스태시에서 제외됨";
 "git.stash.excluded.hint" = "기본 `git stash push`는 untracked 파일을 담지 않습니다.";
+
+/* History panel */
+"terminal.mode.history" = "히스토리";
+"history.empty" = "프롬프트 히스토리가 없습니다. 프롬프트를 보내면 추적이 시작됩니다.";
+"history.reverted" = "프롬프트 이전 상태로 파일이 복원되었습니다.";
+"history.no.git.diff" = "이 항목에 대한 git diff를 사용할 수 없습니다.";
+"history.revert.confirm.title" = "변경사항 되돌리기";
+"history.revert.confirm.message" = "이 프롬프트의 파일 변경사항을 되돌리시겠습니까? 이 작업은 취소할 수 없습니다.";
+"history.revert.action" = "되돌리기";
+"history.files.changed" = "파일 %d개 변경됨";
+"history.expand" = "diff 보기";
+"history.collapse" = "diff 숨기기";
+"history.just.now" = "방금";
+
+/* Gemini */
+"gemini.rate.limit" = "용량 한도 도달, 재시도 중...";

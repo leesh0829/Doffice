@@ -16,7 +16,7 @@ struct OfficeLayoutSnapshot: Codable {
 final class OfficeLayoutStore {
     static let shared = OfficeLayoutStore()
 
-    private let keyPrefix = "workman.office.layout"
+    private let keyPrefix = "doffice.office.layout"
     private let defaults = UserDefaults.standard
 
     private func key(for preset: OfficePreset) -> String {

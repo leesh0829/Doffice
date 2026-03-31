@@ -2632,3 +2632,19 @@
 "git.stash.preview.no.tracked" = "入れるtracked変更ファイルがありません。";
 "git.stash.excluded.title" = "今回のスタッシュから除外";
 "git.stash.excluded.hint" = "デフォルトの`git stash push`はuntrackedファイルを含みません。";
+
+/* History panel */
+"terminal.mode.history" = "履歴";
+"history.empty" = "プロンプト履歴はまだありません。プロンプトを送信すると追跡が開始されます。";
+"history.reverted" = "プロンプト前の状態にファイルを復元しました。";
+"history.no.git.diff" = "このエントリにはgit diffがありません。";
+"history.revert.confirm.title" = "変更を元に戻す";
+"history.revert.confirm.message" = "このプロンプトのファイル変更を元に戻しますか？この操作は取り消せません。";
+"history.revert.action" = "元に戻す";
+"history.files.changed" = "%d個のファイルが変更されました";
+"history.expand" = "diffを表示";
+"history.collapse" = "diffを非表示";
+"history.just.now" = "たった今";
+
+/* Gemini */
+"gemini.rate.limit" = "レート制限に達しました。リトライ中...";

@@ -737,13 +737,13 @@ class PluginManager: ObservableObject {
     @Published var isLoadingRegistry: Bool = false
     @Published var registryError: String?
 
-    private let storageKey = "WorkManPlugins"
+    private let storageKey = "DofficePlugins"
     private let pluginBaseDir: URL
     private var currentFetchTask: URLSessionDataTask?
     /// Manifest cache to avoid redundant disk I/O + JSON decoding during reload.
     /// Access must go through the thread-safe helpers below.
     private var _manifestCache: [String: PluginManifest] = [:]
-    private let manifestCacheQueue = DispatchQueue(label: "com.workman.manifestCache", attributes: .concurrent)
+    private let manifestCacheQueue = DispatchQueue(label: "com.doffice.manifestCache", attributes: .concurrent)
 
     func manifestCacheGet(_ key: String) -> PluginManifest? {
         manifestCacheQueue.sync { _manifestCache[key] }
@@ -762,14 +762,14 @@ class PluginManager: ObservableObject {
     static let registryURL = "https://raw.githubusercontent.com/jjunhaa0211/Doffice/main/registry.json"
 
     private init() {
-        // ~/Library/Application Support/WorkMan/Plugins
+        // ~/Library/Application Support/Doffice/Plugins
         guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            pluginBaseDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("WorkManPlugins")
+            pluginBaseDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("DofficePlugins")
             try? FileManager.default.createDirectory(at: pluginBaseDir, withIntermediateDirectories: true)
             loadPlugins()
             return
         }
-        pluginBaseDir = appSupport.appendingPathComponent("WorkMan").appendingPathComponent("Plugins")
+        pluginBaseDir = appSupport.appendingPathComponent("Doffice").appendingPathComponent("Plugins")
         try? FileManager.default.createDirectory(at: pluginBaseDir, withIntermediateDirectories: true)
         loadPlugins()
     }
@@ -1656,7 +1656,7 @@ class PluginManager: ObservableObject {
             RegistryPlugin(
                 id: "flea-market-hidden-pack",
                 name: "플리 마켓 히든 캐릭터 팩",
-                author: "WorkMan",
+                author: "Doffice",
                 description: "플리 마켓에서 바로 고용할 수 있는 히든 캐릭터 3종을 추가합니다.",
                 version: "1.0.0",
                 downloadURL: "bundled://flea-market-hidden-pack",
@@ -1668,7 +1668,7 @@ class PluginManager: ObservableObject {
             RegistryPlugin(
                 id: "typing-combo-pack",
                 name: "타이핑 콤보 팩",
-                author: "WorkMan",
+                author: "Doffice",
                 description: "터미널 외부에서 타이핑할 때 콤보 카운터, 파티클, 화면 흔들림 이펙트가 발동합니다.",
                 version: "1.0.0",
                 downloadURL: "bundled://typing-combo-pack",
@@ -1680,7 +1680,7 @@ class PluginManager: ObservableObject {
             RegistryPlugin(
                 id: "premium-furniture-pack",
                 name: "프리미엄 가구 팩",
-                author: "WorkMan",
+                author: "Doffice",
                 description: "아쿠아리움, 아케이드 머신, 네온사인, 빈백, 관엽식물 등 프리미엄 가구 8종을 추가합니다.",
                 version: "1.0.0",
                 downloadURL: "bundled://premium-furniture-pack",
@@ -1692,7 +1692,7 @@ class PluginManager: ObservableObject {
             RegistryPlugin(
                 id: "vacation-beach-pack",
                 name: "바캉스 비치 팩",
-                author: "WorkMan",
+                author: "Doffice",
                 description: "사무실을 해변으로 변신! 야자수, 서핑보드, 파라솔 아래에서 코딩하는 바캉스 컨셉 오피스.",
                 version: "1.0.0",
                 downloadURL: "bundled://vacation-beach-pack",
@@ -1704,7 +1704,7 @@ class PluginManager: ObservableObject {
             RegistryPlugin(
                 id: "battleground-pack",
                 name: "배틀그라운드 팩",
-                author: "WorkMan",
+                author: "Doffice",
                 description: "사무실이 전장으로! 나무, 바위, 수풀에 숨어 코딩하는 배그 컨셉 오피스. 에어드랍 이펙트 포함.",
                 version: "1.0.0",
                 downloadURL: "bundled://battleground-pack",
@@ -1847,7 +1847,7 @@ class PluginManager: ObservableObject {
               "name": "플리 마켓 히든 캐릭터 팩",
               "version": "1.0.0",
               "description": "플리 마켓에서 바로 고용할 수 있는 히든 캐릭터 3종 팩",
-              "author": "WorkMan",
+              "author": "Doffice",
               "contributes": {
                 "characters": "characters.json"
               }
@@ -1858,14 +1858,14 @@ class PluginManager: ObservableObject {
             {
               "name": "flea-market-hidden-pack",
               "version": "1.0.0",
-              "description": "Bundled hidden character pack for the WorkMan marketplace"
+              "description": "Bundled hidden character pack for the Doffice marketplace"
             }
             """
 
             let readme = """
             # 플리 마켓 히든 캐릭터 팩
 
-            WorkMan 마켓플레이스에서 바로 설치할 수 있는 기본 캐릭터 플러그인입니다.
+            Doffice 마켓플레이스에서 바로 설치할 수 있는 기본 캐릭터 플러그인입니다.
             설치하면 히든 캐릭터 3종이 캐릭터 목록에 추가됩니다.
             """
 
@@ -1885,7 +1885,7 @@ class PluginManager: ObservableObject {
               "name": "타이핑 콤보 팩",
               "version": "1.0.0",
               "description": "터미널 외부에서 타이핑할 때 콤보 카운터와 파티클 이펙트가 발동합니다",
-              "author": "WorkMan",
+              "author": "Doffice",
               "contributes": {
                 "effects": [
                   {
@@ -2007,7 +2007,7 @@ class PluginManager: ObservableObject {
               "name": "프리미엄 가구 팩",
               "version": "1.0.0",
               "description": "프리미엄 가구 8종을 추가합니다",
-              "author": "WorkMan",
+              "author": "Doffice",
               "contributes": {
                 "furniture": [
                   {
@@ -2199,7 +2199,7 @@ class PluginManager: ObservableObject {
               "name": "바캉스 비치 팩",
               "version": "1.0.0",
               "description": "사무실을 열대 해변으로! 야자수 아래에서 코딩하는 바캉스 오피스",
-              "author": "WorkMan",
+              "author": "Doffice",
               "contributes": {
                 "characters": "characters.json",
                 "themes": [
@@ -2461,7 +2461,7 @@ class PluginManager: ObservableObject {
               "name": "배틀그라운드 팩",
               "version": "1.0.0",
               "description": "사무실이 전장으로! 나무와 바위에 은신하며 코딩하는 배그 컨셉",
-              "author": "WorkMan",
+              "author": "Doffice",
               "contributes": {
                 "characters": "characters.json",
                 "themes": [

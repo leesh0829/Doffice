@@ -21,7 +21,7 @@ class SessionManager: ObservableObject {
     @Published var groups: [SessionGroup] = []
     @Published var selectedGroupPath: String? = nil {  // nil = 전체 보기
         didSet {
-            UserDefaults.standard.set(selectedGroupPath ?? "", forKey: "workman.selectedGroupPath")
+            UserDefaults.standard.set(selectedGroupPath ?? "", forKey: "doffice.selectedGroupPath")
         }
     }
     @Published var focusSingleTab: Bool = false       // 개별 워커 포커스
@@ -82,7 +82,7 @@ class SessionManager: ObservableObject {
     private var tabCompletionObserver: NSObjectProtocol?
     private var sessionStoreObserver: NSObjectProtocol?
     private var appLifecycleObservers: [NSObjectProtocol] = []
-    private let reportScanQueue = DispatchQueue(label: "workman.report-count", qos: .utility)
+    private let reportScanQueue = DispatchQueue(label: "doffice.report-count", qos: .utility)
     private var reportScanWorkItem: DispatchWorkItem?
     private var reportRefreshToken = UUID()
     private var isAppActive = true
@@ -147,7 +147,7 @@ class SessionManager: ObservableObject {
         selectTab(result.tabId)
         // Post notification so TerminalAreaView can scroll to the block
         NotificationCenter.default.post(
-            name: .workmanScrollToBlock,
+            name: .dofficeScrollToBlock,
             object: result.blockId
         )
     }
@@ -166,7 +166,7 @@ class SessionManager: ObservableObject {
     private init() {
         isAppActive = NSApplication.shared.isActive
         tabCompletionObserver = NotificationCenter.default.addObserver(
-            forName: .workmanTabCycleCompleted,
+            forName: .dofficeTabCycleCompleted,
             object: nil,
             queue: .main
         ) { [weak self] notification in
@@ -174,7 +174,7 @@ class SessionManager: ObservableObject {
             self?.handleTabCycleCompleted(tab)
         }
         sessionStoreObserver = NotificationCenter.default.addObserver(
-            forName: .workmanSessionStoreDidChange,
+            forName: .dofficeSessionStoreDidChange,
             object: nil,
             queue: .main
         ) { [weak self] _ in
@@ -201,7 +201,7 @@ class SessionManager: ObservableObject {
         scheduleAvailableReportCountRefresh()
 
         // Restore persisted selectedGroupPath
-        let storedPath = UserDefaults.standard.string(forKey: "workman.selectedGroupPath") ?? ""
+        let storedPath = UserDefaults.standard.string(forKey: "doffice.selectedGroupPath") ?? ""
         if !storedPath.isEmpty {
             selectedGroupPath = storedPath
         }
@@ -447,7 +447,7 @@ class SessionManager: ObservableObject {
                 }
             }
 
-            // WorkManApp 자체가 spawn한 프로세스 제외 (ppid 확인)
+            // DofficeApp 자체가 spawn한 프로세스 제외 (ppid 확인)
             var bsdInfo = proc_bsdinfo()
             let infoSize = proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &bsdInfo, Int32(MemoryLayout<proc_bsdinfo>.size))
             if infoSize > 0 {
@@ -772,7 +772,7 @@ class SessionManager: ObservableObject {
         }
 
         NotificationCenter.default.post(
-            name: .workmanRoleNotice,
+            name: .dofficeRoleNotice,
             object: nil,
             userInfo: [
                 "title": NSLocalizedString("session.limit.title", comment: ""),
@@ -844,7 +844,7 @@ class SessionManager: ObservableObject {
         tab.isSSH = true
         // SSH는 raw terminal로 실행
         NotificationCenter.default.post(
-            name: .workmanSSHTabCreated,
+            name: .dofficeSSHTabCreated,
             object: tab,
             userInfo: ["profile": profile]
         )
@@ -1828,7 +1828,7 @@ class SessionManager: ObservableObject {
             .replacingOccurrences(of: "[^a-z0-9_-]+", with: "-", options: .regularExpression)
             .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
         let fileName = "\(formatter.string(from: Date()))-\(safeProjectName.isEmpty ? "report" : safeProjectName)-report.md"
-        return (tab.projectPath as NSString).appendingPathComponent(".workman/reports/\(fileName)")
+        return (tab.projectPath as NSString).appendingPathComponent(".doffice/reports/\(fileName)")
     }
 
     private func ensureReportDirectoryExists(for reportPath: String) {
@@ -1855,7 +1855,7 @@ class SessionManager: ObservableObject {
 
         var references: [ReportReference] = []
         for (projectName, projectPath) in uniqueProjects {
-            let reportsDir = (projectPath as NSString).appendingPathComponent(".workman/reports")
+            let reportsDir = (projectPath as NSString).appendingPathComponent(".doffice/reports")
             guard let files = try? FileManager.default.contentsOfDirectory(atPath: reportsDir) else { continue }
 
             for file in files where file.hasSuffix(".md") {
@@ -2081,7 +2081,7 @@ class SessionManager: ObservableObject {
 
         var count = 0
         for (_, projectPath) in uniqueProjects {
-            let reportsDir = (projectPath as NSString).appendingPathComponent(".workman/reports")
+            let reportsDir = (projectPath as NSString).appendingPathComponent(".doffice/reports")
             guard let files = try? FileManager.default.contentsOfDirectory(atPath: reportsDir) else { continue }
             count += files.filter { $0.hasSuffix(".md") }.count
         }

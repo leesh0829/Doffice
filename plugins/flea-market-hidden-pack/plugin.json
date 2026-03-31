@@ -2,7 +2,7 @@
   "name": "플리 마켓 히든 캐릭터 팩",
   "version": "1.0.0",
   "description": "플리 마켓에서 바로 고용할 수 있는 히든 캐릭터 3종 팩",
-  "author": "WorkMan",
+  "author": "Doffice",
   "contributes": {
     "characters": "characters.json"
   }

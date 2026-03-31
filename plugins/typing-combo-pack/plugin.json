@@ -2,7 +2,7 @@
   "name": "타이핑 콤보 팩",
   "version": "1.0.0",
   "description": "터미널 외부에서 타이핑할 때 콤보 카운터와 파티클 이펙트가 발동합니다",
-  "author": "WorkMan",
+  "author": "Doffice",
   "contributes": {
     "effects": [
       {

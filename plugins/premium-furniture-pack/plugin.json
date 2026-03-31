@@ -2,7 +2,7 @@
   "name": "프리미엄 가구 팩",
   "version": "1.0.0",
   "description": "프리미엄 가구 8종을 추가합니다",
-  "author": "WorkMan",
+  "author": "Doffice",
   "contributes": {
     "furniture": [
       {

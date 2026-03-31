@@ -24,7 +24,7 @@ Carthage/
 *.dSYM
 
 # App recovery data (user-specific, should not be in repo)
-.workman/recovery/
+.doffice/recovery/
 
 # User state
 *.xcuserstate

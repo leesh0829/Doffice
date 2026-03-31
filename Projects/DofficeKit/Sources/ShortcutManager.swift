@@ -118,20 +118,20 @@ public enum ShortcutAction: String, CaseIterable, Codable, Identifiable {
     /// 이 액션에 대응하는 Notification.Name
     public var notificationName: Notification.Name {
         switch self {
-        case .restartSession:     return .workmanRestartSession
-        case .newSession:         return .workmanNewTab
-        case .closeSession:       return .workmanCloseTab
-        case .nextTab:            return .workmanNextTab
-        case .previousTab:        return .workmanPreviousTab
-        case .cancelProcessing:   return .workmanCancelProcessing
-        case .clearTerminal:      return .workmanClearTerminal
-        case .commandPalette:     return .workmanCommandPalette
-        case .actionCenter:       return .workmanActionCenter
-        case .toggleSplitView:    return .workmanToggleSplit
-        case .toggleOfficeView:   return .workmanToggleOffice
-        case .toggleTerminalView: return .workmanToggleTerminal
-        case .toggleBrowserView:  return .workmanToggleBrowser
-        case .exportSessionLog:   return .workmanExportLog
+        case .restartSession:     return .dofficeRestartSession
+        case .newSession:         return .dofficeNewTab
+        case .closeSession:       return .dofficeCloseTab
+        case .nextTab:            return .dofficeNextTab
+        case .previousTab:        return .dofficePreviousTab
+        case .cancelProcessing:   return .dofficeCancelProcessing
+        case .clearTerminal:      return .dofficeClearTerminal
+        case .commandPalette:     return .dofficeCommandPalette
+        case .actionCenter:       return .dofficeActionCenter
+        case .toggleSplitView:    return .dofficeToggleSplit
+        case .toggleOfficeView:   return .dofficeToggleOffice
+        case .toggleTerminalView: return .dofficeToggleTerminal
+        case .toggleBrowserView:  return .dofficeToggleBrowser
+        case .exportSessionLog:   return .dofficeExportLog
         }
     }
 }
@@ -209,7 +209,7 @@ public class ShortcutManager: ObservableObject {
         didSet { saveToStorage() }
     }
 
-    private let storageKey = "workman.customShortcuts"
+    private let storageKey = "doffice.customShortcuts"
 
     // 이벤트 모니터 참조
     private var localMonitor: Any?
@@ -303,7 +303,7 @@ public class ShortcutManager: ObservableObject {
             if mods == .command,
                let chars = event.charactersIgnoringModifiers,
                let digit = Int(chars), (1...9).contains(digit) {
-                NotificationCenter.default.post(name: .workmanSelectTab, object: digit)
+                NotificationCenter.default.post(name: .dofficeSelectTab, object: digit)
                 return nil
             }
 

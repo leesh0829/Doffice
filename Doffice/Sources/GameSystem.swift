@@ -545,7 +545,7 @@ class AchievementManager: ObservableObject {
     @Published var loginStreak: Int = 0
     @Published var todayRewardClaimed: Bool = false
 
-    private let saveKey = "WorkManAchievements"
+    private let saveKey = "DofficeAchievements"
     private var saveDebounceWork: DispatchWorkItem?
     private var toastQueue: [Achievement] = []
     private var toastDismissWork: DispatchWorkItem?

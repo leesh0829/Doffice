@@ -2,7 +2,7 @@
   "name": "바캉스 비치 팩",
   "version": "1.0.0",
   "description": "사무실을 열대 해변으로! 야자수 아래에서 코딩하는 바캉스 오피스",
-  "author": "WorkMan",
+  "author": "Doffice",
   "contributes": {
     "characters": "characters.json",
     "themes": [

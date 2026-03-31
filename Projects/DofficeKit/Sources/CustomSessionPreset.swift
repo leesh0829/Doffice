@@ -23,7 +23,7 @@ public struct CustomSessionPreset: Codable, Identifiable, Hashable {
 public final class CustomPresetStore: ObservableObject {
     public static let shared = CustomPresetStore()
     @Published public private(set) var presets: [CustomSessionPreset] = []
-    private let key = "workman.custom-session-presets"
+    private let key = "doffice.custom-session-presets"
 
     private init() { load() }
 

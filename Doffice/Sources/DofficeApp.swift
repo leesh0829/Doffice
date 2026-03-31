@@ -2,7 +2,7 @@ import SwiftUI
 import UserNotifications
 
 @main
-struct WorkManApp: App {
+struct DofficeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var manager = SessionManager.shared
     @ObservedObject private var settings = AppSettings.shared
@@ -41,7 +41,7 @@ struct WorkManApp: App {
 
                 ForEach(1...9, id: \.self) { index in
                     Button("Session \(index)") {
-                        NotificationCenter.default.post(name: .workmanSelectTab, object: index)
+                        NotificationCenter.default.post(name: .dofficeSelectTab, object: index)
                     }
                     .keyboardShortcut(KeyEquivalent(Character("\(index)")), modifiers: .command)
                 }
@@ -51,32 +51,32 @@ struct WorkManApp: App {
 }
 
 extension Notification.Name {
-    static let workmanRefresh = Notification.Name("workmanRefresh")
-    static let workmanNewTab = Notification.Name("workmanNewTab")
-    static let workmanCloseTab = Notification.Name("workmanCloseTab")
-    static let workmanSelectTab = Notification.Name("workmanSelectTab")
-    static let workmanToggleSplit = Notification.Name("workmanToggleSplit")
-    static let workmanExportLog = Notification.Name("workmanExportLog")
-    static let workmanRestartSession = Notification.Name("workmanRestartSession")
-    static let workmanNextTab = Notification.Name("workmanNextTab")
-    static let workmanPreviousTab = Notification.Name("workmanPreviousTab")
-    static let workmanCancelProcessing = Notification.Name("workmanCancelProcessing")
-    static let workmanClearTerminal = Notification.Name("workmanClearTerminal")
-    static let workmanToggleOffice = Notification.Name("workmanToggleOffice")
-    static let workmanToggleTerminal = Notification.Name("workmanToggleTerminal")
-    static let workmanClaudeNotInstalled = Notification.Name("workmanClaudeNotInstalled")
-    static let workmanTabCycleCompleted = Notification.Name("workmanTabCycleCompleted")
-    static let workmanRoleNotice = Notification.Name("workmanRoleNotice")
-    static let workmanSessionStoreDidChange = Notification.Name("workmanSessionStoreDidChange")
-    static let workmanScrollToBlock = Notification.Name("workmanScrollToBlock")
-    static let workmanCommandPalette = Notification.Name("workmanCommandPalette")
-    static let workmanActionCenter = Notification.Name("workmanActionCenter")
-    static let workmanSSHTabCreated = Notification.Name("workmanSSHTabCreated")
-    static let workmanSendKeysToTerminal = Notification.Name("workmanSendKeysToTerminal")
-    static let workmanSplitHorizontal = Notification.Name("workmanSplitHorizontal")
-    static let workmanSplitVertical = Notification.Name("workmanSplitVertical")
-    static let workmanClosePane = Notification.Name("workmanClosePane")
-    static let workmanOpenSSH = Notification.Name("workmanOpenSSH")
+    static let dofficeRefresh = Notification.Name("dofficeRefresh")
+    static let dofficeNewTab = Notification.Name("dofficeNewTab")
+    static let dofficeCloseTab = Notification.Name("dofficeCloseTab")
+    static let dofficeSelectTab = Notification.Name("dofficeSelectTab")
+    static let dofficeToggleSplit = Notification.Name("dofficeToggleSplit")
+    static let dofficeExportLog = Notification.Name("dofficeExportLog")
+    static let dofficeRestartSession = Notification.Name("dofficeRestartSession")
+    static let dofficeNextTab = Notification.Name("dofficeNextTab")
+    static let dofficePreviousTab = Notification.Name("dofficePreviousTab")
+    static let dofficeCancelProcessing = Notification.Name("dofficeCancelProcessing")
+    static let dofficeClearTerminal = Notification.Name("dofficeClearTerminal")
+    static let dofficeToggleOffice = Notification.Name("dofficeToggleOffice")
+    static let dofficeToggleTerminal = Notification.Name("dofficeToggleTerminal")
+    static let dofficeClaudeNotInstalled = Notification.Name("dofficeClaudeNotInstalled")
+    static let dofficeTabCycleCompleted = Notification.Name("dofficeTabCycleCompleted")
+    static let dofficeRoleNotice = Notification.Name("dofficeRoleNotice")
+    static let dofficeSessionStoreDidChange = Notification.Name("dofficeSessionStoreDidChange")
+    static let dofficeScrollToBlock = Notification.Name("dofficeScrollToBlock")
+    static let dofficeCommandPalette = Notification.Name("dofficeCommandPalette")
+    static let dofficeActionCenter = Notification.Name("dofficeActionCenter")
+    static let dofficeSSHTabCreated = Notification.Name("dofficeSSHTabCreated")
+    static let dofficeSendKeysToTerminal = Notification.Name("dofficeSendKeysToTerminal")
+    static let dofficeSplitHorizontal = Notification.Name("dofficeSplitHorizontal")
+    static let dofficeSplitVertical = Notification.Name("dofficeSplitVertical")
+    static let dofficeClosePane = Notification.Name("dofficeClosePane")
+    static let dofficeOpenSSH = Notification.Name("dofficeOpenSSH")
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -259,13 +259,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         self.recoveryWindow = nil
     }
 
-    /// 이전 번들 ID (com.junha.workman)의 UserDefaults 데이터를 현재 앱으로 마이그레이션
+    /// 이전 번들 ID (com.junha.doffice)의 UserDefaults 데이터를 현재 앱으로 마이그레이션
     private func migrateFromOldBundleIfNeeded() {
-        let migrationKey = "doffice.migrated.from.workman"
+        let migrationKey = "doffice.migrated.from.doffice"
         guard !UserDefaults.standard.bool(forKey: migrationKey) else { return }
 
         // 이전 번들의 UserDefaults 읽기
-        guard let oldDefaults = UserDefaults(suiteName: "com.junha.workman") else {
+        guard let oldDefaults = UserDefaults(suiteName: "com.junha.doffice") else {
             UserDefaults.standard.set(true, forKey: migrationKey)
             return
         }
@@ -279,14 +279,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // 마이그레이션 대상 키 (중요 데이터)
         let keysToMigrate = [
             // 도전과제 & 레벨
-            "WorkManAchievements",
+            "DofficeAchievements",
             // 캐릭터
-            "WorkManCharacters",
-            "WorkManCharacterManualUnlocks",
+            "DofficeCharacters",
+            "DofficeCharacterManualUnlocks",
             // 토큰 사용량
-            "WorkManTokenHistory",
+            "DofficeTokenHistory",
             // 감사 로그
-            "WorkManAuditLog",
+            "DofficeAuditLog",
             // 앱 설정
             "isDarkMode", "fontSizeScale", "officeViewMode", "officePreset",
             "backgroundTheme", "reviewerMaxPasses", "qaMaxPasses",
@@ -306,20 +306,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // 뷰 모드
             "viewModeRaw", "officeExpanded", "sidebarWidth",
             // 세션 관련
-            "workman.selectedGroupPath",
-            "workman.sidebarStatusFilter", "workman.sidebarSortOption",
+            "doffice.selectedGroupPath",
+            "doffice.sidebarStatusFilter", "doffice.sidebarSortOption",
             // 새 세션 프리셋
-            "workman.new-session.favorite-projects",
-            "workman.new-session.recent-projects",
-            "workman.new-session.last-draft",
+            "doffice.new-session.favorite-projects",
+            "doffice.new-session.recent-projects",
+            "doffice.new-session.last-draft",
             // 자동화 템플릿
-            "workman.automation.templates.v1",
+            "doffice.automation.templates.v1",
             // 오피스 레이아웃
-            "workman.office.layout.cozy.v1",
-            "workman.office.layout.startup.v1",
-            "workman.office.layout.enterprise.v1",
+            "doffice.office.layout.cozy.v1",
+            "doffice.office.layout.startup.v1",
+            "doffice.office.layout.enterprise.v1",
             // 단축키
-            "workman.customShortcuts",
+            "doffice.customShortcuts",
         ]
 
         var migratedCount = 0
@@ -332,15 +332,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // @AppStorage 키도 포함: 패턴 매칭으로 나머지 키 마이그레이션
         for (key, value) in oldDict {
-            if key.hasPrefix("workman.") || key.hasPrefix("WorkMan"),
+            if key.hasPrefix("doffice.") || key.hasPrefix("Doffice"),
                UserDefaults.standard.object(forKey: key) == nil {
                 UserDefaults.standard.set(value, forKey: key)
                 migratedCount += 1
             }
         }
 
-        // 세션 JSON 파일도 마이그레이션 (Application Support/WorkMan → 동일 경로 유지)
-        // SessionStore는 이미 "WorkMan" 경로를 사용하므로 파일 이동 불필요
+        // 세션 JSON 파일도 마이그레이션 (Application Support/Doffice → 동일 경로 유지)
+        // SessionStore는 이미 "Doffice" 경로를 사용하므로 파일 이동 불필요
 
         UserDefaults.standard.set(true, forKey: migrationKey)
         if migratedCount > 0 {
@@ -368,7 +368,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // NSException (Objective-C 예외) 핸들러
         NSSetUncaughtExceptionHandler { exception in
-            print("[WorkMan] Uncaught exception: \(exception.name) — \(exception.reason ?? "unknown")")
+            print("[Doffice] Uncaught exception: \(exception.name) — \(exception.reason ?? "unknown")")
             // 예외 핸들러에서는 최소한의 작업만 수행 — 저장은 best-effort
             SessionManager.shared.saveSessions(immediately: true)
         }

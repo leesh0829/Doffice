@@ -386,14 +386,14 @@ class TokenTracker: ObservableObject {
     static let shared = TokenTracker()
     static let recommendedDailyLimit = 500_000
     static let recommendedWeeklyLimit = 2_500_000
-    private let saveKey = "WorkManTokenHistory"
+    private let saveKey = "DofficeTokenHistory"
     private let automationDailyReserve = 100_000
     private let automationWeeklyReserve = 300_000
     private let globalDailyReserve = 12_000
     private let globalWeeklyReserve = 40_000
     private let emergencyDailyReserve = 6_000
     private let emergencyWeeklyReserve = 20_000
-    private let persistenceQueue = DispatchQueue(label: "workman.token-tracker", qos: .utility)
+    private let persistenceQueue = DispatchQueue(label: "doffice.token-tracker", qos: .utility)
     private var saveWorkItem: DispatchWorkItem?
 
     struct DayRecord: Codable {
@@ -1168,7 +1168,7 @@ class TerminalTab: ObservableObject, Identifiable {
             appendBlock(.error(message: NSLocalizedString("tab.claude.not.installed", comment: "")), content: NSLocalizedString("tab.claude.not.installed.detail", comment: ""))
             startError = "Claude Code not installed"
             DispatchQueue.main.async {
-                NotificationCenter.default.post(name: .workmanClaudeNotInstalled, object: nil)
+                NotificationCenter.default.post(name: .dofficeClaudeNotInstalled, object: nil)
             }
             return
         }
@@ -1364,7 +1364,7 @@ class TerminalTab: ObservableObject, Identifiable {
             }
 
             var jsonBuffer = ""
-            let bufferQueue = DispatchQueue(label: "com.workman.jsonBuffer")
+            let bufferQueue = DispatchQueue(label: "com.doffice.jsonBuffer")
 
             outPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
                 let data = handle.availableData
@@ -1401,7 +1401,7 @@ class TerminalTab: ObservableObject, Identifiable {
                 // Watchdog: 30분 타임아웃 — CLI가 무한 hang 방지
                 let watchdog = DispatchWorkItem { [weak proc] in
                     guard let p = proc, p.isRunning else { return }
-                    print("[WorkMan] ⚠️ Process watchdog: 30분 타임아웃 도달, 강제 종료")
+                    print("[Doffice] ⚠️ Process watchdog: 30분 타임아웃 도달, 강제 종료")
                     p.terminate()
                 }
                 DispatchQueue.global().asyncAfter(deadline: .now() + 1800, execute: watchdog)
@@ -1524,7 +1524,7 @@ class TerminalTab: ObservableObject, Identifiable {
                         AuditLog.shared.log(.fileRead, tabId: id, projectName: projectName, detail: file)
                         appendBlock(.toolUse(name: "Read", input: file), content: (file as NSString).lastPathComponent)
                         readCommandCount += 1
-                        NotificationCenter.default.post(name: .init("workmanAchievementFileRead"), object: readCommandCount)
+                        NotificationCenter.default.post(name: .init("dofficeAchievementFileRead"), object: readCommandCount)
                     case "Write":
                         claudeActivity = .writing
                         let file = toolInput["file_path"] as? String ?? ""
@@ -1536,7 +1536,7 @@ class TerminalTab: ObservableObject, Identifiable {
                         recordFileChange(path: file, action: "Write")
                         appendBlock(.fileChange(path: file, action: "Write"), content: (file as NSString).lastPathComponent)
                         timeline.append(TimelineEvent(timestamp: Date(), type: .fileChange, detail: "Write: \((file as NSString).lastPathComponent)"))
-                        NotificationCenter.default.post(name: .init("workmanAchievementFileEdit"), object: nil)
+                        NotificationCenter.default.post(name: .init("dofficeAchievementFileEdit"), object: nil)
                     case "Edit":
                         claudeActivity = .writing
                         let file = toolInput["file_path"] as? String ?? ""
@@ -1548,17 +1548,17 @@ class TerminalTab: ObservableObject, Identifiable {
                         recordFileChange(path: file, action: "Edit")
                         appendBlock(.fileChange(path: file, action: "Edit"), content: (file as NSString).lastPathComponent)
                         timeline.append(TimelineEvent(timestamp: Date(), type: .fileChange, detail: "Edit: \((file as NSString).lastPathComponent)"))
-                        NotificationCenter.default.post(name: .init("workmanAchievementFileEdit"), object: nil)
+                        NotificationCenter.default.post(name: .init("dofficeAchievementFileEdit"), object: nil)
                     case "Grep":
                         claudeActivity = .searching
                         let pattern = toolInput["pattern"] as? String ?? ""
                         appendBlock(.toolUse(name: "Grep", input: pattern), content: pattern)
-                        NotificationCenter.default.post(name: .init("workmanAchievementUnlock"), object: "first_grep")
+                        NotificationCenter.default.post(name: .init("dofficeAchievementUnlock"), object: "first_grep")
                     case "Glob":
                         claudeActivity = .searching
                         let pattern = toolInput["pattern"] as? String ?? ""
                         appendBlock(.toolUse(name: "Glob", input: pattern), content: pattern)
-                        NotificationCenter.default.post(name: .init("workmanAchievementUnlock"), object: "first_glob")
+                        NotificationCenter.default.post(name: .init("dofficeAchievementUnlock"), object: "first_glob")
                     case "Task":
                         claudeActivity = .thinking
                         let taskLabel = registerParallelTask(toolUseId: toolUseId, input: toolInput)
@@ -1645,7 +1645,7 @@ class TerminalTab: ObservableObject, Identifiable {
                 sendCompletionNotification()
                 PluginHost.shared.fireEvent(.onSessionComplete, context: ["tabId": id])
                 NotificationCenter.default.post(
-                    name: .workmanTabCycleCompleted,
+                    name: .dofficeTabCycleCompleted,
                     object: self,
                     userInfo: [
                         "tabId": id,
@@ -1812,7 +1812,7 @@ class TerminalTab: ObservableObject, Identifiable {
         )
         // 세션 알림: 승인 필요
         let tabName = workerName.isEmpty ? projectName : workerName
-        NotificationCenter.default.post(name: .init("workmanApprovalNeeded"), object: nil, userInfo: ["tabName": tabName, "tabId": id, "toolName": denial.toolName])
+        NotificationCenter.default.post(name: .init("dofficeApprovalNeeded"), object: nil, userInfo: ["tabName": tabName, "tabId": id, "toolName": denial.toolName])
     }
 
     private func retryPermissionMode(for toolName: String) -> PermissionMode {

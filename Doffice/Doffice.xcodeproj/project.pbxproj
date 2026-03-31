@@ -18,7 +18,7 @@
 		8EAB07DCD8A5717B584AE381 /* SessionPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B57D61AE58AAA182FF626C15 /* SessionPersistenceTests.swift */; };
 		CORETEST01 /* CoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CORETEST02 /* CoreTests.swift */; };
 		9141A180C2CDC4F91C87AA78 /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FB8028B43E80A3835392CA /* UpdateChecker.swift */; };
-		A10001 /* WorkManApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001 /* WorkManApp.swift */; };
+		A10001 /* DofficeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001 /* DofficeApp.swift */; };
 		A10002 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002 /* Models.swift */; };
 		A10003 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10003 /* SessionManager.swift */; };
 		A10004 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10004 /* MainView.swift */; };
@@ -70,7 +70,7 @@
 		4B6C4A9868E571719C427D24 /* DofficeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DofficeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C60E443524B7F6AE927F898 /* DangerousCommandDetector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DangerousCommandDetector.swift; sourceTree = "<group>"; };
 		AADE3B5D98B955B0C80A5DE3 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
-		B10001 /* WorkManApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkManApp.swift; sourceTree = "<group>"; };
+		B10001 /* DofficeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DofficeApp.swift; sourceTree = "<group>"; };
 		B10002 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		B10003 /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
 		B10004 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
@@ -109,7 +109,7 @@
 		B50004 /* BrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserView.swift; sourceTree = "<group>"; };
 		D10001 /* Doffice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Doffice.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E10001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		E10002 /* WorkManApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WorkManApp.entitlements; sourceTree = "<group>"; };
+		E10002 /* DofficeApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DofficeApp.entitlements; sourceTree = "<group>"; };
 		F35199C3D3E258D53AF607EA /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = "<group>"; };
 		V10001_EN /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		V10001_JA /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -180,7 +180,7 @@
 		G10002 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
-				B10001 /* WorkManApp.swift */,
+				B10001 /* DofficeApp.swift */,
 				B10008 /* Theme.swift */,
 				B10002 /* Models.swift */,
 				B10003 /* SessionManager.swift */,
@@ -217,7 +217,7 @@
 			isa = PBXGroup;
 			children = (
 				E10001 /* Info.plist */,
-				E10002 /* WorkManApp.entitlements */,
+				E10002 /* DofficeApp.entitlements */,
 				B10013 /* Assets.xcassets */,
 				B10014 /* AppIcon.icns */,
 				V10001 /* Localizable.strings */,
@@ -359,7 +359,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A10001 /* WorkManApp.swift in Sources */,
+				A10001 /* DofficeApp.swift in Sources */,
 				A10008 /* Theme.swift in Sources */,
 				A10002 /* Models.swift in Sources */,
 				A10003 /* SessionManager.swift in Sources */,
@@ -458,7 +458,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = Resources/WorkManApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Resources/DofficeApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -486,7 +486,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = Resources/WorkManApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Resources/DofficeApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;

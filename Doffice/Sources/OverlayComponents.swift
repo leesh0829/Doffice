@@ -437,7 +437,7 @@ struct CustomSessionPreset: Codable, Identifiable, Hashable {
 final class CustomPresetStore: ObservableObject {
     static let shared = CustomPresetStore()
     @Published private(set) var presets: [CustomSessionPreset] = []
-    private let key = "workman.custom-session-presets"
+    private let key = "doffice.custom-session-presets"
 
     private init() { load() }
 
@@ -644,7 +644,7 @@ final class SessionNotificationManager: ObservableObject {
 
     private init() {
         // 세션 완료 감지
-        NotificationCenter.default.publisher(for: .workmanTabCycleCompleted)
+        NotificationCenter.default.publisher(for: .dofficeTabCycleCompleted)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notif in
                 let tabId = notif.userInfo?["tabId"] as? String

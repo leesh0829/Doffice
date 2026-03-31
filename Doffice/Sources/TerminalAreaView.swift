@@ -421,7 +421,7 @@ struct EventStreamView: View {
                 return prefix + block.content
             }.joined(separator: "\n")
             let dateStr = { let f = DateFormatter(); f.dateFormat = "yyyyMMdd_HHmmss"; return f.string(from: Date()) }()
-            let path = "\(tab.projectPath)/workman_log_\(dateStr).txt"
+            let path = "\(tab.projectPath)/doffice_log_\(dateStr).txt"
             do { try text.write(toFile: path, atomically: true, encoding: .utf8)
                 tab.appendBlock(.status(message: String(format: NSLocalizedString("terminal.log.saved", comment: ""), path)))
             } catch { tab.appendBlock(.status(message: String(format: NSLocalizedString("terminal.log.save.failed", comment: ""), error.localizedDescription))) }
@@ -899,7 +899,7 @@ struct EventStreamView: View {
                 case "kill":
                     bridge.killAllSessions()
                     DispatchQueue.main.async {
-                        tab?.appendBlock(.status(message: "All workman tmux sessions killed."))
+                        tab?.appendBlock(.status(message: "All doffice tmux sessions killed."))
                     }
                 default:
                     DispatchQueue.main.async {
@@ -1006,7 +1006,7 @@ struct EventStreamView: View {
         .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 
-    // MARK: - Normal Body (WorkMan UI)
+    // MARK: - Normal Body (Doffice UI)
 
     private var normalBody: some View {
         VStack(spacing: 0) {
@@ -3276,9 +3276,9 @@ public final class NewSessionPreferencesStore: ObservableObject {
     @Published private(set) var recentProjects: [NewSessionProjectRecord] = []
     @Published private(set) var lastDraft: NewSessionDraftSnapshot?
 
-    private let favoritesKey = "workman.new-session.favorite-projects"
-    private let recentsKey = "workman.new-session.recent-projects"
-    private let lastDraftKey = "workman.new-session.last-draft"
+    private let favoritesKey = "doffice.new-session.favorite-projects"
+    private let recentsKey = "doffice.new-session.recent-projects"
+    private let lastDraftKey = "doffice.new-session.last-draft"
 
     private init() {
         load()

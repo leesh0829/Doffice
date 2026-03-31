@@ -37,8 +37,8 @@ public class CharacterRegistry: ObservableObject {
         return nil
     }
 
-    private let saveKey = "WorkManCharacters"
-    private let manualUnlockKey = "WorkManCharacterManualUnlocks"
+    private let saveKey = "DofficeCharacters"
+    private let manualUnlockKey = "DofficeCharacterManualUnlocks"
     private static let bossLineCount = 115
 
     private static let defaultBossLines: [String] = [
@@ -170,7 +170,7 @@ public class CharacterRegistry: ObservableObject {
     init() {
         loadOrCreate()
         // DofficeKit의 PluginManager에서 플러그인 캐릭터 변경 시 동기화
-        NotificationCenter.default.addObserver(forName: .init("workmanPluginCharactersChanged"), object: nil, queue: .main) { [weak self] _ in
+        NotificationCenter.default.addObserver(forName: .init("dofficePluginCharactersChanged"), object: nil, queue: .main) { [weak self] _ in
             self?.removeInactivePluginCharacters()
             self?.loadPluginCharacters()
         }
@@ -294,7 +294,7 @@ public class CharacterRegistry: ObservableObject {
         guard previous != role else { return }
         if role.usesExtraTokensWarning {
             NotificationCenter.default.post(
-                name: .workmanRoleNotice,
+                name: .dofficeRoleNotice,
                 object: nil,
                 userInfo: [
                     "title": String(format: NSLocalizedString("char.job.warning.title", comment: ""), role.displayName),
@@ -304,7 +304,7 @@ public class CharacterRegistry: ObservableObject {
         }
         if role == .boss {
             NotificationCenter.default.post(
-                name: .workmanRoleNotice,
+                name: .dofficeRoleNotice,
                 object: nil,
                 userInfo: [
                     "title": "사장 직업 안내",
@@ -365,7 +365,7 @@ public class CharacterRegistry: ObservableObject {
 
     private func notifyHiringCapReached() {
         NotificationCenter.default.post(
-            name: .workmanRoleNotice,
+            name: .dofficeRoleNotice,
             object: nil,
             userInfo: [
                 "title": "직원 수 제한",

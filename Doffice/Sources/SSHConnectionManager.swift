@@ -70,7 +70,7 @@ class SSHConnectionManager: ObservableObject {
 
     @Published var profiles: [SSHProfile] = []
 
-    private let storageKey = "workman.sshProfiles"
+    private let storageKey = "doffice.sshProfiles"
 
     private init() { loadProfiles() }
 

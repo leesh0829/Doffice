@@ -141,7 +141,7 @@ public class SwiftTermContainer: NSView, LocalProcessTerminalViewDelegate {
     /// 클립보드/스크린샷 이미지를 임시 파일로 저장하고 경로 반환
     private func saveClipboardImage(_ data: Data) -> String? {
         let timestamp = Int(Date().timeIntervalSince1970)
-        let filename = "workman_image_\(timestamp).png"
+        let filename = "doffice_image_\(timestamp).png"
         let tmpDir = NSTemporaryDirectory()
         let filePath = (tmpDir as NSString).appendingPathComponent(filename)
 

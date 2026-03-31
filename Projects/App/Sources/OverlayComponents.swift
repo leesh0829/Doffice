@@ -481,7 +481,7 @@ final class SessionNotificationManager: ObservableObject {
 
     private init() {
         // 세션 완료 감지
-        NotificationCenter.default.publisher(for: .workmanTabCycleCompleted)
+        NotificationCenter.default.publisher(for: .dofficeTabCycleCompleted)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notif in
                 let tabId = notif.userInfo?["tabId"] as? String

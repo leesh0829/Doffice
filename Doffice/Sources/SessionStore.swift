@@ -143,21 +143,21 @@ class SessionStore {
     private static func defaultFileURL() -> URL {
         guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
             print("[도피스] Application Support 디렉토리를 찾을 수 없습니다. 임시 디렉토리를 사용합니다.")
-            return FileManager.default.temporaryDirectory.appendingPathComponent("workman_sessions.json")
+            return FileManager.default.temporaryDirectory.appendingPathComponent("doffice_sessions.json")
         }
-        let dir = appSupport.appendingPathComponent("WorkMan", isDirectory: true)
+        let dir = appSupport.appendingPathComponent("Doffice", isDirectory: true)
         do {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         } catch {
-            print("[도피스] Application Support/WorkMan 디렉토리 생성 실패: \(error.localizedDescription). 임시 디렉토리를 사용합니다.")
-            return FileManager.default.temporaryDirectory.appendingPathComponent("workman_sessions.json")
+            print("[도피스] Application Support/Doffice 디렉토리 생성 실패: \(error.localizedDescription). 임시 디렉토리를 사용합니다.")
+            return FileManager.default.temporaryDirectory.appendingPathComponent("doffice_sessions.json")
         }
         return dir.appendingPathComponent("sessions.json")
     }
 
     private let fileURL: URL
     private let writeDelay: TimeInterval
-    private let ioQueue = DispatchQueue(label: "workman.session-store", qos: .utility)
+    private let ioQueue = DispatchQueue(label: "doffice.session-store", qos: .utility)
     private let stateLock = NSLock()
     private var cachedHistory = SessionHistory()
     private var hasLoadedCache = false
@@ -319,7 +319,7 @@ class SessionStore {
 
         guard postNotification else { return }
         DispatchQueue.main.async {
-            NotificationCenter.default.post(name: .workmanSessionStoreDidChange, object: nil)
+            NotificationCenter.default.post(name: .dofficeSessionStoreDidChange, object: nil)
         }
     }
 
@@ -346,7 +346,7 @@ class SessionStore {
         } catch {
             print("[도피스] 세션 저장 실패 (\(fileURL.path)): \(error.localizedDescription)")
             // 기본 경로에 쓰기 실패 시 임시 디렉토리에 백업 시도
-            let fallbackURL = FileManager.default.temporaryDirectory.appendingPathComponent("workman_sessions_backup.json")
+            let fallbackURL = FileManager.default.temporaryDirectory.appendingPathComponent("doffice_sessions_backup.json")
             do {
                 let data = try JSONEncoder().encode(history)
                 try data.write(to: fallbackURL, options: .atomicWrite)
@@ -532,7 +532,7 @@ class SessionStore {
     private func recoveryRoot(for projectPath: String) -> URL {
         let projectURL = URL(fileURLWithPath: projectPath, isDirectory: true)
         if FileManager.default.fileExists(atPath: projectURL.path) {
-            let localRoot = projectURL.appendingPathComponent(".workman/recovery", isDirectory: true)
+            let localRoot = projectURL.appendingPathComponent(".doffice/recovery", isDirectory: true)
             try? FileManager.default.createDirectory(at: localRoot, withIntermediateDirectories: true)
             return localRoot
         }

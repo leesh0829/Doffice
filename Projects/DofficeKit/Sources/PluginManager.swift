@@ -650,18 +650,18 @@ public class PluginManager: ObservableObject {
 
     // 개별 확장 포인트 비활성화 목록 (extensionID set)
     @Published public var disabledExtensions: Set<String> = []
-    private let disabledExtensionsKey = "WorkManDisabledExtensions"
+    private let disabledExtensionsKey = "DofficeDisabledExtensions"
 
     // 플러그인 권한 (신뢰된 플러그인 목록)
     @Published public var trustedPlugins: Set<String> = []   // pluginName set
-    private let trustedPluginsKey = "WorkManTrustedPlugins"
+    private let trustedPluginsKey = "DofficeTrustedPlugins"
     @Published public var pendingPermission: PermissionRequest?
 
     // 매니페스트 캐시 (detectConflicts 성능 개선)
     /// Manifest cache shared with PluginHost to avoid redundant disk I/O + JSON decoding.
     /// Access must go through the thread-safe helpers below.
     private var _manifestCache: [String: PluginManifest] = [:]  // pluginPath → manifest
-    private let manifestCacheQueue = DispatchQueue(label: "com.workman.manifestCache", attributes: .concurrent)
+    private let manifestCacheQueue = DispatchQueue(label: "com.doffice.manifestCache", attributes: .concurrent)
 
     func manifestCacheGet(_ key: String) -> PluginManifest? {
         manifestCacheQueue.sync { _manifestCache[key] }
@@ -686,7 +686,7 @@ public class PluginManager: ObservableObject {
     @Published public var isLoadingRegistry: Bool = false
     @Published public var registryError: String?
 
-    private let storageKey = "WorkManPlugins"
+    private let storageKey = "DofficePlugins"
     private let pluginBaseDir: URL
 
     /// 레지스트리 URL — GitHub Pages 또는 raw 파일
@@ -694,14 +694,14 @@ public class PluginManager: ObservableObject {
     public static let registryURL = "https://raw.githubusercontent.com/jjunhaa0211/Doffice/main/registry.json"
 
     private init() {
-        // ~/Library/Application Support/WorkMan/Plugins
+        // ~/Library/Application Support/Doffice/Plugins
         guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            pluginBaseDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("WorkManPlugins")
+            pluginBaseDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("DofficePlugins")
             try? FileManager.default.createDirectory(at: pluginBaseDir, withIntermediateDirectories: true)
             loadPlugins()
             return
         }
-        pluginBaseDir = appSupport.appendingPathComponent("WorkMan").appendingPathComponent("Plugins")
+        pluginBaseDir = appSupport.appendingPathComponent("Doffice").appendingPathComponent("Plugins")
         try? FileManager.default.createDirectory(at: pluginBaseDir, withIntermediateDirectories: true)
         loadPlugins()
     }
@@ -1210,7 +1210,7 @@ public class PluginManager: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 PluginHost.shared.reload()
                 NotificationCenter.default.post(name: .pluginReload, object: nil)
-                NotificationCenter.default.post(name: .init("workmanPluginCharactersChanged"), object: nil)
+                NotificationCenter.default.post(name: .init("dofficePluginCharactersChanged"), object: nil)
             }
         }
 
@@ -1884,7 +1884,7 @@ public class PluginManager: ObservableObject {
             self.plugins.removeAll { $0.id == plugin.id }
             self.savePlugins()
             // 제거된 플러그인 정리
-            NotificationCenter.default.post(name: .init("workmanPluginCharactersChanged"), object: nil)
+            NotificationCenter.default.post(name: .init("dofficePluginCharactersChanged"), object: nil)
             PluginHost.shared.reload()
         }
     }
@@ -2013,7 +2013,7 @@ public class PluginManager: ObservableObject {
             }
             self.savePlugins()
             // 캐릭터 팩 + 확장 포인트 로드
-            NotificationCenter.default.post(name: .init("workmanPluginCharactersChanged"), object: nil)
+            NotificationCenter.default.post(name: .init("dofficePluginCharactersChanged"), object: nil)
             PluginHost.shared.reload()
             self.lastError = nil
             self.isInstalling = false
@@ -2045,7 +2045,7 @@ public class PluginManager: ObservableObject {
             RegistryPlugin(
                 id: "flea-market-hidden-pack",
                 name: "플리 마켓 히든 캐릭터 팩",
-                author: "WorkMan",
+                author: "Doffice",
                 description: "플리 마켓에서 바로 고용할 수 있는 히든 캐릭터 3종을 추가합니다.",
                 version: "1.0.0",
                 downloadURL: "bundled://flea-market-hidden-pack",
@@ -2057,7 +2057,7 @@ public class PluginManager: ObservableObject {
             RegistryPlugin(
                 id: "typing-combo-pack",
                 name: "타이핑 콤보 팩",
-                author: "WorkMan",
+                author: "Doffice",
                 description: "터미널 외부에서 타이핑할 때 콤보 카운터, 파티클, 화면 흔들림 이펙트가 발동합니다.",
                 version: "1.0.0",
                 downloadURL: "bundled://typing-combo-pack",
@@ -2069,7 +2069,7 @@ public class PluginManager: ObservableObject {
             RegistryPlugin(
                 id: "premium-furniture-pack",
                 name: "프리미엄 가구 팩",
-                author: "WorkMan",
+                author: "Doffice",
                 description: "아쿠아리움, 아케이드 머신, 네온사인 등 프리미엄 가구 8종을 추가합니다.",
                 version: "1.0.0",
                 downloadURL: "bundled://premium-furniture-pack",
@@ -2081,7 +2081,7 @@ public class PluginManager: ObservableObject {
             RegistryPlugin(
                 id: "vacation-beach-pack",
                 name: "바캉스 비치 팩",
-                author: "WorkMan",
+                author: "Doffice",
                 description: "사무실을 열대 해변으로! 야자수, 파라솔, 비치 테마 2종, 캐릭터 2종 포함.",
                 version: "1.0.0",
                 downloadURL: "bundled://vacation-beach-pack",
@@ -2093,7 +2093,7 @@ public class PluginManager: ObservableObject {
             RegistryPlugin(
                 id: "battleground-pack",
                 name: "배틀그라운드 팩",
-                author: "WorkMan",
+                author: "Doffice",
                 description: "사무실이 전장으로! 참나무, 바위, 수풀 가구 8종 + 배그 테마 + 전투 이펙트.",
                 version: "1.0.0",
                 downloadURL: "bundled://battleground-pack",
@@ -2275,7 +2275,7 @@ public class PluginManager: ObservableObject {
               "name": "플리 마켓 히든 캐릭터 팩",
               "version": "1.0.0",
               "description": "플리 마켓에서 바로 고용할 수 있는 히든 캐릭터 3종 팩",
-              "author": "WorkMan",
+              "author": "Doffice",
               "contributes": {
                 "characters": "characters.json"
               }
@@ -2286,14 +2286,14 @@ public class PluginManager: ObservableObject {
             {
               "name": "flea-market-hidden-pack",
               "version": "1.0.0",
-              "description": "Bundled hidden character pack for the WorkMan marketplace"
+              "description": "Bundled hidden character pack for the Doffice marketplace"
             }
             """
 
             let readme = """
             # 플리 마켓 히든 캐릭터 팩
 
-            WorkMan 마켓플레이스에서 바로 설치할 수 있는 기본 캐릭터 플러그인입니다.
+            Doffice 마켓플레이스에서 바로 설치할 수 있는 기본 캐릭터 플러그인입니다.
             설치하면 히든 캐릭터 3종이 캐릭터 목록에 추가됩니다.
             """
 

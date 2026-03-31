@@ -256,8 +256,8 @@ class CharacterRegistry: ObservableObject {
     @Published var allCharacters: [WorkerCharacter] = []
     @Published private(set) var manuallyUnlockedCharacterIDs: Set<String> = []
 
-    private let saveKey = "WorkManCharacters"
-    private let manualUnlockKey = "WorkManCharacterManualUnlocks"
+    private let saveKey = "DofficeCharacters"
+    private let manualUnlockKey = "DofficeCharacterManualUnlocks"
     private static let bossLineCount = 115
 
     private static let defaultBossLines: [String] = [
@@ -509,7 +509,7 @@ class CharacterRegistry: ObservableObject {
         guard previous != role else { return }
         if role.usesExtraTokensWarning {
             NotificationCenter.default.post(
-                name: .workmanRoleNotice,
+                name: .dofficeRoleNotice,
                 object: nil,
                 userInfo: [
                     "title": String(format: NSLocalizedString("char.job.warning.title", comment: ""), role.displayName),
@@ -519,7 +519,7 @@ class CharacterRegistry: ObservableObject {
         }
         if role == .boss {
             NotificationCenter.default.post(
-                name: .workmanRoleNotice,
+                name: .dofficeRoleNotice,
                 object: nil,
                 userInfo: [
                     "title": "사장 직업 안내",
@@ -579,7 +579,7 @@ class CharacterRegistry: ObservableObject {
 
     private func notifyHiringCapReached() {
         NotificationCenter.default.post(
-            name: .workmanRoleNotice,
+            name: .dofficeRoleNotice,
             object: nil,
             userInfo: [
                 "title": "직원 수 제한",

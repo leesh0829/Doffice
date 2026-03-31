@@ -10,7 +10,7 @@ import Foundation
 class TmuxSessionBridge {
     static let shared = TmuxSessionBridge()
 
-    private let sessionPrefix = "workman-"
+    private let sessionPrefix = "doffice-"
 
     // MARK: - tmux 설치 확인
 
@@ -58,7 +58,7 @@ class TmuxSessionBridge {
         return !result.contains("can't find session") && !result.contains("error")
     }
 
-    /// 모든 workman 세션 목록
+    /// 모든 doffice 세션 목록
     func listSessions() -> [TmuxSession] {
         guard let tmux = tmuxPath else { return [] }
         let format = "#{session_name}\t#{session_created}\t#{session_windows}\t#{session_attached}"
@@ -106,7 +106,7 @@ class TmuxSessionBridge {
         let _ = shellSync("\(tmux) kill-session -t \(shellEscape(sessionName)) 2>/dev/null")
     }
 
-    /// 모든 workman 세션 종료
+    /// 모든 doffice 세션 종료
     func killAllSessions() {
         for session in listSessions() {
             killSession(id: session.id)
