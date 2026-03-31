@@ -268,8 +268,7 @@ public struct OfficeSceneView: View {
             }
         }
         .frame(width: w, alignment: .leading)
-        .frame(maxHeight: max(60, maxHeight), alignment: .top)
-        .clipped()
+        .fixedSize(horizontal: false, vertical: true)
         .appPanelStyle(padding: 8, radius: Theme.cornerXL, fill: Theme.bgCard.opacity(0.92), strokeOpacity: 0.20, shadow: false)
         .overlay(
             RoundedRectangle(cornerRadius: Theme.cornerXL)

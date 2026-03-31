@@ -2436,12 +2436,15 @@ struct SettingsView: View {
     private func restartApp() {
         SessionManager.shared.saveSessions(immediately: true)
         let appPath = Bundle.main.bundlePath
-        let script = "sleep 0.5; open \"\(appPath)\""
+        let script = "sleep 1; open \"\(appPath)\""
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/zsh")
         task.arguments = ["-c", script]
         try? task.run()
-        exit(0)
+        // Give the shell process time to start before terminating
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            NSApplication.shared.terminate(nil)
+        }
     }
 
     private var currentTheme: BackgroundTheme {
