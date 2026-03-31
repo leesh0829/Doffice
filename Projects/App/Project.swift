@@ -20,7 +20,7 @@ let project = Project(
     name: "Doffice",
     settings: .settings(
         base: [
-            "MARKETING_VERSION": "0.0.40",
+            "MARKETING_VERSION": "0.0.41",
             "CURRENT_PROJECT_VERSION": "1",
             "DEAD_CODE_STRIPPING": "YES",
         ],
@@ -43,9 +43,9 @@ let project = Project(
             infoPlist: .extendingDefault(with: infoPlist),
             sources: ["Sources/**"],
             resources: [
-                .glob(pattern: "Resources/**", excluding: ["Resources/WorkManApp.entitlements"]),
+                .glob(pattern: "Resources/**", excluding: ["Resources/DofficeApp.entitlements"]),
             ],
-            entitlements: "Resources/WorkManApp.entitlements",
+            entitlements: "Resources/DofficeApp.entitlements",
             dependencies: [
                 .project(target: "DofficeKit", path: .relativeToRoot("Projects/DofficeKit")),
                 .project(target: "DesignSystem", path: .relativeToRoot("Projects/DesignSystem")),

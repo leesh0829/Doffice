@@ -13,7 +13,7 @@
 		15124C0B48719587C291E8A9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 796D8D2E6FBBCD15AFB0E59D /* Assets.xcassets */; };
 		1E7FB710552F32FAF320923F /* TuistStrings+Doffice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C5ADAC694F96E029253DC1 /* TuistStrings+Doffice.swift */; };
 		2CDFDE9CF8899D710A351706 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = F3EE15CF2BEDAE07FE486C7C /* Localizable.strings */; };
-		3FDA11B657DBA6C52274A116 /* WorkManApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEA5B37A8814EEC94B9D960C /* WorkManApp.swift */; };
+		3FDA11B657DBA6C52274A116 /* DofficeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEA5B37A8814EEC94B9D960C /* DofficeApp.swift */; };
 		62EE01D2BD80B732EF4DA5A4 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C783C534651EEAB4B39E4C17 /* OnboardingView.swift */; };
 		6883BD0679028A4E790CC43A /* DofficeKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5E8B78B50AAB0A1622FA8E88 /* DofficeKit.framework */; };
 		7EF034066C17E59558A51837 /* MenuBarWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90E2C627070BEAED793D282C /* MenuBarWidget.swift */; };
@@ -62,11 +62,11 @@
 		B2BA1DB24BD58F6911778ABD /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		C783C534651EEAB4B39E4C17 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		C8FBBD86F05309B058F055DE /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		CEA5B37A8814EEC94B9D960C /* WorkManApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkManApp.swift; sourceTree = "<group>"; };
+		CEA5B37A8814EEC94B9D960C /* DofficeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DofficeApp.swift; sourceTree = "<group>"; };
 		D0C4F705FA08869EB83C1D7C /* DesignSystem.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = DesignSystem.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		D961616270D7EC71DD43566B /* TuistBundle+Doffice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TuistBundle+Doffice.swift"; sourceTree = "<group>"; };
 		DD37ECCA815FD7306ADFF63C /* Doffice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Doffice.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		E4D275AA764E1A56700462D2 /* WorkManApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WorkManApp.entitlements; sourceTree = "<group>"; };
+		E4D275AA764E1A56700462D2 /* DofficeApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DofficeApp.entitlements; sourceTree = "<group>"; };
 		F41FF945832B7B78EB6D5600 /* OfficeWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfficeWindowView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -122,7 +122,7 @@
 				7680414A3025E342C61E9583 /* OverlayComponents.swift */,
 				901C247E73F84AD353EEC193 /* SettingsView.swift */,
 				441D4B980AFB400CE4EDD170 /* SidebarView.swift */,
-				CEA5B37A8814EEC94B9D960C /* WorkManApp.swift */,
+				CEA5B37A8814EEC94B9D960C /* DofficeApp.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -162,7 +162,7 @@
 				35CB4C090BC19FC6E84EE66F /* AppIcon.icns */,
 				796D8D2E6FBBCD15AFB0E59D /* Assets.xcassets */,
 				3F8C892B8F6C6EEEAC76F784 /* Info.plist */,
-				E4D275AA764E1A56700462D2 /* WorkManApp.entitlements */,
+				E4D275AA764E1A56700462D2 /* DofficeApp.entitlements */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -251,7 +251,7 @@
 				95AFDBCB70DCC467F8134C24 /* OverlayComponents.swift in Sources */,
 				DC7FC1692F2FC062B580707B /* SettingsView.swift in Sources */,
 				E8448A3377CDE43D69FF5658 /* SidebarView.swift in Sources */,
-				3FDA11B657DBA6C52274A116 /* WorkManApp.swift in Sources */,
+				3FDA11B657DBA6C52274A116 /* DofficeApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -286,7 +286,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Resources/WorkManApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Resources/DofficeApp.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_PREVIEWS = YES;
@@ -363,7 +363,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MARKETING_VERSION = 0.0.40;
+				MARKETING_VERSION = 0.0.41;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -375,7 +375,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Resources/WorkManApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Resources/DofficeApp.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_PREVIEWS = YES;
@@ -451,7 +451,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MARKETING_VERSION = 0.0.40;
+				MARKETING_VERSION = 0.0.41;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_COMPILATION_MODE = wholemodule;
