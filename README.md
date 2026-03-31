@@ -69,7 +69,7 @@ brew install --cask doffice
 
 ### 수동 설치
 
-[최신 릴리스](https://github.com/jjunhaa0211/Doffice/releases/latest)에서 `Doffice-v0.0.41.zip` 다운로드 → 압축 해제 → `Doffice.app`을 Applications로 이동
+[최신 릴리스](https://github.com/jjunhaa0211/Doffice/releases/latest)에서 `Doffice-v0.0.42.zip` 다운로드 → 압축 해제 → `Doffice.app`을 Applications로 이동
 
 ### 소스에서 빌드
 
@@ -300,7 +300,8 @@ gh pr create --title "Add my-doffice-plugin" --body "새 플러그인 등록 요
 
 | 버전 | 주요 변경 |
 |------|----------|
-| **v0.0.41** | Gemini CLI 지원, 응답 렌더링 개선, provider 전환 안정화, UI 마스킹 |
+| **v0.0.42** | 코드 모듈화 리팩토링, provider 전환 버그 수정, 브라우저 네비게이션 수정, CJK 말풍선 수정 |
+| v0.0.41 | Gemini CLI 지원, 응답 렌더링 개선, provider 전환 안정화, UI 마스킹 |
 | v0.0.40 | 안정화 릴리즈 — 설정 재시작, UI 오버플로, 사이드바 클릭 전면 수정 |
 | v0.0.39 | 테마/언어/폰트 변경 재시작 크래시 수정, 패널 크기 축소, 탭 클릭 수정 |
 | v0.0.38 | 사이드바 탭 클릭 불가 수정, Cmd+Delete 탭 닫기, 필터칩 오버플로 수정 |
