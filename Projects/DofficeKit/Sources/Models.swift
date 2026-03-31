@@ -1127,7 +1127,7 @@ public class TerminalTab: ObservableObject, Identifiable {
     @Published public var attachedImages: [URL] = []  // 첨부된 이미지 경로들
     @Published public var completedPromptCount: Int = 0
     @Published public var parallelTasks: [ParallelTaskRecord] = []
-    @Published public var promptHistory: [PromptHistoryEntry] = []
+    public var promptHistory: [PromptHistoryEntry] = []
     private var pendingHistoryPreHash: String?
     private var pendingHistoryFileChangeStartIndex: Int = 0
 
@@ -1582,6 +1582,8 @@ public class TerminalTab: ObservableObject, Identifiable {
                     gitCommitHashBefore: self.pendingHistoryPreHash
                 )
                 self.promptHistory.append(entry)
+                // promptHistory는 @Published가 아니므로 별도 알림 불필요
+                // isProcessing/claudeActivity 변경 시 자연 갱신됨
             }
         }
 
@@ -1856,7 +1858,13 @@ public class TerminalTab: ObservableObject, Identifiable {
         "-c \(shellEscape("\(key)=\"\(value)\""))"
     }
 
-    private func sendPromptWithCodex(_ prompt: String, path: String, images: [URL]) {
+    static func isCodexMissingRolloutResumeError(_ text: String) -> Bool {
+        let normalized = text.lowercased()
+        return normalized.contains("thread/resume failed: no rollout found for thread id")
+            || normalized.contains("error: thread/resume: thread/resume failed: no rollout found")
+    }
+
+    private func sendPromptWithCodex(_ prompt: String, path: String, images: [URL], allowResumeFallback: Bool = true) {
         let projectDirURL = URL(fileURLWithPath: path)
         if !FileManager.default.fileExists(atPath: projectDirURL.path) {
             DispatchQueue.main.async {
@@ -1869,7 +1877,8 @@ public class TerminalTab: ObservableObject, Identifiable {
 
         let codexExecutable = resolvedExecutableCommand(for: .codex)
         var cmd: String
-        let shouldResume = !(sessionId ?? "").isEmpty
+        let resumeSessionId = sessionId?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let shouldResume = !(resumeSessionId ?? "").isEmpty
         if shouldResume {
             cmd = "\(codexExecutable) exec resume --json"
         } else {
@@ -1888,7 +1897,7 @@ public class TerminalTab: ObservableObject, Identifiable {
             cmd += " -i \(shellEscape(imageURL.path))"
         }
 
-        if shouldResume, let sid = sessionId, !sid.isEmpty {
+        if shouldResume, let sid = resumeSessionId, !sid.isEmpty {
             cmd += " \(shellEscape(sid))"
         }
         cmd += " \(shellEscape(prompt))"
@@ -1916,19 +1925,32 @@ public class TerminalTab: ObservableObject, Identifiable {
         let procId = ObjectIdentifier(proc)
         var jsonBuffer = ""
         let bufferQueue = DispatchQueue(label: "com.doffice.codex.jsonBuffer")
+        let stderrStateQueue = DispatchQueue(label: "com.doffice.codex.stderrState")
+        var sawMissingRolloutResumeError = false
 
         errPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
             let data = handle.availableData
             guard !data.isEmpty,
                   let rawText = String(data: data, encoding: .utf8) else { return }
+            let sanitized = self?.sanitizeTerminalText(rawText) ?? rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+            stderrStateQueue.sync {
+                if !sanitized.isEmpty {
+                    if Self.isCodexMissingRolloutResumeError(sanitized) {
+                        sawMissingRolloutResumeError = true
+                    }
+                }
+            }
             DispatchQueue.main.async { [weak self] in
                 guard let self = self,
                       self.currentProcess.map({ ObjectIdentifier($0) == procId }) ?? false
                 else { return }
-                let text = self.sanitizeTerminalText(rawText)
+                let text = sanitized
                 guard !text.isEmpty,
                       !text.contains(" WARN "),
                       !text.hasPrefix("{") else { return }
+                if shouldResume && allowResumeFallback && Self.isCodexMissingRolloutResumeError(text) {
+                    return
+                }
                 self.appendBlock(.error(message: "stderr"), content: text)
             }
         }
@@ -1992,6 +2014,10 @@ public class TerminalTab: ObservableObject, Identifiable {
         outPipe.fileHandleForReading.readabilityHandler = nil
         errPipe.fileHandleForReading.readabilityHandler = nil
 
+        let shouldRetryWithoutResume = stderrStateQueue.sync {
+            shouldResume && allowResumeFallback && sawMissingRolloutResumeError
+        }
+
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             if self.cancelledProcessIds.contains(procId) {
@@ -2004,6 +2030,18 @@ public class TerminalTab: ObservableObject, Identifiable {
             self.currentProcess = nil
             self.currentOutPipe = nil
             self.currentErrPipe = nil
+            if shouldRetryWithoutResume {
+                self.sessionId = nil
+                self.claudeActivity = .thinking
+                self.appendBlock(
+                    .status(message: "Codex session restart"),
+                    content: "이전 Codex 세션을 이어갈 수 없어 새 세션으로 다시 시도합니다."
+                )
+                DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                    self?.sendPromptWithCodex(prompt, path: path, images: images, allowResumeFallback: false)
+                }
+                return
+            }
             if self.isProcessing {
                 self.isProcessing = false
                 self.claudeActivity = self.claudeActivity == .error ? .error : .done
@@ -2025,26 +2063,16 @@ public class TerminalTab: ObservableObject, Identifiable {
             return
         }
 
-        var cmd = "\(resolvedExecutableCommand(for: .gemini)) --output-format stream-json"
+        // Gemini CLI uses plain text output, not stream-json
+        var cmd = "\(resolvedExecutableCommand(for: .gemini))"
         cmd += " -m \(shellEscape(selectedModel.rawValue))"
 
-        // 승인 모드
-        switch permissionMode {
-        case .bypassPermissions:
+        // Gemini CLI yolo mode
+        if permissionMode == .bypassPermissions {
             cmd += " --yolo"
-        case .acceptEdits:
-            cmd += " --approval-mode auto_edit"
-        case .plan:
-            cmd += " --approval-mode plan"
-        default:
-            break
         }
 
-        for dir in additionalDirs where !dir.isEmpty {
-            cmd += " --include-directories \(shellEscape(dir))"
-        }
-
-        // 프롬프트 (-p는 프롬프트를 인자로 직접 받음)
+        // 프롬프트
         cmd += " -p \(shellEscape(prompt))"
 
         let proc = Process()
@@ -2068,44 +2096,43 @@ public class TerminalTab: ObservableObject, Identifiable {
         }
         let procId = ObjectIdentifier(proc)
 
-        // Stream stdout — JSON stream 또는 plain text fallback
-        var jsonBuffer = ""
-        let bufferQueue = DispatchQueue(label: "com.doffice.gemini.jsonBuffer")
+        // Stream stdout — Gemini CLI outputs plain text (not JSON)
+        var textBuffer = ""
+        let bufferQueue = DispatchQueue(label: "com.doffice.gemini.textBuffer")
 
         outPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
             let data = handle.availableData
             guard !data.isEmpty, let chunk = String(data: data, encoding: .utf8) else { return }
             bufferQueue.sync {
-                jsonBuffer += chunk
+                textBuffer += chunk
 
-                if jsonBuffer.utf8.count > 1_048_576 {
-                    jsonBuffer = ""
+                if textBuffer.utf8.count > 1_048_576 {
+                    textBuffer = ""
                     return
                 }
 
-                while let nl = jsonBuffer.range(of: "\n") {
-                    let line = String(jsonBuffer[..<nl.lowerBound])
-                    jsonBuffer = String(jsonBuffer[nl.upperBound...])
-                    let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !trimmed.isEmpty else { continue }
+                while let nl = textBuffer.range(of: "\n") {
+                    let line = String(textBuffer[..<nl.lowerBound])
+                    textBuffer = String(textBuffer[nl.upperBound...])
 
-                    if let lineData = trimmed.data(using: .utf8),
-                       let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any] {
-                        // stream-json 형태 파싱
-                        DispatchQueue.main.async { [weak self] in
-                            guard let self = self,
-                                  self.currentProcess.map({ ObjectIdentifier($0) == procId }) ?? false
-                            else { return }
-                            self.handleStreamEvent(json)
-                        }
-                    } else {
-                        // Plain text fallback
-                        DispatchQueue.main.async { [weak self] in
-                            guard let self = self,
-                                  self.currentProcess.map({ ObjectIdentifier($0) == procId }) ?? false
-                            else { return }
-                            self.claudeActivity = .writing
-                            self.appendBlock(.thought, content: line)
+                    // Strip ANSI escape codes
+                    let cleaned = line
+                        .replacingOccurrences(of: "\u{1B}\\[[0-9;]*[a-zA-Z]", with: "", options: .regularExpression)
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !cleaned.isEmpty else { continue }
+
+                    // Skip interactive prompt markers
+                    if cleaned == ">" || cleaned == " >" { continue }
+
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self,
+                              self.currentProcess.map({ ObjectIdentifier($0) == procId }) ?? false
+                        else { return }
+                        self.claudeActivity = .writing
+                        // Strip "✦ " prefix from Gemini responses
+                        let content = cleaned.hasPrefix("✦") ? String(cleaned.dropFirst()).trimmingCharacters(in: .whitespaces) : cleaned
+                        if !content.isEmpty {
+                            self.appendBlock(.text, content: content)
                         }
                     }
                 }
@@ -2121,8 +2148,26 @@ public class TerminalTab: ObservableObject, Identifiable {
                       self.currentProcess.map({ ObjectIdentifier($0) == procId }) ?? false
                 else { return }
                 let text = self.sanitizeTerminalText(rawText)
-                if !text.isEmpty && !text.hasPrefix("{") {
-                    self.appendBlock(.error(message: "stderr"), content: text)
+                guard !text.isEmpty else { return }
+
+                // Gemini stderr 노이즈 필터링
+                let noisePatterns = [
+                    "YOLO mode", "Keychain", "keytar", "Require stack",
+                    "FileKeychain", "cached credentials", "node_modules",
+                    "Cannot find module", "Using FileKeychain", "Loaded cached",
+                    "WARN", "DeprecationWarning", "ExperimentalWarning"
+                ]
+                let isNoise = noisePatterns.contains(where: { text.contains($0) })
+                guard !isNoise else { return }
+
+                // 재시도 메시지 → 상태 블록으로 표시
+                if text.contains("Attempt") && text.contains("Retrying") {
+                    self.claudeActivity = .thinking
+                    self.appendBlock(.status(message: "⏳ Gemini"), content: text)
+                } else if text.contains("exhausted") || text.contains("capacity") {
+                    self.appendBlock(.status(message: "⏳ Gemini " + NSLocalizedString("gemini.rate.limit", comment: "")), content: text)
+                } else {
+                    self.appendBlock(.error(message: "Gemini"), content: text)
                 }
             }
         }
@@ -3110,6 +3155,7 @@ public class TerminalTab: ObservableObject, Identifiable {
         if promptHistory.count > 100 {
             promptHistory.removeFirst(promptHistory.count - 100)
         }
+        objectWillChange.send()
     }
 
     public func revertToBeforePrompt(_ entry: PromptHistoryEntry) {
