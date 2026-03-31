@@ -66,6 +66,9 @@ struct SettingsView: View {
     @State private var showBorderColors: Bool = false
     @State private var showSemanticColors: Bool = false
 
+    // CLI check trigger
+    @State private var cliCheckDone = false
+
     // Plugin
     @ObservedObject private var pluginManager = PluginManager.shared
     @State private var pluginSourceInput: String = ""
@@ -341,6 +344,16 @@ struct SettingsView: View {
                         .foregroundColor(Theme.textDim)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
+            }
+            .task {
+                // Run CLI install checks on background thread
+                guard !cliCheckDone else { return }
+                await Task.detached(priority: .utility) {
+                    for provider in AgentProvider.allCases {
+                        provider.installChecker.check(force: true)
+                    }
+                }.value
+                await MainActor.run { cliCheckDone = true }
             }
 
             settingsSection(title: NSLocalizedString("theme.section.profile", comment: ""), subtitle: NSLocalizedString("theme.section.profile.subtitle", comment: "")) {
@@ -2460,7 +2473,9 @@ struct SettingsView: View {
 
     private func cliStatusRow(provider: AgentProvider) -> some View {
         let checker = provider.installChecker
-        let _ = checker.check(force: false)
+        // Do NOT call checker.check() here — it runs shell commands
+        // synchronously and blocks the main thread, causing a hang.
+        // The check is triggered in .task below on a background thread.
         let installed = checker.isInstalled
         let version = checker.version
 
