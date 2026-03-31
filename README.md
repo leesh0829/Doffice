@@ -69,7 +69,7 @@ brew install --cask doffice
 
 ### 수동 설치
 
-[최신 릴리스](https://github.com/jjunhaa0211/Doffice/releases/latest)에서 `Doffice-v0.0.36.zip` 다운로드 → 압축 해제 → `Doffice.app`을 Applications로 이동
+[최신 릴리스](https://github.com/jjunhaa0211/Doffice/releases/latest)에서 `Doffice-v0.0.37.zip` 다운로드 → 압축 해제 → `Doffice.app`을 Applications로 이동
 
 ### 소스에서 빌드
 
@@ -300,7 +300,8 @@ gh pr create --title "Add my-doffice-plugin" --body "새 플러그인 등록 요
 
 | 버전 | 주요 변경 |
 |------|----------|
-| **v0.0.36** | 테마/폰트/언어 변경 시 앱 재시작으로 안정성 확보, UI 오버플로 수정 |
+| **v0.0.37** | 회색 오버레이 렌더링 아티팩트 수정, compositingGroup 제거 |
+| v0.0.36 | 테마/폰트/언어 변경 시 앱 재시작으로 안정성 확보, UI 오버플로 수정 |
 | v0.0.35 | UI 안정화 — 패널 반응형 너비, 하드 클리핑, 레이아웃 오버플로 근절 |
 | v0.0.34 | 캐릭터 패널 오버플로 수정 (overlay 구조 전환), 코드 고도화 |
 | v0.0.33 | 오피스 캐릭터 패널 UI 겹침 수정, 신뢰 프롬프트 크래시 수정 |
