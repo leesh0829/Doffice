@@ -140,7 +140,9 @@ public struct OfficeSceneView: View {
             )
             .overlay(alignment: isFollowing ? .bottomLeading : .topLeading) {
                 if let activeTab = manager.activeTab, panelW > 80 {
-                    selectionPanel(tab: activeTab, maxWidth: panelW, maxHeight: panelH)
+                    selectionPanel(tab: activeTab, maxWidth: panelW)
+                        .frame(maxHeight: panelH, alignment: .top)
+                        .clipped()
                         .padding(14)
                 }
             }
@@ -199,7 +201,7 @@ public struct OfficeSceneView: View {
 
     // MARK: - Overlay Panels
 
-    private func selectionPanel(tab: TerminalTab, maxWidth: CGFloat, maxHeight: CGFloat) -> some View {
+    private func selectionPanel(tab: TerminalTab, maxWidth: CGFloat) -> some View {
         let status = tab.statusPresentation
         let w = min(200, maxWidth)
         return VStack(alignment: .leading, spacing: 4) {
