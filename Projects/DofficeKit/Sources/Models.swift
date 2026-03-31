@@ -2097,7 +2097,9 @@ public class TerminalTab: ObservableObject, Identifiable {
         let procId = ObjectIdentifier(proc)
 
         // Stream stdout — Gemini CLI outputs plain text (not JSON)
+        // Accumulate all output into a single response block for clean rendering
         var textBuffer = ""
+        var responseBlockId: UUID?
         let bufferQueue = DispatchQueue(label: "com.doffice.gemini.textBuffer")
 
         outPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
@@ -2111,6 +2113,8 @@ public class TerminalTab: ObservableObject, Identifiable {
                     return
                 }
 
+                // Collect complete lines
+                var newLines: [String] = []
                 while let nl = textBuffer.range(of: "\n") {
                     let line = String(textBuffer[..<nl.lowerBound])
                     textBuffer = String(textBuffer[nl.upperBound...])
@@ -2118,22 +2122,34 @@ public class TerminalTab: ObservableObject, Identifiable {
                     // Strip ANSI escape codes
                     let cleaned = line
                         .replacingOccurrences(of: "\u{1B}\\[[0-9;]*[a-zA-Z]", with: "", options: .regularExpression)
-                        .trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !cleaned.isEmpty else { continue }
 
                     // Skip interactive prompt markers
-                    if cleaned == ">" || cleaned == " >" { continue }
+                    let trimmed = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if trimmed == ">" || trimmed == " >" || trimmed.isEmpty { continue }
 
-                    DispatchQueue.main.async { [weak self] in
-                        guard let self = self,
-                              self.currentProcess.map({ ObjectIdentifier($0) == procId }) ?? false
-                        else { return }
-                        self.claudeActivity = .writing
-                        // Strip "✦ " prefix from Gemini responses
-                        let content = cleaned.hasPrefix("✦") ? String(cleaned.dropFirst()).trimmingCharacters(in: .whitespaces) : cleaned
-                        if !content.isEmpty {
-                            self.appendBlock(.text, content: content)
-                        }
+                    // Strip "✦ " prefix
+                    let content = trimmed.hasPrefix("✦") ? String(trimmed.dropFirst()).trimmingCharacters(in: .whitespaces) : cleaned
+                    if !content.isEmpty {
+                        newLines.append(content)
+                    }
+                }
+
+                guard !newLines.isEmpty else { return }
+
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self,
+                          self.currentProcess.map({ ObjectIdentifier($0) == procId }) ?? false
+                    else { return }
+                    self.claudeActivity = .writing
+
+                    // Append to existing response block or create new one
+                    if let blockId = responseBlockId,
+                       let idx = self.blocks.lastIndex(where: { $0.id == blockId }) {
+                        self.blocks[idx].content += "\n" + newLines.joined(separator: "\n")
+                    } else {
+                        let block = StreamBlock(type: .text, content: newLines.joined(separator: "\n"))
+                        responseBlockId = block.id
+                        self.blocks.append(block)
                     }
                 }
             }
