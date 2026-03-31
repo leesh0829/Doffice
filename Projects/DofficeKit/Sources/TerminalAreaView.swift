@@ -264,6 +264,8 @@ public struct EventStreamView: View {
     @StateObject private var settings = AppSettings.shared
     public let compact: Bool
     @State private var inputText = ""
+    @State private var pastedChunks: [(id: Int, text: String)] = []
+    @State private var pasteCounter: Int = 0
     @FocusState private var isFocused: Bool
     @State private var autoScroll = true
     @State private var lastBlockCount = 0
@@ -1395,7 +1397,26 @@ public struct EventStreamView: View {
                     guard isCommandMode else { return .ignored }
                     return handleCommandKeyNavigation(event)
                 }
-                .onChange(of: inputText) { _, _ in selectedCommandIndex = 0 }
+                .onChange(of: inputText) { old, new in
+                    selectedCommandIndex = 0
+                    // Detect paste: if many new lines appeared at once
+                    let addedLen = new.count - old.count
+                    if addedLen > 0 {
+                        let added = String(new.suffix(addedLen))
+                        let newLines = added.components(separatedBy: .newlines).count - 1
+                        if newLines >= 4 {
+                            // Collapse pasted text into a placeholder
+                            pasteCounter += 1
+                            let chunkId = pasteCounter
+                            let lineCount = added.components(separatedBy: .newlines).count
+                            pastedChunks.append((id: chunkId, text: added))
+                            let placeholder = "[Pasted text #\(chunkId) +\(lineCount) lines]"
+                            // Replace the pasted portion with placeholder
+                            let prefix = String(new.prefix(new.count - addedLen))
+                            inputText = prefix + placeholder
+                        }
+                    }
+                }
 
                 // 이미지 첨부
                 Button(action: { pickImage() }) {
@@ -1549,8 +1570,18 @@ public struct EventStreamView: View {
         }
     }
 
+    private func expandPastedChunks(_ text: String) -> String {
+        var result = text
+        for chunk in pastedChunks {
+            let placeholder = "[Pasted text #\(chunk.id) +\(chunk.text.components(separatedBy: .newlines).count) lines]"
+            result = result.replacingOccurrences(of: placeholder, with: chunk.text)
+        }
+        return result
+    }
+
     private func submit() {
-        let p = inputText.trimmingCharacters(in: .whitespaces); guard !p.isEmpty else { return }
+        let raw = expandPastedChunks(inputText)
+        let p = raw.trimmingCharacters(in: .whitespaces); guard !p.isEmpty else { return }
         guard !tab.isProcessing else { return }
 
         // Slash command handling — /cmd 형태만 (경로 /path/to/file 제외)
@@ -1563,14 +1594,15 @@ public struct EventStreamView: View {
 
             // 정확히 매칭되는 명령어만 실행
             if let cmd = Self.allSlashCommands.first(where: { $0.name == cmdName }) {
-                inputText = ""; selectedCommandIndex = 0
+                inputText = ""; pastedChunks.removeAll(); selectedCommandIndex = 0
                 tab.appendBlock(.userPrompt, content: "/\(cmd.name)" + (args.isEmpty ? "" : " " + args.joined(separator: " ")))
                 cmd.action(tab, manager, args)
                 return
             }
         }
 
-        inputText = ""; tab.sendPrompt(p)
+        inputText = ""; pastedChunks.removeAll()
+        tab.sendPrompt(p)
         AchievementManager.shared.addXP(5); AchievementManager.shared.incrementCommand()
     }
 
