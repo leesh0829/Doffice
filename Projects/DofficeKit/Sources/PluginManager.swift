@@ -1,203 +1,7 @@
 import Foundation
 import SwiftUI
-import WebKit
 import UniformTypeIdentifiers
 import DesignSystem
-
-// ═══════════════════════════════════════════════════════
-// MARK: - Plugin Manifest (plugin.json)
-// ═══════════════════════════════════════════════════════
-
-/// 플러그인이 제공하는 확장 포인트 선언
-public struct PluginManifest: Codable {
-    public var name: String
-    public var version: String
-    public var description: String?
-    public var author: String?
-
-    // 의존성 선언 (다른 플러그인 ID + 최소 버전)
-    public var requires: [PluginDependency]?
-
-    // 확장 포인트
-    public var contributes: PluginContributions?
-
-    /// 플러그인 의존성 선언
-    public struct PluginDependency: Codable, Equatable {
-        public var pluginId: String        // 의존하는 플러그인 ID
-        public var minVersion: String?     // 최소 버전 (semver, 옵션)
-    }
-
-    public struct PluginContributions: Codable {
-        public var characters: String?         // "characters.json" 경로
-        public var panels: [PanelDecl]?        // 커스텀 패널 (WebView)
-        public var commands: [CommandDecl]?    // 명령어 (커맨드 팔레트 연동)
-        public var statusBar: [StatusBarDecl]? // 상태바 위젯
-
-        // ── 네이티브 확장 (JSON 선언으로 앱 내부 기능 제어) ──
-        public var themes: [ThemeDecl]?        // 커스텀 테마 색상 프리셋
-        public var furniture: [FurnitureDecl]? // 오피스 커스텀 가구
-        public var officePresets: [OfficePresetDecl]? // 오피스 레이아웃 프리셋
-        public var achievements: [AchievementDecl]?   // 커스텀 업적
-        public var bossLines: [String]?        // 사장 대사 추가
-        public var effects: [EffectDecl]?      // 인터랙티브 이펙트
-    }
-
-    /// 테마 프리셋 — 앱 전체 색상을 바꿈
-    public struct ThemeDecl: Codable, Identifiable {
-        public var id: String
-        public var name: String            // "Monokai", "Solarized Dark" 등
-        public var isDark: Bool
-        public var accentHex: String       // 메인 accent 색상
-        public var bgHex: String?          // 배경색 (옵션)
-        public var cardHex: String?        // 카드 배경 (옵션)
-        public var textHex: String?        // 텍스트 색상 (옵션)
-        public var greenHex: String?
-        public var redHex: String?
-        public var yellowHex: String?
-        public var purpleHex: String?
-        public var cyanHex: String?
-        public var useGradient: Bool?
-        public var gradientStartHex: String?
-        public var gradientEndHex: String?
-        public var fontName: String?       // 커스텀 폰트
-    }
-
-    /// 오피스 가구
-    public struct FurnitureDecl: Codable, Identifiable {
-        public var id: String
-        public var name: String
-        public var sprite: [[String]]      // 2D 픽셀 배열 (hex 색상)
-        public var width: Int              // 타일 단위
-        public var height: Int
-        public var zone: String?           // "mainOffice" | "pantry" | "meetingRoom"
-    }
-
-    /// 오피스 레이아웃 프리셋
-    public struct OfficePresetDecl: Codable, Identifiable {
-        public var id: String
-        public var name: String
-        public var description: String?
-        public var tileMap: [[Int]]?       // 타일맵 (옵션)
-        public var furniture: [FurniturePlacementDecl]?
-    }
-
-    public struct FurniturePlacementDecl: Codable {
-        public var furnitureId: String
-        public var col: Int
-        public var row: Int
-    }
-
-    /// 커스텀 업적
-    public struct AchievementDecl: Codable, Identifiable {
-        public var id: String
-        public var name: String
-        public var description: String
-        public var icon: String
-        public var rarity: String
-        public var xp: Int
-    }
-
-    /// 이펙트 — 이벤트 트리거 + 시각 효과
-    public struct EffectDecl: Codable, Identifiable {
-        public var id: String
-        public var trigger: String         // PluginEventType rawValue
-        public var type: String            // PluginEffectType rawValue
-        public var config: [String: EffectValue]?
-        public var enabled: Bool?
-    }
-
-    /// 커스텀 패널 — HTML/JS를 WKWebView로 렌더링
-    public struct PanelDecl: Codable, Identifiable {
-        public var id: String          // 고유 ID
-        public var title: String       // 탭 제목
-        public var icon: String?       // SF Symbol 이름
-        public var entry: String       // HTML 파일 경로 (plugin 디렉토리 기준)
-        public var position: String?   // "sidebar" | "panel" | "tab" (기본 "panel")
-        public var width: Int?         // 고정 너비 (옵션)
-        public var height: Int?        // 고정 높이 (옵션)
-    }
-
-    /// 명령어 — 스크립트 실행 + 커맨드 팔레트 등록
-    public struct CommandDecl: Codable, Identifiable {
-        public var id: String          // 고유 ID
-        public var title: String       // 표시 이름
-        public var icon: String?       // SF Symbol 이름
-        public var script: String      // 실행할 스크립트 경로 (plugin 디렉토리 기준)
-        public var keybinding: String? // 키바인딩 (옵션, 예: "cmd+shift+g")
-    }
-
-    /// 상태바 위젯
-    public struct StatusBarDecl: Codable, Identifiable {
-        public var id: String
-        public var script: String      // JSON 출력하는 스크립트 ({"text": "...", "icon": "...", "color": "..."})
-        public var interval: Int?      // 갱신 주기 (초, 기본 30)
-    }
-}
-
-// ═══════════════════════════════════════════════════════
-// MARK: - Plugin Event / Effect Types
-// ═══════════════════════════════════════════════════════
-
-public enum PluginEventType: String, Codable {
-    case onPromptKeyPress
-    case onPromptSubmit
-    case onSessionComplete
-    case onSessionError
-    case onAchievementUnlock
-    case onCharacterHire
-    case onLevelUp
-}
-
-public enum PluginEffectType: String, Codable {
-    case comboCounter = "combo-counter"
-    case particleBurst = "particle-burst"
-    case screenShake = "screen-shake"
-    case flash
-    case sound
-    case toast
-    case confetti
-    // v2 이펙트
-    case typewriter                        // 타자기 텍스트 애니메이션
-    case progressBar = "progress-bar"      // 프로그레스 바 표시
-    case glow                              // 테두리 글로우 이펙트
-}
-
-/// JSON config 값 (String / Int / Double / Bool / [String])
-public enum EffectValue: Codable, Equatable {
-    case string(String)
-    case int(Int)
-    case double(Double)
-    case bool(Bool)
-    case stringArray([String])
-
-    public var stringValue: String? { if case .string(let v) = self { return v }; return nil }
-    public var intValue: Int? { if case .int(let v) = self { return v }; return nil }
-    public var doubleValue: Double? {
-        switch self { case .double(let v): return v; case .int(let v): return Double(v); default: return nil }
-    }
-    public var boolValue: Bool? { if case .bool(let v) = self { return v }; return nil }
-    public var stringArrayValue: [String]? { if case .stringArray(let v) = self { return v }; return nil }
-
-    public init(from decoder: Decoder) throws {
-        let c = try decoder.singleValueContainer()
-        if let v = try? c.decode(Bool.self) { self = .bool(v) }
-        else if let v = try? c.decode(Int.self) { self = .int(v) }
-        else if let v = try? c.decode(Double.self) { self = .double(v) }
-        else if let v = try? c.decode([String].self) { self = .stringArray(v) }
-        else { self = .string(try c.decode(String.self)) }
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var c = encoder.singleValueContainer()
-        switch self {
-        case .string(let v): try c.encode(v)
-        case .int(let v): try c.encode(v)
-        case .double(let v): try c.encode(v)
-        case .bool(let v): try c.encode(v)
-        case .stringArray(let v): try c.encode(v)
-        }
-    }
-}
 
 // ═══════════════════════════════════════════════════════
 // MARK: - Plugin Host (런타임 플러그인 관리)
@@ -502,96 +306,6 @@ public class PluginHost: ObservableObject {
 }
 
 // ═══════════════════════════════════════════════════════
-// MARK: - Plugin Panel View (WKWebView 래퍼)
-// ═══════════════════════════════════════════════════════
-
-#if os(macOS)
-public struct PluginPanelView: NSViewRepresentable {
-    public let htmlURL: URL
-    public let pluginName: String
-
-    public init(htmlURL: URL, pluginName: String) {
-        self.htmlURL = htmlURL
-        self.pluginName = pluginName
-    }
-
-    public func makeNSView(context: Context) -> WKWebView {
-        makeWebView()
-    }
-
-    public func updateNSView(_ webView: WKWebView, context: Context) {
-        loadContent(webView)
-    }
-
-    private func makeWebView() -> WKWebView {
-        let config = WKWebViewConfiguration()
-        config.preferences.setValue(true, forKey: "developerExtrasEnabled")
-        let handler = PluginMessageHandler()
-        config.userContentController.add(handler, name: "doffice")
-        let webView = WKWebView(frame: .zero, configuration: config)
-        webView.setValue(false, forKey: "drawsBackground")
-        return webView
-    }
-
-    private func loadContent(_ webView: WKWebView) {
-        webView.loadFileURL(htmlURL, allowingReadAccessTo: htmlURL.deletingLastPathComponent())
-    }
-}
-#elseif os(iOS)
-public struct PluginPanelView: UIViewRepresentable {
-    public let htmlURL: URL
-    public let pluginName: String
-
-    public init(htmlURL: URL, pluginName: String) {
-        self.htmlURL = htmlURL
-        self.pluginName = pluginName
-    }
-
-    public func makeUIView(context: Context) -> WKWebView {
-        let config = WKWebViewConfiguration()
-        let handler = PluginMessageHandler()
-        config.userContentController.add(handler, name: "doffice")
-        let webView = WKWebView(frame: .zero, configuration: config)
-        webView.isOpaque = false
-        webView.backgroundColor = .clear
-        webView.scrollView.backgroundColor = .clear
-        return webView
-    }
-
-    public func updateUIView(_ webView: WKWebView, context: Context) {
-        webView.loadFileURL(htmlURL, allowingReadAccessTo: htmlURL.deletingLastPathComponent())
-    }
-}
-#endif
-
-/// 플러그인 JS → 앱 통신 핸들러
-public class PluginMessageHandler: NSObject, WKScriptMessageHandler {
-    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard let body = message.body as? [String: Any],
-              let action = body["action"] as? String else { return }
-
-        switch action {
-        case "getSessionInfo":
-            // 세션 정보를 JS에 전달
-            NotificationCenter.default.post(name: .pluginRequestSessionInfo, object: message.webView)
-        case "notify":
-            if let text = body["text"] as? String {
-                NotificationCenter.default.post(name: .pluginNotify, object: nil, userInfo: ["text": text])
-            }
-        default:
-            break
-        }
-    }
-}
-
-extension Notification.Name {
-    public static let pluginRequestSessionInfo = Notification.Name("pluginRequestSessionInfo")
-    public static let pluginNotify = Notification.Name("pluginNotify")
-    public static let pluginReload = Notification.Name("pluginReload")
-    public static let pluginEffectEvent = Notification.Name("pluginEffectEvent")
-}
-
-// ═══════════════════════════════════════════════════════
 // MARK: - Plugin Manager (Homebrew 플러그인 관리)
 // ═══════════════════════════════════════════════════════
 
@@ -633,6 +347,10 @@ public struct PluginEntry: Codable, Identifiable, Equatable {
 }
 
 public class PluginManager: ObservableObject {
+    typealias ShellCommandRunner = (_ command: String, _ cwd: String?) -> (Bool, String)
+    typealias DownloadHandler = (_ url: URL, _ destinationURL: URL, _ completion: @escaping (Result<Void, Error>) -> Void) -> Void
+    typealias InstallSideEffectHandler = (_ entry: PluginEntry) -> Void
+
     public static let shared = PluginManager()
 
     @Published public var plugins: [PluginEntry] = []
@@ -688,20 +406,27 @@ public class PluginManager: ObservableObject {
 
     private let storageKey = "DofficePlugins"
     private let pluginBaseDir: URL
+    private let userDefaults: UserDefaults
+    private let shellCommandRunner: ShellCommandRunner
+    private let downloadHandler: DownloadHandler
+    private let installSideEffectHandler: InstallSideEffectHandler
 
     /// 레지스트리 URL — GitHub Pages 또는 raw 파일
     /// 기여자는 이 저장소에 PR로 registry.json에 자기 플러그인을 추가
     public static let registryURL = "https://raw.githubusercontent.com/jjunhaa0211/Doffice/main/registry.json"
 
-    private init() {
-        // ~/Library/Application Support/Doffice/Plugins
-        guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            pluginBaseDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("DofficePlugins")
-            try? FileManager.default.createDirectory(at: pluginBaseDir, withIntermediateDirectories: true)
-            loadPlugins()
-            return
-        }
-        pluginBaseDir = appSupport.appendingPathComponent("Doffice").appendingPathComponent("Plugins")
+    init(
+        pluginBaseDir: URL = PluginManager.defaultPluginBaseDir(),
+        userDefaults: UserDefaults = .standard,
+        shellCommandRunner: @escaping ShellCommandRunner = PluginManager.defaultShellCommandRunner,
+        downloadHandler: @escaping DownloadHandler = PluginManager.defaultDownloadHandler,
+        installSideEffectHandler: @escaping InstallSideEffectHandler = PluginManager.defaultInstallSideEffectHandler
+    ) {
+        self.pluginBaseDir = pluginBaseDir
+        self.userDefaults = userDefaults
+        self.shellCommandRunner = shellCommandRunner
+        self.downloadHandler = downloadHandler
+        self.installSideEffectHandler = installSideEffectHandler
         try? FileManager.default.createDirectory(at: pluginBaseDir, withIntermediateDirectories: true)
         loadPlugins()
     }
@@ -709,21 +434,24 @@ public class PluginManager: ObservableObject {
     // MARK: - Persistence
 
     private func loadPlugins() {
-        guard let data = UserDefaults.standard.data(forKey: storageKey),
-              let decoded = try? JSONDecoder().decode([PluginEntry].self, from: data) else { return }
-        plugins = decoded
+        if let data = userDefaults.data(forKey: storageKey),
+           let decoded = try? JSONDecoder().decode([PluginEntry].self, from: data) {
+            plugins = decoded
+        } else {
+            plugins = []
+        }
         loadDisabledExtensions()
         loadTrustedPlugins()
     }
 
     private func loadDisabledExtensions() {
-        if let arr = UserDefaults.standard.stringArray(forKey: disabledExtensionsKey) {
+        if let arr = userDefaults.stringArray(forKey: disabledExtensionsKey) {
             disabledExtensions = Set(arr)
         }
     }
 
     private func saveDisabledExtensions() {
-        UserDefaults.standard.set(Array(disabledExtensions), forKey: disabledExtensionsKey)
+        userDefaults.set(Array(disabledExtensions), forKey: disabledExtensionsKey)
     }
 
     /// 개별 확장 포인트 활성/비활성 토글
@@ -753,13 +481,13 @@ public class PluginManager: ObservableObject {
     }
 
     private func loadTrustedPlugins() {
-        if let arr = UserDefaults.standard.stringArray(forKey: trustedPluginsKey) {
+        if let arr = userDefaults.stringArray(forKey: trustedPluginsKey) {
             trustedPlugins = Set(arr)
         }
     }
 
     private func saveTrustedPlugins() {
-        UserDefaults.standard.set(Array(trustedPlugins), forKey: trustedPluginsKey)
+        userDefaults.set(Array(trustedPlugins), forKey: trustedPluginsKey)
     }
 
     /// 플러그인을 신뢰 목록에 추가
@@ -814,7 +542,7 @@ public class PluginManager: ObservableObject {
 
     private func savePlugins() {
         if let data = try? JSONEncoder().encode(plugins) {
-            UserDefaults.standard.set(data, forKey: storageKey)
+            userDefaults.set(data, forKey: storageKey)
         }
         manifestCacheClear()
     }
@@ -1206,7 +934,7 @@ public class PluginManager: ObservableObject {
             queue: DispatchQueue.global(qos: .utility)
         )
 
-        source.setEventHandler { [weak self] in
+        source.setEventHandler {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 PluginHost.shared.reload()
                 NotificationCenter.default.post(name: .pluginReload, object: nil)
@@ -1234,7 +962,6 @@ public class PluginManager: ObservableObject {
             guard result == .OK, let destURL = panel.url else { return }
 
             DispatchQueue.global(qos: .userInitiated).async {
-                let sourcePath = self?.shellEscape(plugin.localPath) ?? ""
                 let destPath = self?.shellEscape(destURL.path) ?? ""
                 let parentDir = self?.shellEscape(URL(fileURLWithPath: plugin.localPath).deletingLastPathComponent().path) ?? ""
                 let dirName = URL(fileURLWithPath: plugin.localPath).lastPathComponent
@@ -1345,6 +1072,12 @@ public class PluginManager: ObservableObject {
                 return
             }
 
+            if let validationMessage = self.pluginValidationError(at: pluginDir.path) {
+                self.cleanupManagedPluginDirectory(pluginDir)
+                self.finishWithError(validationMessage)
+                return
+            }
+
             let entry = PluginEntry(
                 id: UUID().uuidString,
                 name: item.name,
@@ -1382,6 +1115,11 @@ public class PluginManager: ObservableObject {
 
         guard !prefix.isEmpty && FileManager.default.fileExists(atPath: prefix) else {
             finishWithError(NSLocalizedString("plugin.error.path.not.found", comment: ""))
+            return
+        }
+
+        if let validationMessage = pluginValidationError(at: prefix) {
+            finishWithError(validationMessage)
             return
         }
 
@@ -1445,6 +1183,11 @@ public class PluginManager: ObservableObject {
             return
         }
 
+        if let validationMessage = pluginValidationError(at: prefix) {
+            finishWithError(validationMessage)
+            return
+        }
+
         let (_, versionOut) = runShell("\(brew) list --versions \(shellEscape(tapFormula))")
         let version = versionOut.trimmingCharacters(in: .whitespacesAndNewlines)
             .components(separatedBy: " ").last ?? "unknown"
@@ -1473,31 +1216,39 @@ public class PluginManager: ObservableObject {
         let fileName = url.lastPathComponent.isEmpty ? "plugin" : url.lastPathComponent
         let pluginName = (fileName as NSString).deletingPathExtension
         let pluginDir = pluginBaseDir.appendingPathComponent(pluginName)
+        let fm = FileManager.default
 
         updateProgress(String(format: NSLocalizedString("plugin.progress.downloading", comment: ""), fileName))
-        try? FileManager.default.createDirectory(at: pluginDir, withIntermediateDirectories: true)
-
-        // URLSession으로 다운로드 (macOS + iOS 모두 동작)
-        let destURL = pluginDir.appendingPathComponent(fileName)
-        URLSession.shared.downloadTask(with: url) { [weak self] tempURL, _, error in
-            guard let self = self else { return }
-            guard let tempURL = tempURL, error == nil else {
-                self.finishWithError(String(format: NSLocalizedString("plugin.error.download.failed", comment: ""), error?.localizedDescription ?? ""))
-                return
+        do {
+            if fm.fileExists(atPath: pluginDir.path) {
+                try fm.removeItem(at: pluginDir)
             }
+            try fm.createDirectory(at: pluginDir, withIntermediateDirectories: true)
+        } catch {
+            finishWithError(String(format: NSLocalizedString("plugin.error.download.failed", comment: ""), error.localizedDescription))
+            return
+        }
 
-            do {
-                if FileManager.default.fileExists(atPath: destURL.path) {
-                    try FileManager.default.removeItem(at: destURL)
-                }
-                try FileManager.default.moveItem(at: tempURL, to: destURL)
-            } catch {
+        let destURL = pluginDir.appendingPathComponent(fileName)
+        downloadHandler(url, destURL) { [weak self] result in
+            guard let self = self else { return }
+            if case let .failure(error) = result {
                 self.finishWithError(String(format: NSLocalizedString("plugin.error.download.failed", comment: ""), error.localizedDescription))
                 return
             }
 
             // 압축 해제
-            self.extractIfNeeded(destURL, to: pluginDir, fileName: fileName)
+            if let message = self.extractIfNeeded(destURL, to: pluginDir, fileName: fileName) {
+                self.cleanupManagedPluginDirectory(pluginDir)
+                self.finishWithError(message)
+                return
+            }
+
+            if let validationMessage = self.pluginValidationError(at: pluginDir.path) {
+                self.cleanupManagedPluginDirectory(pluginDir)
+                self.finishWithError(validationMessage)
+                return
+            }
 
             let entry = PluginEntry(
                 id: UUID().uuidString,
@@ -1510,21 +1261,27 @@ public class PluginManager: ObservableObject {
                 sourceType: .rawURL
             )
             self.finishInstall(entry)
-        }.resume()
+        }
     }
 
-    private func extractIfNeeded(_ fileURL: URL, to dir: URL, fileName: String) {
+    private func extractIfNeeded(_ fileURL: URL, to dir: URL, fileName: String) -> String? {
         #if os(macOS)
         if fileName.hasSuffix(".tar.gz") || fileName.hasSuffix(".tgz") {
             updateProgress(NSLocalizedString("plugin.progress.extracting", comment: ""))
             let (ok, out) = runShell("tar -xzf \(shellEscape(fileURL.path)) -C \(shellEscape(dir.path))")
-            if ok { try? FileManager.default.removeItem(at: fileURL) }
-            else { finishWithError(String(format: NSLocalizedString("plugin.error.extract.failed", comment: ""), out)); return }
+            if ok {
+                try? FileManager.default.removeItem(at: fileURL)
+                return nil
+            }
+            return String(format: NSLocalizedString("plugin.error.extract.failed", comment: ""), out)
         } else if fileName.hasSuffix(".zip") {
             updateProgress(NSLocalizedString("plugin.progress.extracting", comment: ""))
             let (ok, out) = runShell("unzip -o \(shellEscape(fileURL.path)) -d \(shellEscape(dir.path))")
-            if ok { try? FileManager.default.removeItem(at: fileURL) }
-            else { finishWithError(String(format: NSLocalizedString("plugin.error.extract.failed", comment: ""), out)); return }
+            if ok {
+                try? FileManager.default.removeItem(at: fileURL)
+                return nil
+            }
+            return String(format: NSLocalizedString("plugin.error.extract.failed", comment: ""), out)
         }
         #else
         // iOS: zip만 Foundation으로 지원 (tar.gz는 미지원)
@@ -1533,6 +1290,7 @@ public class PluginManager: ObservableObject {
             // FileManager에서 직접 압축해제는 미지원 → 파일 그대로 유지
         }
         #endif
+        return nil
     }
 
     // MARK: - 로컬 디렉토리 등록
@@ -1546,6 +1304,10 @@ public class PluginManager: ObservableObject {
 
         let name = URL(fileURLWithPath: expanded).lastPathComponent
         let validation = Self.validatePluginDir(expanded)
+        guard validation.isValid else {
+            finishWithError(validation.warnings.first ?? NSLocalizedString("plugin.warn.empty", comment: ""))
+            return
+        }
 
         let entry = PluginEntry(
             id: UUID().uuidString,
@@ -1946,14 +1708,19 @@ public class PluginManager: ObservableObject {
 
     // MARK: - Shell Helpers
 
-    #if os(macOS)
-    private static func findBrewPath() -> String? {
-        let candidates = ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"]
-        return candidates.first { FileManager.default.fileExists(atPath: $0) }
+    private static func defaultPluginBaseDir() -> URL {
+        #if os(macOS)
+        guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            return URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("DofficePlugins")
+        }
+        return appSupport.appendingPathComponent("Doffice").appendingPathComponent("Plugins")
+        #else
+        return URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("DofficePlugins")
+        #endif
     }
 
-    @discardableResult
-    private func runShell(_ command: String) -> (Bool, String) {
+    private static func defaultShellCommandRunner(_ command: String, _ cwd: String?) -> (Bool, String) {
+        #if os(macOS)
         let process = Process()
         let pipe = Pipe()
         let errorPipe = Pipe()
@@ -1963,21 +1730,84 @@ public class PluginManager: ObservableObject {
         process.standardOutput = pipe
         process.standardError = errorPipe
         process.environment = ProcessInfo.processInfo.environment
+        if let cwd {
+            process.currentDirectoryURL = URL(fileURLWithPath: cwd)
+        }
 
         do {
             try process.run()
-            process.waitUntilExit()
         } catch {
             return (false, error.localizedDescription)
         }
 
-        let outData = pipe.fileHandleForReading.readDataToEndOfFile()
-        let errData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+        var outData = Data()
+        var errData = Data()
+        let group = DispatchGroup()
+        group.enter()
+        DispatchQueue.global(qos: .utility).async {
+            outData = pipe.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+        group.enter()
+        DispatchQueue.global(qos: .utility).async {
+            errData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+
+        process.waitUntilExit()
+        group.wait()
         let output = String(data: outData, encoding: .utf8) ?? ""
         let errOutput = String(data: errData, encoding: .utf8) ?? ""
-
         let success = process.terminationStatus == 0
         return (success, success ? output : (errOutput.isEmpty ? output : errOutput))
+        #else
+        _ = command
+        _ = cwd
+        return (false, NSLocalizedString("plugin.error.brew.not.supported", comment: ""))
+        #endif
+    }
+
+    private static func defaultDownloadHandler(_ url: URL, _ destinationURL: URL, _ completion: @escaping (Result<Void, Error>) -> Void) {
+        URLSession.shared.downloadTask(with: url) { tempURL, _, error in
+            if let error {
+                completion(.failure(error))
+                return
+            }
+
+            guard let tempURL else {
+                completion(.failure(NSError(domain: "PluginManager", code: -1, userInfo: [
+                    NSLocalizedDescriptionKey: NSLocalizedString("plugin.error.download.failed", comment: "")
+                ])))
+                return
+            }
+
+            do {
+                if FileManager.default.fileExists(atPath: destinationURL.path) {
+                    try FileManager.default.removeItem(at: destinationURL)
+                }
+                try FileManager.default.moveItem(at: tempURL, to: destinationURL)
+                completion(.success(()))
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+
+    private static func defaultInstallSideEffectHandler(_ entry: PluginEntry) {
+        _ = entry
+        NotificationCenter.default.post(name: .init("dofficePluginCharactersChanged"), object: nil)
+        PluginHost.shared.reload()
+    }
+
+    #if os(macOS)
+    private static func findBrewPath() -> String? {
+        let candidates = ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"]
+        return candidates.first { FileManager.default.fileExists(atPath: $0) }
+    }
+
+    @discardableResult
+    private func runShell(_ command: String) -> (Bool, String) {
+        shellCommandRunner(command, nil)
     }
 
     private func shellEscape(_ s: String) -> String {
@@ -1999,6 +1829,16 @@ public class PluginManager: ObservableObject {
         }
     }
 
+    private func pluginValidationError(at path: String) -> String? {
+        let validation = Self.validatePluginDir(path)
+        guard !validation.isValid else { return nil }
+        return validation.warnings.first ?? NSLocalizedString("plugin.warn.empty", comment: "")
+    }
+
+    private func cleanupManagedPluginDirectory(_ directory: URL) {
+        try? FileManager.default.removeItem(at: directory)
+    }
+
     private func finishInstall(_ entry: PluginEntry) {
         DispatchQueue.main.async {
             if let idx = self.plugins.firstIndex(where: { $0.source == entry.source }) {
@@ -2012,9 +1852,7 @@ public class PluginManager: ObservableObject {
                 self.plugins.append(entry)
             }
             self.savePlugins()
-            // 캐릭터 팩 + 확장 포인트 로드
-            NotificationCenter.default.post(name: .init("dofficePluginCharactersChanged"), object: nil)
-            PluginHost.shared.reload()
+            self.installSideEffectHandler(entry)
             self.lastError = nil
             self.isInstalling = false
             self.installProgress = ""
