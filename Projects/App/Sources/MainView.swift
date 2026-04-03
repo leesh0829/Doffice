@@ -4,41 +4,41 @@ import DofficeKit
 
 struct MainView: View {
     @EnvironmentObject var manager: SessionManager
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
     @StateObject var settings = AppSettings.shared
-    @StateObject private var achievementManager = AchievementManager.shared
-    @State private var sidebarWidth: CGFloat = 216
-    @State private var showSettings = false
-    @State private var showClaudeNotInstalledAlert = false
-    @State private var showRoleNoticeAlert = false
-    @State private var roleNoticeTitle = ""
-    @State private var roleNoticeMessage = ""
-    @State private var showBugReport = false
-    @State private var showUpdateSheet = false
-    @State private var showActionCenter = false
-    @State private var showCommandPalette = false
-    @State private var showDailyReward = false
-    @State private var dailyRewardData: AchievementManager.DailyRewardResult?
-    @State private var showBillingAlert = false
-    @State private var billingAlertMessage = ""
-    @StateObject private var updater = UpdateChecker.shared
-    @StateObject private var pluginHost = PluginHost.shared
-    @StateObject private var effectEngine = PluginEffectEngine.shared
-    @State private var activePluginPanelId: String?
-    @StateObject private var sessionNotifications = SessionNotificationManager.shared
-    @Environment(\.openWindow) private var openWindow
-    @AppStorage("officeExpanded") private var officeExpanded = true
-    @AppStorage("viewMode") private var viewModeRaw: Int = 1
-    @AppStorage("sidebarCollapsed") private var sidebarCollapsed = false
+    @StateObject var achievementManager = AchievementManager.shared
+    @State var sidebarWidth: CGFloat = 216
+    @State var showSettings = false
+    @State var showClaudeNotInstalledAlert = false
+    @State var showRoleNoticeAlert = false
+    @State var roleNoticeTitle = ""
+    @State var roleNoticeMessage = ""
+    @State var showBugReport = false
+    @State var showUpdateSheet = false
+    @State var showActionCenter = false
+    @State var showCommandPalette = false
+    @State var showDailyReward = false
+    @State var dailyRewardData: AchievementManager.DailyRewardResult?
+    @State var showBillingAlert = false
+    @State var billingAlertMessage = ""
+    @StateObject var updater = UpdateChecker.shared
+    @StateObject var pluginHost = PluginHost.shared
+    @StateObject var effectEngine = PluginEffectEngine.shared
+    @State var activePluginPanelId: String?
+    @StateObject var sessionNotifications = SessionNotificationManager.shared
+    @Environment(\.openWindow) var openWindow
+    @AppStorage("officeExpanded") var officeExpanded = true
+    @AppStorage("viewMode") var viewModeRaw: Int = 1
+    @AppStorage("sidebarCollapsed") var sidebarCollapsed = false
 
-    private enum ViewMode: Int { case split = 0, office = 1, terminal = 2, strip = 3 }
-    private var viewMode: ViewMode { ViewMode(rawValue: viewModeRaw) ?? .split }
-    private var officeHeight: CGFloat { officeExpanded ? 380 : 240 }
-    private let minimumSidebarWidth: CGFloat = 196
-    private let preferredSidebarWidth: CGFloat = 216
-    private let minimumPrimaryContentWidth: CGFloat = 880
+    enum ViewMode: Int { case split = 0, office = 1, terminal = 2, strip = 3 }
+    var viewMode: ViewMode { ViewMode(rawValue: viewModeRaw) ?? .split }
+    var officeHeight: CGFloat { officeExpanded ? 380 : 240 }
+    let minimumSidebarWidth: CGFloat = 196
+    let preferredSidebarWidth: CGFloat = 216
+    let minimumPrimaryContentWidth: CGFloat = 880
 
-    private var chromeAnimation: Animation {
+    var chromeAnimation: Animation {
         reduceMotion ? .linear(duration: 0.01) : .easeInOut(duration: 0.2)
     }
 
@@ -58,6 +58,7 @@ struct MainView: View {
                     if !sidebarCollapsed {
                         SidebarView(forceCompact: forceCompactSidebar)
                             .frame(width: effectiveSidebarWidth)
+                            .clipped()
                             .transition(.move(edge: .leading))
 
                         Rectangle().fill(Theme.border).frame(width: 1)
@@ -286,6 +287,12 @@ struct MainView: View {
             showActionCenter = false
         }
         .onAppear {
+            if SmokeTestHarness.isEnabled {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    SmokeTestHarness.completeMainViewSmoke(manager: manager, settings: settings)
+                }
+                return
+            }
             settings.ensureCoffeeSupportPreset()
             if manager.userVisibleTabs.isEmpty {
                 // Let the first frame render before session restoration work kicks in.
@@ -327,23 +334,6 @@ struct MainView: View {
             }
         }
         .onDisappear { manager.stopScanning() }
-    }
-
-    private func viewModeButton(icon: String, mode: ViewMode, label: String) -> some View {
-        let isActive = viewMode == mode
-        return Button(action: {
-            withAnimation(chromeAnimation) {
-                viewModeRaw = mode.rawValue
-            }
-        }) {
-            Image(systemName: icon)
-                .font(.system(size: Theme.iconSize(11), weight: .medium))
-                .foregroundColor(isActive ? Theme.accent : Theme.textDim)
-                .frame(width: 30, height: 24)
-                .background(isActive ? Theme.accent.opacity(0.12) : .clear)
-        }
-        .buttonStyle(.plain)
-        .help(label)
     }
 
     // MARK: - Split View (기본 모드: 오피스 + 터미널)
@@ -441,7 +431,7 @@ struct MainView: View {
         OfficeSceneView()
     }
 
-    private func openOfficeWindow() {
+    func openOfficeWindow() {
         openWindow(id: "office-window")
         // 메인 창을 터미널 모드로 전환
         withAnimation(chromeAnimation) {
@@ -468,7 +458,6 @@ struct MainView: View {
 
         let tracker = TokenTracker.shared
         let costStr = String(format: "$%.2f", tracker.todayCost)
-        let monthCost = String(format: "$%.2f", tracker.weekCost * 4.3)
         let tokens = tracker.todayTokens
 
         billingAlertMessage = String(format: NSLocalizedString("main.billing.alert", comment: ""), tokens > 1000 ? String(format: "%.1fK", Double(tokens)/1000) : "\(tokens)", costStr)
@@ -496,300 +485,6 @@ struct MainView: View {
         }
     }
 
-    // MARK: - Title Bar
-
-    // 타이틀바 공용: 아이콘 버튼
-    private func chromeIconButton(_ icon: String, help: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: Theme.chromeIconSize(12), weight: .medium))
-                .foregroundColor(Theme.textDim)
-                .frame(width: 28, height: 28)
-        }
-        .buttonStyle(.plain)
-        .help(help)
-    }
-
-    // 타이틀바 공용: 작은 pill 배지
-    private func chromePill(_ text: String, color: Color) -> some View {
-        Text(text)
-            .font(Theme.chrome(9, weight: .medium))
-            .foregroundColor(color)
-            .padding(.horizontal, Theme.sp2)
-            .padding(.vertical, 2)
-            .background(RoundedRectangle(cornerRadius: Theme.cornerSmall).fill(Theme.accentBg(color)))
-            .overlay(RoundedRectangle(cornerRadius: Theme.cornerSmall).stroke(Theme.accentBorder(color), lineWidth: 1))
-    }
-
-    private var titleBar: some View {
-        HStack(spacing: Theme.sp2) {
-            Color.clear.frame(width: 68, height: 1)
-
-            chromeIconButton(sidebarCollapsed ? "sidebar.left" : "sidebar.leading", help: sidebarCollapsed ? NSLocalizedString("main.sidebar.open", comment: "") : NSLocalizedString("main.sidebar.close", comment: "")) {
-                withAnimation(.easeInOut(duration: 0.2)) { sidebarCollapsed.toggle() }
-            }
-
-            // 앱 이름
-            HStack(spacing: 4) {
-                Text(settings.appDisplayName)
-                    .font(Theme.mono(13, weight: .semibold))
-                    .foregroundColor(Theme.textPrimary)
-                if !settings.companyName.isEmpty {
-                    Text("·").foregroundColor(Theme.textMuted)
-                    Text(settings.companyName).font(Theme.mono(9)).foregroundColor(Theme.textDim)
-                }
-            }
-
-            // 뷰 모드 전환
-            HStack(spacing: 0) {
-                viewModeButton(icon: "rectangle.split.1x2", mode: .split, label: NSLocalizedString("view.split", comment: ""))
-                viewModeButton(icon: "building.2", mode: .office, label: NSLocalizedString("view.office", comment: ""))
-                viewModeButton(icon: "person.2.fill", mode: .strip, label: NSLocalizedString("view.strip", comment: ""))
-                viewModeButton(icon: "terminal", mode: .terminal, label: NSLocalizedString("view.terminal", comment: ""))
-            }
-            .fixedSize(horizontal: true, vertical: true)
-            .background(RoundedRectangle(cornerRadius: Theme.cornerMedium).fill(Theme.bgSurface))
-            .overlay(RoundedRectangle(cornerRadius: Theme.cornerMedium).stroke(Theme.border, lineWidth: 1))
-
-            Menu {
-                ForEach(settings.layoutPresets) { preset in
-                    Button(action: {
-                        settings.applyPreset(preset)
-                        viewModeRaw = preset.viewModeRaw
-                    }) {
-                        Text(preset.name)
-                    }
-                }
-                Divider()
-                Button(NSLocalizedString("main.save.layout", comment: "")) {
-                    settings.saveCurrentAsPreset(
-                        name: String(format: NSLocalizedString("main.preset.name", comment: ""), settings.layoutPresets.count + 1),
-                        viewModeRaw: viewModeRaw,
-                        sidebarWidth: Double(sidebarWidth)
-                    )
-                }
-            } label: {
-                Image(systemName: "rectangle.3.group")
-                    .font(.system(size: Theme.chromeIconSize(11)))
-                    .foregroundColor(Theme.textDim)
-            }
-            .menuStyle(.borderlessButton)
-            .frame(width: 28)
-            .help(NSLocalizedString("main.layout.preset", comment: ""))
-
-            Spacer()
-
-            // 업데이트 배지
-            if updater.hasUpdate {
-                Button(action: { showUpdateSheet = true }) {
-                    HStack(spacing: 4) {
-                        AppStatusDot(color: Theme.green, size: 6)
-                        Text("v\(updater.latestVersion)").font(Theme.chrome(9, weight: .medium)).foregroundColor(Theme.green)
-                    }
-                    .padding(.horizontal, Theme.sp2).padding(.vertical, 3)
-                    .background(RoundedRectangle(cornerRadius: Theme.cornerSmall).fill(Theme.accentBg(Theme.green)))
-                    .overlay(RoundedRectangle(cornerRadius: Theme.cornerSmall).stroke(Theme.accentBorder(Theme.green), lineWidth: 1))
-                }.buttonStyle(.plain).help(NSLocalizedString("main.update.available", comment: ""))
-            }
-
-            if ClaudeInstallChecker.shared.isInstalled || CodexInstallChecker.shared.isInstalled {
-                Text([
-                    ClaudeInstallChecker.shared.isInstalled ? "Claude \(ClaudeInstallChecker.shared.version)" : nil,
-                    CodexInstallChecker.shared.isInstalled ? "Codex \(CodexInstallChecker.shared.version)" : nil,
-                ].compactMap { $0 }.joined(separator: " · "))
-                    .font(Theme.chrome(8)).foregroundColor(Theme.textMuted)
-            }
-
-            // 토큰 사용량
-            if manager.totalTokensUsed > 0 {
-                HStack(spacing: 4) {
-                    Image(systemName: "bolt.fill").font(.system(size: 8)).foregroundColor(Theme.yellow)
-                    Text(fmtTok(manager.totalTokensUsed))
-                        .font(Theme.chrome(10, weight: .medium)).foregroundColor(Theme.textSecondary)
-                }
-                .padding(.horizontal, Theme.sp2).padding(.vertical, 3)
-                .background(RoundedRectangle(cornerRadius: Theme.cornerSmall).fill(Theme.bgSurface))
-                .overlay(RoundedRectangle(cornerRadius: Theme.cornerSmall).stroke(Theme.border, lineWidth: 1))
-            }
-
-            // 레벨
-            chromePill("Lv.\(AchievementManager.shared.currentLevel.level)", color: Theme.yellow)
-
-            // 유틸리티 버튼들
-            HStack(spacing: 0) {
-                chromeIconButton("rectangle.on.rectangle", help: NSLocalizedString("main.office.detach", comment: "")) { openOfficeWindow() }
-                chromeIconButton("ladybug.fill", help: NSLocalizedString("main.bug.report", comment: "")) { showBugReport = true }
-                chromeIconButton("gearshape.fill", help: NSLocalizedString("settings", comment: "")) { showSettings = true }
-                chromeIconButton("arrow.clockwise", help: NSLocalizedString("main.refresh.shortcut", comment: "")) { manager.refresh() }
-                chromeIconButton(settings.isLocked ? "lock.fill" : "lock.open", help: NSLocalizedString("main.session.lock", comment: "")) {
-                    if settings.lockPIN.isEmpty { settings.isLocked.toggle() } else { settings.isLocked = true }
-                }
-            }
-
-            // 세션 수
-            Text("\(manager.userVisibleTabCount)")
-                .font(Theme.chrome(10, weight: .bold)).foregroundColor(Theme.textDim)
-                .padding(.horizontal, Theme.sp2).padding(.vertical, 3)
-                .background(RoundedRectangle(cornerRadius: Theme.cornerSmall).fill(Theme.bgSurface))
-                .overlay(RoundedRectangle(cornerRadius: Theme.cornerSmall).stroke(Theme.border, lineWidth: 1))
-        }
-        .padding(.horizontal, Theme.sp3).frame(height: Theme.toolbarHeight)
-        .background(Theme.bgCard)
-        .overlay(alignment: .bottom) { Rectangle().fill(Theme.border).frame(height: 1) }
-        .padding(.top, -1)
-    }
-
-    // MARK: - Status Bar
-
-    private var processingTabCount: Int {
-        manager.userVisibleTabs.lazy.filter { $0.statusPresentation.category == .processing }.count
-    }
-
-    private var activeTabCount: Int {
-        manager.userVisibleTabs.lazy.filter { $0.statusPresentation.category == .active }.count
-    }
-
-    private var attentionTabCount: Int {
-        manager.userVisibleTabs.lazy.filter { $0.statusPresentation.category == .attention }.count
-    }
-
-    private var completedTabCount: Int {
-        manager.userVisibleTabs.lazy.filter { $0.statusPresentation.category == .completed }.count
-    }
-
-    private var statusBar: some View {
-        HStack(spacing: 10) {
-            if manager.userVisibleTabs.isEmpty {
-                HStack(spacing: 4) {
-                    Circle().fill(Theme.textDim.opacity(0.7)).frame(width: 4, height: 4)
-                    Text(NSLocalizedString("main.no.sessions", comment: ""))
-                        .font(Theme.monoSmall)
-                        .foregroundColor(Theme.textSecondary)
-                }
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                        if activeTabCount > 0 {
-                            AppStatusBadge(title: String(format: NSLocalizedString("main.active.count", comment: ""), activeTabCount), symbol: "bolt.circle.fill", tint: Theme.green)
-                        }
-                        if processingTabCount > 0 {
-                            AppStatusBadge(title: String(format: NSLocalizedString("main.processing.count", comment: ""), processingTabCount), symbol: "gearshape.2.fill", tint: Theme.accent)
-                        }
-                        if attentionTabCount > 0 {
-                            Button(action: { showActionCenter = true }) {
-                                AppStatusBadge(title: String(format: NSLocalizedString("main.attention.count", comment: ""), attentionTabCount), symbol: "exclamationmark.triangle.fill", tint: Theme.red)
-                            }.buttonStyle(.plain)
-                        }
-                        if completedTabCount > 0 {
-                            Button(action: { showActionCenter = true }) {
-                                AppStatusBadge(title: String(format: NSLocalizedString("main.completed.count", comment: ""), completedTabCount), symbol: "checkmark.circle.fill", tint: Theme.green)
-                            }.buttonStyle(.plain)
-                        }
-                    }
-                }
-            }
-
-            // 플러그인 패널 탭
-            if !pluginHost.panels.isEmpty {
-                Rectangle().fill(Theme.border).frame(width: 1, height: 14)
-                ForEach(pluginHost.panels) { panel in
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            activePluginPanelId = activePluginPanelId == panel.id ? nil : panel.id
-                        }
-                    }) {
-                        HStack(spacing: 3) {
-                            Image(systemName: panel.icon)
-                                .font(.system(size: Theme.chromeIconSize(9), weight: .medium))
-                            Text(panel.title)
-                                .font(Theme.chrome(8))
-                        }
-                        .foregroundColor(activePluginPanelId == panel.id ? Theme.accent : Theme.textDim)
-                        .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(RoundedRectangle(cornerRadius: 4).fill(activePluginPanelId == panel.id ? Theme.accent.opacity(0.1) : Color.clear))
-                    }.buttonStyle(.plain)
-                }
-            }
-
-            // 플러그인 상태바 위젯
-            if !pluginHost.statusBarItems.isEmpty {
-                Rectangle().fill(Theme.border).frame(width: 1, height: 14)
-                ForEach(pluginHost.statusBarItems) { item in
-                    HStack(spacing: 3) {
-                        if !item.icon.isEmpty {
-                            Image(systemName: item.icon)
-                                .font(.system(size: Theme.chromeIconSize(8)))
-                        }
-                        Text(item.text)
-                            .font(Theme.chrome(8))
-                    }
-                    .foregroundColor(Theme.textSecondary)
-                }
-            }
-
-            Spacer()
-
-            Text("⌘P palette · ⌘T new · ⌘J center · ⌘1-9 switch · ⌘K clear")
-                .font(Theme.chrome(8)).foregroundColor(Theme.textMuted)
-                .lineLimit(1)
-        }
-        .padding(.horizontal, Theme.sp3).frame(height: 24)
-        .background(Theme.bg)
-        .overlay(alignment: .top) { Rectangle().fill(Theme.border).frame(height: 1) }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(NSLocalizedString("main.a11y.session.summary", comment: ""))
-        .accessibilityValue(statusBarAccessibilitySummary)
-    }
-
-    private func pluginPanelHeader(_ panel: PluginHost.LoadedPanel) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: panel.icon)
-                .font(.system(size: Theme.iconSize(12), weight: .bold))
-                .foregroundStyle(Theme.accentBackground)
-            Text(panel.title)
-                .font(Theme.mono(11, weight: .bold))
-                .foregroundColor(Theme.textPrimary)
-            Text("by \(panel.pluginName)")
-                .font(Theme.mono(8))
-                .foregroundColor(Theme.textDim)
-            Spacer()
-            Button(action: { withAnimation { activePluginPanelId = nil } }) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 14))
-                    .foregroundColor(Theme.textDim)
-            }.buttonStyle(.plain)
-        }
-        .padding(.horizontal, Theme.sp3).padding(.vertical, 6)
-        .background(Theme.bgCard)
-        .overlay(alignment: .bottom) { Rectangle().fill(Theme.border).frame(height: 1) }
-    }
-
-    private var statusBarAccessibilitySummary: String {
-        if manager.userVisibleTabs.isEmpty {
-            return NSLocalizedString("main.a11y.no.active", comment: "")
-        }
-
-        return [
-            activeTabCount > 0 ? String(format: NSLocalizedString("main.a11y.active", comment: ""), activeTabCount) : nil,
-            processingTabCount > 0 ? String(format: NSLocalizedString("main.a11y.processing", comment: ""), processingTabCount) : nil,
-            attentionTabCount > 0 ? String(format: NSLocalizedString("main.a11y.attention", comment: ""), attentionTabCount) : nil,
-            completedTabCount > 0 ? String(format: NSLocalizedString("main.a11y.completed", comment: ""), completedTabCount) : nil
-        ]
-        .compactMap { $0 }
-        .joined(separator: ", ")
-    }
-
-    private func protectedSidebarWidth(totalWidth: CGFloat) -> CGFloat {
-        let requestedWidth = max(sidebarWidth, preferredSidebarWidth)
-        let safeMaximum = max(minimumSidebarWidth, totalWidth - minimumPrimaryContentWidth)
-        return min(requestedWidth, safeMaximum)
-    }
-
-    private func shouldForceCompactSidebar(totalWidth: CGFloat, sidebarWidth: CGFloat) -> Bool {
-        totalWidth < 1240 || sidebarWidth <= 204
-    }
-
-    private func fmtTok(_ c: Int) -> String { c >= 1000 ? String(format: "%.1fk", Double(c)/1000) : "\(c)" }
 }
 
 // ═══════════════════════════════════════════════════════

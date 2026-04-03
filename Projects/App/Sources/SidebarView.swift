@@ -3,7 +3,7 @@ import AppKit
 import DesignSystem
 import DofficeKit
 
-private struct CollapsibleSidebarPanel<Content: View>: View {
+struct CollapsibleSidebarPanel<Content: View>: View {
     @StateObject private var settings = AppSettings.shared
     let title: String
     let icon: String
@@ -43,7 +43,7 @@ private struct CollapsibleSidebarPanel<Content: View>: View {
     }
 }
 
-private enum SessionStatusFilter: String, CaseIterable, Identifiable {
+enum SessionStatusFilter: String, CaseIterable, Identifiable {
     case all
     case active
     case processing
@@ -83,7 +83,7 @@ private enum SessionStatusFilter: String, CaseIterable, Identifiable {
     }
 }
 
-private enum SidebarSortOption: String, CaseIterable, Identifiable {
+enum SidebarSortOption: String, CaseIterable, Identifiable {
     case recent
     case name
     case tokens
@@ -109,17 +109,17 @@ struct SidebarView: View {
     @AppStorage("viewMode") private var appViewModeRaw: Int = 1
     @State private var draggingTabId: String?
     @State private var showHistory: Bool = false
-    @State private var searchQuery: String = ""
-    @State private var isMultiSelectMode = false
-    @State private var selectedTabIds: Set<String> = []
+    @State var searchQuery: String = ""
+    @State var isMultiSelectMode = false
+    @State var selectedTabIds: Set<String> = []
     @AppStorage("doffice.sidebarStatusFilter") private var statusFilterRaw: String = SessionStatusFilter.all.rawValue
     @AppStorage("doffice.sidebarSortOption") private var sortOptionRaw: String = SidebarSortOption.recent.rawValue
 
-    private var statusFilter: SessionStatusFilter {
+    var statusFilter: SessionStatusFilter {
         get { SessionStatusFilter(rawValue: statusFilterRaw) ?? .all }
         nonmutating set { statusFilterRaw = newValue.rawValue }
     }
-    private var sortOption: SidebarSortOption {
+    var sortOption: SidebarSortOption {
         get { SidebarSortOption(rawValue: sortOptionRaw) ?? .recent }
         nonmutating set { sortOptionRaw = newValue.rawValue }
     }
@@ -140,30 +140,6 @@ struct SidebarView: View {
 
     private var isCompactChrome: Bool {
         forceCompact || (isTerminalOnlyMode && settings.terminalSidebarLightweight)
-    }
-
-    private var filteredProjectGroups: [SessionManager.ProjectGroup] {
-        let loweredQuery = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-
-        let groups = manager.projectGroups.compactMap { group -> SessionManager.ProjectGroup? in
-            let matchingTabs = group.tabs
-                .filter { tab in
-                    matchesQuery(tab, loweredQuery: loweredQuery) && matchesFilter(tab)
-                }
-                .sorted(by: tabSortComparator(lhs:rhs:))
-
-            guard !matchingTabs.isEmpty else { return nil }
-            return SessionManager.ProjectGroup(
-                id: group.id,
-                projectName: group.projectName,
-                tabs: matchingTabs,
-                hasActiveTab: matchingTabs.contains(where: { $0.id == manager.activeTabId })
-            )
-        }
-
-        return groups.sorted { lhs, rhs in
-            compareGroups(lhs, rhs)
-        }
     }
 
     var body: some View {
@@ -305,181 +281,7 @@ struct SidebarView: View {
         .background(Theme.bgCard)
     }
 
-    @StateObject private var tracker = TokenTracker.shared
-
-    private var tokenUsagePanel: some View {
-        sidebarPanel(title: "Usage", icon: "chart.bar.fill", tint: Theme.cyan) {
-            VStack(spacing: 10) {
-                VStack(spacing: 4) {
-                    HStack {
-                        Text(NSLocalizedString("misc.today", comment: "")).font(Theme.chrome(9, weight: .medium)).foregroundColor(Theme.textSecondary)
-                        Spacer()
-                        Text(tracker.formatTokens(tracker.todayTokens))
-                            .font(Theme.chrome(10, weight: .bold)).foregroundColor(Theme.textPrimary)
-                        Text("/").font(Theme.chrome(8)).foregroundColor(Theme.textDim)
-                        Text(tracker.formatTokens(tracker.dailyTokenLimit))
-                            .font(Theme.chrome(9)).foregroundColor(Theme.textDim)
-                    }
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 2).fill(Theme.bg).frame(height: 4)
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(dailyBarColor)
-                                .frame(width: max(0, geo.size.width * min(1, tracker.dailyUsagePercent)), height: 4)
-                        }
-                    }.frame(height: 4)
-                    HStack {
-                        Text(NSLocalizedString("misc.remaining", comment: "")).font(Theme.chrome(7)).foregroundColor(Theme.textDim)
-                        Spacer()
-                        Text(tracker.formatTokens(tracker.dailyRemaining))
-                            .font(Theme.chrome(8, weight: .semibold))
-                            .foregroundColor(tracker.dailyUsagePercent > 0.8 ? Theme.red : Theme.green)
-                    }
-                    if tracker.todayCost > 0 {
-                        HStack {
-                            Text(NSLocalizedString("misc.cost", comment: "")).font(Theme.chrome(7)).foregroundColor(Theme.textDim)
-                            Spacer()
-                            Text(String(format: "$%.4f", tracker.todayCost))
-                                .font(Theme.chrome(8)).foregroundColor(Theme.yellow)
-                        }
-                    }
-                }
-
-                Divider().overlay(Theme.border.opacity(0.6))
-
-                VStack(spacing: 4) {
-                    HStack {
-                        Text(NSLocalizedString("misc.thisweek", comment: "")).font(Theme.chrome(9, weight: .medium)).foregroundColor(Theme.textSecondary)
-                        Spacer()
-                        Text(tracker.formatTokens(tracker.weekTokens))
-                            .font(Theme.chrome(10, weight: .bold)).foregroundColor(Theme.textPrimary)
-                        Text("/").font(Theme.chrome(8)).foregroundColor(Theme.textDim)
-                        Text(tracker.formatTokens(tracker.weeklyTokenLimit))
-                            .font(Theme.chrome(9)).foregroundColor(Theme.textDim)
-                    }
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 2).fill(Theme.bg).frame(height: 4)
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(weeklyBarColor)
-                                .frame(width: max(0, geo.size.width * min(1, tracker.weeklyUsagePercent)), height: 4)
-                        }
-                    }.frame(height: 4)
-                    HStack {
-                        Text(NSLocalizedString("misc.remaining", comment: "")).font(Theme.chrome(7)).foregroundColor(Theme.textDim)
-                        Spacer()
-                        Text(tracker.formatTokens(tracker.weeklyRemaining))
-                            .font(Theme.chrome(8, weight: .semibold))
-                            .foregroundColor(tracker.weeklyUsagePercent > 0.8 ? Theme.red : Theme.green)
-                    }
-                    if tracker.weekCost > 0 {
-                        HStack {
-                            Text(NSLocalizedString("misc.cost", comment: "")).font(Theme.chrome(7)).foregroundColor(Theme.textDim)
-                            Spacer()
-                            Text(String(format: "$%.4f", tracker.weekCost))
-                                .font(Theme.chrome(8)).foregroundColor(Theme.yellow)
-                        }
-                    }
-                }
-
-                // 결제 기간
-                if AppSettings.shared.billingDay > 0 {
-                    Divider().overlay(Theme.border.opacity(0.6))
-                    VStack(spacing: 4) {
-                        HStack {
-                            Text(NSLocalizedString("sidebar.billing.period", comment: "")).font(Theme.chrome(9, weight: .medium)).foregroundColor(Theme.textSecondary)
-                            Spacer()
-                            Text(tracker.billingPeriodLabel).font(Theme.chrome(8)).foregroundColor(Theme.textDim)
-                        }
-                        HStack {
-                            Text(NSLocalizedString("sidebar.tokens", comment: "")).font(Theme.chrome(7)).foregroundColor(Theme.textDim)
-                            Spacer()
-                            Text(tracker.formatTokens(tracker.billingPeriodTokens))
-                                .font(Theme.chrome(10, weight: .bold)).foregroundColor(Theme.orange)
-                        }
-                        HStack {
-                            Text(NSLocalizedString("misc.cost", comment: "")).font(Theme.chrome(7)).foregroundColor(Theme.textDim)
-                            Spacer()
-                            Text(String(format: "$%.4f", tracker.billingPeriodCost))
-                                .font(Theme.chrome(8)).foregroundColor(Theme.yellow)
-                        }
-                    }
-                }
-
-                if manager.totalTokensUsed > 0 {
-                    Divider().overlay(Theme.border.opacity(0.6))
-                    HStack {
-                        Text(NSLocalizedString("sidebar.current.session", comment: "")).font(Theme.chrome(8, weight: .medium)).foregroundColor(Theme.textDim)
-                        Spacer()
-                        let (totalIn, totalOut) = manager.userVisibleTabs.reduce((0, 0)) { ($0.0 + $1.inputTokensUsed, $0.1 + $1.outputTokensUsed) }
-                        if totalIn > 0 || totalOut > 0 {
-                            HStack(spacing: 4) {
-                                Text("In").font(Theme.chrome(7)).foregroundColor(Theme.textDim)
-                                Text(formatTokens(totalIn)).font(Theme.chrome(8, weight: .semibold)).foregroundStyle(Theme.accentBackground)
-                                Text("Out").font(Theme.chrome(7)).foregroundColor(Theme.textDim)
-                                Text(formatTokens(totalOut)).font(Theme.chrome(8, weight: .semibold)).foregroundColor(Theme.green)
-                            }
-                        } else {
-                            Text(formatTokens(manager.totalTokensUsed)).font(Theme.chrome(8, weight: .semibold)).foregroundColor(Theme.textPrimary)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private var dailyBarColor: Color {
-        if tracker.dailyUsagePercent > 0.9 { return Theme.red }
-        if tracker.dailyUsagePercent > 0.7 { return Theme.yellow }
-        return Theme.green
-    }
-
-    private var weeklyBarColor: Color {
-        if tracker.weeklyUsagePercent > 0.9 { return Theme.red }
-        if tracker.weeklyUsagePercent > 0.7 { return Theme.yellow }
-        return Theme.cyan
-    }
-
-    private var tokenPanel: some View {
-        sidebarPanel(title: "Tokens", icon: "bolt.fill", tint: Theme.yellow) {
-            VStack(spacing: 8) {
-                HStack {
-                    Text(NSLocalizedString("sidebar.total.usage", comment: ""))
-                        .font(Theme.chrome(8, weight: .medium))
-                        .foregroundColor(Theme.textDim)
-                    Spacer()
-                    Text(formatTokens(manager.totalTokensUsed))
-                        .font(Theme.chrome(12, weight: .semibold)).foregroundColor(Theme.textPrimary)
-                }
-                ForEach(manager.userVisibleTabs.sorted(by: { $0.tokensUsed > $1.tokensUsed })) { tab in
-                    if tab.tokensUsed > 0 {
-                        HStack(spacing: 6) {
-                            RoundedRectangle(cornerRadius: 1).fill(tab.workerColor).frame(width: 3, height: 12)
-                            Text(tab.workerName).font(Theme.chrome(9)).foregroundColor(Theme.textSecondary)
-                            Spacer()
-                            Text(formatTokens(tab.tokensUsed)).font(Theme.chrome(9)).foregroundColor(Theme.textDim)
-                            GeometryReader { geo in
-                                ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 2).fill(Theme.bg)
-                                    RoundedRectangle(cornerRadius: 2).fill(tab.workerColor.opacity(0.5))
-                                        .frame(width: max(2, geo.size.width * CGFloat(tab.tokensUsed) / CGFloat(max(1, tab.tokenLimit))))
-                                }
-                            }.frame(width: 36, height: 3)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private var gamePanel: some View {
-        sidebarPanel(title: "Level", icon: "sparkles", tint: Theme.yellow) {
-            VStack(spacing: 8) {
-                XPBarView(xp: AchievementManager.shared.totalXP)
-                AchievementsView()
-            }
-        }
-    }
+    @StateObject var tracker = TokenTracker.shared
 
     private var newSessionQuickAction: some View {
         Button(action: { manager.showNewTabSheet = true }) {
@@ -577,195 +379,16 @@ struct SidebarView: View {
         .appPanelStyle(padding: 10, radius: 12, fill: Theme.bgCard.opacity(0.98), strokeOpacity: 0.2, shadow: false)
     }
 
-    @State private var showCharacterSheet = false
-    @State private var showAchievementSheet = false
-    @State private var showAccessorySheet = false
-    @State private var showReportSheet = false
+    @State var showCharacterSheet = false
+    @State var showAchievementSheet = false
+    @State var showAccessorySheet = false
+    @State var showReportSheet = false
 
-    private func batchRestart() {
-        for id in selectedTabIds {
-            if let tab = manager.tabs.first(where: { $0.id == id }) {
-                tab.stop()
-                tab.start()
-            }
-        }
-        selectedTabIds.removeAll()
-        isMultiSelectMode = false
-    }
-
-    private func batchStop() {
-        for id in selectedTabIds {
-            if let tab = manager.tabs.first(where: { $0.id == id }) {
-                tab.forceStop()
-            }
-        }
-        selectedTabIds.removeAll()
-        isMultiSelectMode = false
-    }
-
-    private func batchClose() {
-        for id in selectedTabIds {
-            manager.removeTab(id)
-        }
-        selectedTabIds.removeAll()
-        isMultiSelectMode = false
-    }
-
-    private var managementButtons: some View {
-        VStack(spacing: 6) {
-            utilityButton(title: NSLocalizedString("sidebar.characters", comment: ""), icon: "person.2.fill", countText: "\(CharacterRegistry.shared.hiredCharacters.count)/\(CharacterRegistry.shared.allCharacters.count)", tone: .accent) { showCharacterSheet = true }
-            utilityButton(title: NSLocalizedString("sidebar.accessories", comment: ""), icon: "sofa.fill", countText: "\(breakRoomFurnitureOnCount)/20", tone: .purple) { showAccessorySheet = true }
-            utilityButton(title: NSLocalizedString("sidebar.reports", comment: ""), icon: "doc.text.fill", countText: "\(manager.availableReportCount)", tone: .cyan) { showReportSheet = true }
-            utilityButton(title: NSLocalizedString("sidebar.achievements", comment: ""), icon: "trophy.fill", countText: "\(AchievementManager.shared.unlockedCount)/\(AchievementManager.shared.achievements.count)", tone: .yellow) { showAchievementSheet = true }
-        }
-        .padding(.horizontal, 10).padding(.bottom, 6)
-        .sheet(isPresented: $showCharacterSheet) {
-            CharacterCollectionView()
-                .frame(minWidth: 940, idealWidth: 1040, minHeight: 760, idealHeight: 840)
-                .dofficeSheetPresentation()
-        }
-        .sheet(isPresented: $showAccessorySheet) { AccessoryView().frame(minWidth: 480, minHeight: 560).dofficeSheetPresentation() }
-        .sheet(isPresented: $showReportSheet) { ReportCenterView().frame(minWidth: 760, minHeight: 620).dofficeSheetPresentation() }
-        .sheet(isPresented: $showAchievementSheet) { AchievementCollectionView().frame(minWidth: 880, idealWidth: 960, minHeight: 680, idealHeight: 740).dofficeSheetPresentation() }
-    }
-
-    private var lightweightManagementButtons: some View {
-        VStack(spacing: 6) {
-            lightweightButton(title: NSLocalizedString("sidebar.characters", comment: ""), icon: "person.2.fill") { showCharacterSheet = true }
-            lightweightButton(title: NSLocalizedString("sidebar.accessories", comment: ""), icon: "sofa.fill") { showAccessorySheet = true }
-            lightweightButton(title: NSLocalizedString("sidebar.reports", comment: ""), icon: "doc.text.fill") { showReportSheet = true }
-            lightweightButton(title: NSLocalizedString("sidebar.achievements", comment: ""), icon: "trophy.fill") { showAchievementSheet = true }
-        }
-        .padding(.horizontal, 10).padding(.bottom, 6)
-        .sheet(isPresented: $showCharacterSheet) {
-            CharacterCollectionView()
-                .frame(minWidth: 940, idealWidth: 1040, minHeight: 760, idealHeight: 840)
-                .dofficeSheetPresentation()
-        }
-        .sheet(isPresented: $showAccessorySheet) { AccessoryView().frame(minWidth: 480, minHeight: 560).dofficeSheetPresentation() }
-        .sheet(isPresented: $showReportSheet) { ReportCenterView().frame(minWidth: 760, minHeight: 620).dofficeSheetPresentation() }
-        .sheet(isPresented: $showAchievementSheet) { AchievementCollectionView().frame(minWidth: 880, idealWidth: 960, minHeight: 680, idealHeight: 740).dofficeSheetPresentation() }
-    }
-
-    private func lightweightButton(title: String, icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: Theme.chromeIconSize(12), weight: .semibold))
-                    .foregroundColor(Theme.textSecondary)
-                Text(title).font(Theme.chrome(11, weight: .medium))
-                Spacer()
-                Text(NSLocalizedString("action.open", comment: ""))
-                    .font(Theme.chrome(8, weight: .bold))
-                    .foregroundColor(Theme.textDim)
-            }
-            .foregroundColor(Theme.textSecondary)
-            .padding(.vertical, 9).padding(.horizontal, 12)
-            .background(RoundedRectangle(cornerRadius: 8).fill(Theme.bgSurface.opacity(0.5))
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.border, lineWidth: 1)))
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var breakRoomFurnitureOnCount: Int {
-        let s = AppSettings.shared
-        return [s.breakRoomShowSofa, s.breakRoomShowCoffeeMachine, s.breakRoomShowPlant, s.breakRoomShowSideTable,
-                s.breakRoomShowPicture, s.breakRoomShowNeonSign, s.breakRoomShowRug,
-                s.breakRoomShowBookshelf, s.breakRoomShowAquarium, s.breakRoomShowArcade, s.breakRoomShowWhiteboard,
-                s.breakRoomShowLamp, s.breakRoomShowCat, s.breakRoomShowTV, s.breakRoomShowFan,
-                s.breakRoomShowCalendar, s.breakRoomShowPoster, s.breakRoomShowTrashcan, s.breakRoomShowCushion].filter { $0 }.count
-    }
-
-    private func formatTokens(_ count: Int) -> String {
-        if count >= 1000 { return String(format: "%.1fk", Double(count) / 1000.0) }
-        return "\(count)"
-    }
-
-    private var sidebarAnimation: Animation {
+    var sidebarAnimation: Animation {
         reduceMotion ? .linear(duration: 0.01) : .easeInOut(duration: 0.16)
     }
 
-    private func matchesQuery(_ tab: TerminalTab, loweredQuery: String) -> Bool {
-        guard !loweredQuery.isEmpty else { return true }
-        return tab.sidebarSearchTokens.contains(loweredQuery)
-    }
-
-    private func matchesFilter(_ tab: TerminalTab) -> Bool {
-        switch statusFilter {
-        case .all:
-            return true
-        case .active:
-            return tab.statusPresentation.category == .active || tab.statusPresentation.category == .processing
-        case .processing:
-            return tab.statusPresentation.category == .processing
-        case .completed:
-            return tab.statusPresentation.category == .completed
-        case .attention:
-            return tab.statusPresentation.category == .attention
-        }
-    }
-
-    private func countForFilter(_ filter: SessionStatusFilter) -> Int {
-        manager.userVisibleTabs.filter { tab in
-            switch filter {
-            case .all:
-                return true
-            case .active:
-                return tab.statusPresentation.category == .active || tab.statusPresentation.category == .processing
-            case .processing:
-                return tab.statusPresentation.category == .processing
-            case .completed:
-                return tab.statusPresentation.category == .completed
-            case .attention:
-                return tab.statusPresentation.category == .attention
-            }
-        }.count
-    }
-
-    private func tabSortComparator(lhs: TerminalTab, rhs: TerminalTab) -> Bool {
-        switch sortOption {
-        case .recent:
-            if lhs.lastActivityTime != rhs.lastActivityTime { return lhs.lastActivityTime > rhs.lastActivityTime }
-        case .name:
-            let nameComparison = lhs.projectName.localizedCaseInsensitiveCompare(rhs.projectName)
-            if nameComparison != .orderedSame { return nameComparison == .orderedAscending }
-        case .tokens:
-            if lhs.tokensUsed != rhs.tokensUsed { return lhs.tokensUsed > rhs.tokensUsed }
-        case .status:
-            if lhs.statusPresentation.sortPriority != rhs.statusPresentation.sortPriority {
-                return lhs.statusPresentation.sortPriority < rhs.statusPresentation.sortPriority
-            }
-        }
-
-        if lhs.projectName != rhs.projectName {
-            return lhs.projectName.localizedCaseInsensitiveCompare(rhs.projectName) == .orderedAscending
-        }
-        return lhs.workerName.localizedCaseInsensitiveCompare(rhs.workerName) == .orderedAscending
-    }
-
-    private func compareGroups(_ lhs: SessionManager.ProjectGroup, _ rhs: SessionManager.ProjectGroup) -> Bool {
-        switch sortOption {
-        case .recent:
-            let lhsDate = lhs.tabs.map(\.lastActivityTime).max() ?? .distantPast
-            let rhsDate = rhs.tabs.map(\.lastActivityTime).max() ?? .distantPast
-            if lhsDate != rhsDate { return lhsDate > rhsDate }
-        case .name:
-            let comparison = lhs.projectName.localizedCaseInsensitiveCompare(rhs.projectName)
-            if comparison != .orderedSame { return comparison == .orderedAscending }
-        case .tokens:
-            let lhsTokens = lhs.tabs.reduce(0) { $0 + $1.tokensUsed }
-            let rhsTokens = rhs.tabs.reduce(0) { $0 + $1.tokensUsed }
-            if lhsTokens != rhsTokens { return lhsTokens > rhsTokens }
-        case .status:
-            let lhsPriority = lhs.tabs.map(\.statusPresentation.sortPriority).min() ?? .max
-            let rhsPriority = rhs.tabs.map(\.statusPresentation.sortPriority).min() ?? .max
-            if lhsPriority != rhsPriority { return lhsPriority < rhsPriority }
-        }
-
-        return lhs.projectName.localizedCaseInsensitiveCompare(rhs.projectName) == .orderedAscending
-    }
-
-    private func sidebarPanel<Content: View>(
+    func sidebarPanel<Content: View>(
         title: String,
         icon: String,
         tint: Color,
@@ -777,7 +400,7 @@ struct SidebarView: View {
         .padding(.bottom, 8)
     }
 
-    private func utilityButton(
+    func utilityButton(
         title: String,
         icon: String,
         countText: String,
@@ -1202,15 +825,15 @@ struct WorkerMiniCard: View {
         Button(action: { manager.focusSingleTab = true; manager.selectTab(tab.id) }) {
             HStack(spacing: 6) {
                 RoundedRectangle(cornerRadius: 1).fill(tab.workerColor).frame(width: 3, height: 14)
-                Text(tab.workerName).font(Theme.chrome(10, weight: .medium)).foregroundColor(tab.workerColor)
+                Text(tab.workerName).font(Theme.chrome(10, weight: .medium)).foregroundColor(tab.workerColor).lineLimit(1)
                 AppStatusBadge(
                     title: tab.statusPresentation.label,
                     symbol: tab.statusPresentation.symbol,
                     tint: tab.statusPresentation.tint
                 )
-                Spacer()
-                if tab.tokensUsed > 0 { Text(tab.tokensUsed >= 1000 ? String(format: "%.1fk", Double(tab.tokensUsed)/1000) : "\(tab.tokensUsed)")
-                    .font(Theme.chrome(9)).foregroundColor(Theme.textDim) }
+                Spacer(minLength: 4)
+                if tab.tokensUsed > 0 { Text(tab.tokensUsed.tokenFormatted)
+                    .font(Theme.chrome(9)).foregroundColor(Theme.textDim).lineLimit(1).fixedSize() }
                 if isSelected { Button(action: { manager.removeTab(tab.id) }) {
                     Image(systemName: "xmark").font(Theme.chrome(7, weight: .bold)).foregroundColor(Theme.textDim).padding(2) }.buttonStyle(.plain) }
             }
@@ -1295,7 +918,7 @@ struct SessionCard: View {
                     }
                     Spacer()
                     if tab.tokensUsed > 0 {
-                        Text(formatTokens(tab.tokensUsed)).font(Theme.chrome(9)).foregroundColor(Theme.textDim)
+                        Text(tab.tokensUsed.tokenFormatted).font(Theme.chrome(9)).foregroundColor(Theme.textDim)
                     }
                 }
 
@@ -1348,11 +971,6 @@ struct SessionCard: View {
             Button(role: .destructive) { manager.removeTab(tab.id) }
                 label: { Label(NSLocalizedString("action.close.session", comment: ""), systemImage: "xmark") }
         }
-    }
-
-    private func formatTokens(_ count: Int) -> String {
-        if count >= 1000 { return String(format: "%.1fk", Double(count) / 1000.0) }
-        return "\(count)"
     }
 
 }
@@ -1411,7 +1029,7 @@ struct SessionHistoryView: View {
                             Text(session.projectName).font(Theme.chrome(10)).foregroundColor(Theme.textSecondary).lineLimit(1)
                             Spacer()
                             if session.tokensUsed > 0 {
-                                Text(formatTokens(session.tokensUsed)).font(Theme.chrome(9)).foregroundColor(Theme.textDim)
+                                Text(session.tokensUsed.tokenFormatted).font(Theme.chrome(9)).foregroundColor(Theme.textDim)
                             }
                             if !manager.userVisibleTabs.contains(where: { $0.projectPath == session.projectPath }) {
                                 Button(action: {
@@ -1436,10 +1054,6 @@ struct SessionHistoryView: View {
         }
     }
 
-    private func formatTokens(_ count: Int) -> String {
-        if count >= 1000 { return String(format: "%.1fk", Double(count) / 1000.0) }
-        return "\(count)"
-    }
     private func timeAgo(_ date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
         if interval < 60 { return NSLocalizedString("sidebar.time.just.now", comment: "") }
