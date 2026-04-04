@@ -6,6 +6,8 @@ contextBridge.exposeInMainWorld("doffice", {
   installPluginSource: (source: string) => ipcRenderer.invoke("plugin:install", source),
   createPluginTemplate: (parentDir: string) => ipcRenderer.invoke("plugin:create-template", parentDir),
   getPluginRuntimeSnapshot: (pluginDirs: string[]) => ipcRenderer.invoke("plugin:runtime-snapshot", pluginDirs),
+  executePluginCommand: (scriptPath: string, projectPath?: string) => ipcRenderer.invoke("plugin:execute-command", { scriptPath, projectPath }),
+  readPluginStatusBar: (scriptPath: string, projectPath?: string) => ipcRenderer.invoke("plugin:read-status-bar", { scriptPath, projectPath }),
   refreshCLIStatuses: () => ipcRenderer.invoke("app:refresh-cli-status"),
   installCLI: (provider: string) => ipcRenderer.invoke("app:install-cli", provider),
   getGitSnapshot: (projectPath: string, refName?: string) => ipcRenderer.invoke("git:snapshot", { projectPath, refName }),

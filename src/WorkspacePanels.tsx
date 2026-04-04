@@ -11,6 +11,7 @@ import {
   getAccessoryCatalog,
   getAllCharacters,
   getBackgroundCatalog,
+  getPluginThemeCatalog,
   getTotalAchievementCount,
   getTotalCharacterCount,
   jobCatalog,
@@ -444,6 +445,7 @@ function SettingsPanel(props: {
   const installedMarketplaceIds = new Set(installedPlugins.map((item) => item.marketplaceId).filter((value): value is string => Boolean(value)));
   const currentTemplate = templateDrafts[selectedTemplateKind];
   const selectedTemplateMeta = workflowChoices.find((choice) => choice.id === selectedTemplateKind) ?? workflowChoices[0];
+  const pluginThemes = getPluginThemeCatalog();
   const cliEntries = [
     {
       id: "claude" as const,
@@ -819,6 +821,46 @@ function SettingsPanel(props: {
                 ))}
               </div>
             </SettingsCard>
+            {pluginThemes.length > 0 ? (
+              <SettingsCard title={<span className="settings-section-title"><span className="panel-title-emoji tone-purple">🧩</span>플러그인 테마</span>}>
+                <div className="chip-grid">
+                  {pluginThemes.map((theme) => {
+                    const selected = preferences.themeMode === "custom" && preferences.pluginThemeId === theme.id;
+                    return (
+                      <button
+                        key={theme.id}
+                        type="button"
+                        className={`theme-choice theme-choice-tone ${selected ? "is-active" : ""}`}
+                        onClick={() =>
+                          void requestRestartForPreferences(
+                            { themeMode: "custom", pluginThemeId: theme.id },
+                            t("settings.restart.theme.confirm")
+                          )
+                        }
+                        title={`${theme.pluginName} · ${theme.name}`}
+                      >
+                        <span className="choice-icon">{theme.isDark ? "🌙" : "☀️"}</span>
+                        <span>{theme.name}</span>
+                        {selected ? <span className="choice-check theme-choice-check" aria-hidden="true">●</span> : null}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    className={`theme-choice theme-choice-tone ${preferences.themeMode === "custom" && !preferences.pluginThemeId ? "is-active" : ""}`}
+                    onClick={() =>
+                      void requestRestartForPreferences(
+                        { themeMode: "custom", pluginThemeId: "" },
+                        t("settings.restart.theme.confirm")
+                      )
+                    }
+                  >
+                    <span className="choice-icon">↺</span>
+                    <span>기본 Custom</span>
+                  </button>
+                </div>
+              </SettingsCard>
+            ) : null}
             <SettingsCard title={<span className="settings-section-title"><span className="panel-title-emoji tone-default">🖼</span>{t("settings.theme.section.background")}</span>}>
               <div className="chip-grid">
                 {backgroundChoices.map((choice) => (

@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { SidebarView } from "./SidebarView";
 import { TerminalAreaView } from "./TerminalAreaView";
 import { OfficeSceneView } from "./OfficeSceneView";
-import { ActionCenterView, CommandPaletteView, SessionNotificationBannerStack, type SessionNotificationItem } from "./OverlayViews";
+import { ActionCenterView, CommandPaletteView, PluginPanelOverlay, SessionNotificationBannerStack, type SessionNotificationItem } from "./OverlayViews";
 import { PixelStripView } from "./PixelStripView";
 import { SessionLockOverlay, WorkspaceOverlayManager, type WorkspacePanelKind } from "./WorkspacePanels";
 import { OnboardingOverlay } from "./OnboardingOverlay";
-import type { AgentProvider, CLIInstallResult, CLIStatus, CLIStatusPayload, ImageAttachment, ReportReference, SessionSnapshot } from "./types";
+import { getPluginRuntimeSnapshot } from "./pluginRuntime";
+import type { AgentProvider, CLIInstallResult, CLIStatus, CLIStatusPayload, ImageAttachment, PluginRuntimePanel, PluginStatusBarResult, ReportReference, SessionSnapshot } from "./types";
 import type { AppViewMode, ProjectGroup, SessionStatusFilter, SidebarSortOption, TerminalViewMode } from "./uiModel";
 import type { NewSessionDraftState, NewSessionPresetId, NewSessionProjectRecord } from "./newSessionPreferences";
 import { t, tf } from "./localizationCatalog";
@@ -91,6 +92,9 @@ interface MainViewProps {
   favoriteProjects: NewSessionProjectRecord[];
   recentProjects: NewSessionProjectRecord[];
   pluginRuntimeVersion: number;
+  pluginFlash: { id: number; color: string; durationMs: number } | null;
+  pluginShake: { id: number; intensity: number; durationMs: number } | null;
+  pluginConfettiBursts: Array<{ id: number; colors: string[]; count: number; durationMs: number }>;
   isCurrentDraftFavorite: boolean;
   chooseSuggestedProject: (project: NewSessionProjectRecord) => void;
   toggleDraftFavorite: () => void;
@@ -98,6 +102,7 @@ interface MainViewProps {
   handlePickDirectory: () => void;
   handleAddPluginDirectory: () => void;
   handleCreateSession: () => void | Promise<void>;
+  executePluginCommand: (scriptPath: string, title: string) => Promise<void>;
 }
 
 type PixelIconName =
@@ -253,13 +258,17 @@ export function MainView(props: MainViewProps) {
     favoriteProjects,
     recentProjects,
     pluginRuntimeVersion,
+    pluginFlash,
+    pluginShake,
+    pluginConfettiBursts,
     isCurrentDraftFavorite,
     chooseSuggestedProject,
     toggleDraftFavorite,
     applyNewSessionPreset,
     handlePickDirectory,
     handleAddPluginDirectory,
-    handleCreateSession
+    handleCreateSession,
+    executePluginCommand
   } = props;
 
   const officeHeight = officeExpanded ? 380 : 240;
@@ -269,7 +278,13 @@ export function MainView(props: MainViewProps) {
   const [workspacePreferences, setWorkspacePreferences] = useState<WorkspacePreferences>(loadWorkspacePreferences);
   const [reportEntries, setReportEntries] = useState<ReportReference[]>([]);
   const [reportLoading, setReportLoading] = useState(false);
+  const [openPluginPanel, setOpenPluginPanel] = useState<PluginRuntimePanel | null>(null);
+  const [pluginStatusResults, setPluginStatusResults] = useState<Record<string, PluginStatusBarResult>>({});
   const showOfficeSplitPane = appViewMode === "split";
+  const pluginRuntime = getPluginRuntimeSnapshot();
+  const pluginPanels = pluginRuntime.panels;
+  const pluginCommands = pluginRuntime.commands;
+  const pluginStatusItems = pluginRuntime.statusBar;
 
   const knownProjectPaths = useMemo(
     () =>
@@ -325,6 +340,31 @@ export function MainView(props: MainViewProps) {
     void refreshReports();
   }, [knownProjectPaths.join("||"), reportRefreshKey]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const refreshPluginStatus = async () => {
+      if (pluginStatusItems.length === 0) {
+        if (!cancelled) setPluginStatusResults({});
+        return;
+      }
+      const projectPath = selectedSession?.projectPath;
+      const entries = await Promise.all(
+        pluginStatusItems.map(async (item) => [item.id, await window.doffice.readPluginStatusBar(item.script, projectPath)] as const)
+      );
+      if (cancelled) return;
+      setPluginStatusResults(Object.fromEntries(entries));
+    };
+
+    void refreshPluginStatus();
+    const timer = window.setInterval(() => {
+      void refreshPluginStatus();
+    }, 30000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [pluginRuntimeVersion, pluginStatusItems, selectedSession?.projectPath]);
+
   function updateWorkspacePreferences(
     patch: Partial<WorkspacePreferences> | ((current: WorkspacePreferences) => WorkspacePreferences)
   ) {
@@ -360,7 +400,33 @@ export function MainView(props: MainViewProps) {
   );
 
   return (
-    <div className="window-frame">
+    <div
+      className={`window-frame ${pluginShake ? "plugin-screen-shake" : ""}`}
+      style={
+        pluginShake
+          ? ({
+              ["--plugin-shake-intensity" as string]: `${Math.max(2, pluginShake.intensity)}px`,
+              ["--plugin-shake-duration" as string]: `${Math.max(120, pluginShake.durationMs)}ms`
+            } as CSSProperties)
+          : undefined
+      }
+    >
+      {pluginFlash ? <div key={pluginFlash.id} className="plugin-flash-overlay" style={{ ["--plugin-flash-color" as string]: pluginFlash.color, ["--plugin-flash-duration" as string]: `${pluginFlash.durationMs}ms` } as CSSProperties} /> : null}
+      {pluginConfettiBursts.map((burst) => (
+        <div key={burst.id} className="plugin-confetti-overlay" style={{ ["--plugin-confetti-duration" as string]: `${burst.durationMs}ms` } as CSSProperties}>
+          {Array.from({ length: Math.min(80, Math.max(12, burst.count)) }).map((_, index) => (
+            <span
+              key={`${burst.id}-${index}`}
+              className="plugin-confetti-piece"
+              style={{
+                left: `${(index * 17) % 100}%`,
+                animationDelay: `${(index % 12) * 40}ms`,
+                background: `#${burst.colors[index % Math.max(1, burst.colors.length)] || "3291ff"}`
+              }}
+            />
+          ))}
+        </div>
+      ))}
       <header className="title-bar">
         <div className="title-bar-left">
           <div className="traffic-gap" />
@@ -625,18 +691,39 @@ export function MainView(props: MainViewProps) {
               {statusPill(tf("custom.completed.count", undefined, totals.completed), "green")}
             </button>
           ) : null}
+          {pluginPanels.slice(0, 3).map((panel) => (
+            <button key={panel.id} className="status-pill-button" onClick={() => setOpenPluginPanel(panel)}>
+              {statusPill(panel.title, "accent")}
+            </button>
+          ))}
         </div>
-        <div className="status-bar-right">{t("custom.shortcuts")}</div>
+        <div className="status-bar-right">
+          {pluginStatusItems.map((item) => {
+            const result = pluginStatusResults[item.id];
+            if (!result || (!result.text && !result.icon)) return null;
+            return (
+              <span key={item.id} className="plugin-status-item" style={result.color ? { color: result.color } : undefined}>
+                <span className="plugin-status-icon">{result.icon || "•"}</span>
+                <span>{result.text}</span>
+              </span>
+            );
+          })}
+          <span>{t("custom.shortcuts")}</span>
+        </div>
       </footer>
 
       <CommandPaletteView
         isOpen={showCommandPalette}
         sessions={sessions}
+        pluginCommands={pluginCommands}
+        pluginPanels={pluginPanels}
         onClose={() => setShowCommandPalette(false)}
         onOpenNewSession={openNewSession}
         onRefresh={refreshSnapshot}
         onSetViewMode={setAppViewMode}
         onSelectSession={selectSession}
+        onExecutePluginCommand={(command) => void executePluginCommand(command.script, command.title)}
+        onOpenPluginPanel={(panel) => setOpenPluginPanel(panel)}
       />
 
       <SessionNotificationBannerStack
@@ -652,6 +739,8 @@ export function MainView(props: MainViewProps) {
           onSelectSession={selectSession}
         />
       ) : null}
+
+      {openPluginPanel ? <PluginPanelOverlay panel={openPluginPanel} onClose={() => setOpenPluginPanel(null)} /> : null}
 
       <WorkspaceOverlayManager
         kind={workspacePanel}

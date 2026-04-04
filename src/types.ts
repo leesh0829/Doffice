@@ -380,6 +380,18 @@ export interface PluginRuntimeSnapshot {
   bossLines: string[];
 }
 
+export interface PluginCommandResult {
+  ok: boolean;
+  output: string;
+  exitCode: number;
+}
+
+export interface PluginStatusBarResult {
+  text: string;
+  icon: string;
+  color: string;
+}
+
 export interface BootstrapPayload extends CLIStatusPayload {
   sessions: SessionSnapshot[];
 }
@@ -452,6 +464,8 @@ export interface DofficeBridge {
   installPluginSource: (source: string) => Promise<PluginInstallResult>;
   createPluginTemplate: (parentDir: string) => Promise<PluginInstallResult>;
   getPluginRuntimeSnapshot: (pluginDirs: string[]) => Promise<PluginRuntimeSnapshot>;
+  executePluginCommand: (scriptPath: string, projectPath?: string) => Promise<PluginCommandResult>;
+  readPluginStatusBar: (scriptPath: string, projectPath?: string) => Promise<PluginStatusBarResult>;
   refreshCLIStatuses: () => Promise<CLIStatusPayload>;
   installCLI: (provider: AgentProvider) => Promise<CLIInstallResult>;
   getGitSnapshot: (projectPath: string, refName?: string) => Promise<GitPanelSnapshot>;

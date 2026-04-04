@@ -17,7 +17,7 @@ import {
   toggleFavoriteProject
 } from "./newSessionPreferences";
 import { enabledInstalledPluginDirs, loadInstalledPlugins } from "./pluginInstallState";
-import { emptyPluginRuntimeSnapshot, setPluginRuntimeSnapshot } from "./pluginRuntime";
+import { emptyPluginRuntimeSnapshot, getPluginRuntimeSnapshot, setPluginRuntimeSnapshot } from "./pluginRuntime";
 import { compareGroups, compareSessions, groupSessions, inferStatus, sessionActivitySummary } from "./sessionUtils";
 
 const emptyCLIStatus: CLIStatus = {
@@ -130,6 +130,9 @@ function App() {
   const [recentProjects, setRecentProjects] = useState<NewSessionProjectRecord[]>(loadRecentProjects);
   const [notifications, setNotifications] = useState<SessionNotificationItem[]>([]);
   const [pluginRuntimeVersion, setPluginRuntimeVersion] = useState(0);
+  const [pluginFlash, setPluginFlash] = useState<{ id: number; color: string; durationMs: number } | null>(null);
+  const [pluginShake, setPluginShake] = useState<{ id: number; intensity: number; durationMs: number } | null>(null);
+  const [pluginConfettiBursts, setPluginConfettiBursts] = useState<Array<{ id: number; colors: string[]; count: number; durationMs: number }>>([]);
   const hasSeededSessionStateRef = useRef(false);
   const sessionStateRef = useRef<Map<string, { status: string; completedPromptCount: number }>>(new Map());
   const notificationTimersRef = useRef<Map<string, number>>(new Map());
@@ -138,6 +141,71 @@ function App() {
     setClaudeStatus(payload.claudeStatus);
     setCodexStatus(payload.codexStatus);
     setGeminiStatus(payload.geminiStatus);
+  }
+
+  function appendNotification(notification: SessionNotificationItem, durationMs = 6500) {
+    setNotifications((current) => {
+      if (current.some((item) => item.id === notification.id)) return current;
+      return [...current.slice(-2), notification];
+    });
+    const existingTimer = notificationTimersRef.current.get(notification.id);
+    if (existingTimer) {
+      window.clearTimeout(existingTimer);
+    }
+    const timer = window.setTimeout(() => {
+      setNotifications((current) => current.filter((item) => item.id !== notification.id));
+      notificationTimersRef.current.delete(notification.id);
+    }, durationMs);
+    notificationTimersRef.current.set(notification.id, timer);
+  }
+
+  function triggerPluginEffects(trigger: string, session: SessionSnapshot | null) {
+    const runtime = getPluginRuntimeSnapshot();
+    const effects = runtime.effects.filter((effect) => effect.enabled && effect.trigger === trigger);
+    if (effects.length === 0) return;
+    for (const effect of effects) {
+      const config = effect.config ?? {};
+      if (effect.type === "toast") {
+        appendNotification(
+          {
+            id: `plugin-effect-${effect.id}-${Date.now()}`,
+            sessionId: session?.id || "",
+            title: typeof config.text === "string" && config.text.trim() ? config.text : `${effect.pluginName} effect`,
+            detail: session ? `${session.workerName || session.projectName} · ${session.projectName}` : effect.pluginName,
+            tint: typeof config.tint === "string" && config.tint ? `#${String(config.tint).replace(/^#/, "")}` : "#3291ff",
+            glyph: typeof config.icon === "string" && config.icon.trim() ? config.icon : "✦"
+          },
+          Math.max(1800, Number(config.duration) > 0 ? Number(config.duration) * 1000 : 4000)
+        );
+      }
+      if (effect.type === "flash") {
+        setPluginFlash({
+          id: Date.now(),
+          color: typeof config.colorHex === "string" && config.colorHex ? `#${String(config.colorHex).replace(/^#/, "")}` : "#3291ff",
+          durationMs: Math.max(120, Number(config.duration) > 0 ? Number(config.duration) * 1000 : 220)
+        });
+      }
+      if (effect.type === "screen-shake") {
+        setPluginShake({
+          id: Date.now(),
+          intensity: Math.max(2, Number(config.intensity) || 6),
+          durationMs: Math.max(180, Number(config.duration) > 0 ? Number(config.duration) * 1000 : 420)
+        });
+      }
+      if (effect.type === "confetti") {
+        const id = Date.now() + Math.floor(Math.random() * 1000);
+        const burst = {
+          id,
+          colors: Array.isArray(config.colors) ? config.colors.map((value) => String(value).replace(/^#/, "")).filter(Boolean) : ["3291ff", "3ecf8e", "f5a623", "f14c4c", "8e4ec6"],
+          count: Math.max(12, Number(config.count) || 30),
+          durationMs: Math.max(1000, Number(config.duration) > 0 ? Number(config.duration) * 1000 : 2500)
+        };
+        setPluginConfettiBursts((current) => [...current.slice(-1), burst]);
+        window.setTimeout(() => {
+          setPluginConfettiBursts((current) => current.filter((item) => item.id !== id));
+        }, burst.durationMs + 400);
+      }
+    }
   }
 
   async function refreshPluginRuntime(nextSessions: SessionSnapshot[] = sessions) {
@@ -207,6 +275,18 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (!pluginFlash) return;
+    const timer = window.setTimeout(() => setPluginFlash((current) => (current?.id === pluginFlash.id ? null : current)), pluginFlash.durationMs + 40);
+    return () => window.clearTimeout(timer);
+  }, [pluginFlash]);
+
+  useEffect(() => {
+    if (!pluginShake) return;
+    const timer = window.setTimeout(() => setPluginShake((current) => (current?.id === pluginShake.id ? null : current)), pluginShake.durationMs + 40);
+    return () => window.clearTimeout(timer);
+  }, [pluginShake]);
+
+  useEffect(() => {
     saveNewSessionDraft(newSessionDraft);
   }, [newSessionDraft]);
 
@@ -242,39 +322,35 @@ function App() {
       if (!previous) continue;
 
       if (currentStatus === "completed" && previous.completedPromptCount < session.completedPromptCount) {
-        generated.push({
+        const notification = {
           id: `${session.id}-completed-${session.completedPromptCount}`,
           sessionId: session.id,
           title: `${session.workerName || session.projectName} completed`,
           detail: sessionActivitySummary(session),
           tint: "#3ecf8e",
           glyph: "●"
-        });
+        };
+        generated.push(notification);
+        triggerPluginEffects("onSessionComplete", session);
         continue;
       }
 
       if (currentStatus === "attention" && previous.status !== "attention") {
-        generated.push({
+        const notification = {
           id: `${session.id}-attention-${session.lastActivityTime}`,
           sessionId: session.id,
           title: `${session.workerName || session.projectName} needs attention`,
           detail: sessionActivitySummary(session),
           tint: "#f14c4c",
           glyph: "▲"
-        });
+        };
+        generated.push(notification);
+        triggerPluginEffects("onSessionError", session);
       }
     }
 
     for (const notification of generated) {
-      setNotifications((current) => {
-        if (current.some((item) => item.id === notification.id)) return current;
-        return [...current.slice(-2), notification];
-      });
-      const timer = window.setTimeout(() => {
-        setNotifications((current) => current.filter((item) => item.id !== notification.id));
-        notificationTimersRef.current.delete(notification.id);
-      }, 6500);
-      notificationTimersRef.current.set(notification.id, timer);
+      appendNotification(notification);
     }
 
     sessionStateRef.current = nextState;
@@ -550,6 +626,8 @@ function App() {
     setBusy(true);
     try {
       const trimmedPrompt = nextPrompt.trim();
+      const targetSession = sessions.find((session) => session.id === sessionId) ?? null;
+      triggerPluginEffects("onPromptSubmit", targetSession);
       if (trimmedPrompt.startsWith("/")) {
         const payload: SlashCommandPayload = { sessionId, command: trimmedPrompt };
         await window.doffice.runSlashCommand(payload);
@@ -559,6 +637,18 @@ function App() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function executePluginCommand(scriptPath: string, title: string) {
+    const result = await window.doffice.executePluginCommand(scriptPath, selectedSession?.projectPath);
+    appendNotification({
+      id: `plugin-command-${title}-${Date.now()}`,
+      sessionId: selectedSession?.id || "",
+      title,
+      detail: result.output || (result.ok ? "Plugin command finished." : "Plugin command failed."),
+      tint: result.ok ? "#3ecf8e" : "#f14c4c",
+      glyph: result.ok ? "⌘" : "!"
+    }, result.ok ? 4200 : 7000);
   }
 
   async function stopSelectedSession() {
@@ -682,6 +772,9 @@ function App() {
       favoriteProjects={sidebarFavoriteProjects}
       recentProjects={sidebarHistoryProjects}
       pluginRuntimeVersion={pluginRuntimeVersion}
+      pluginFlash={pluginFlash}
+      pluginShake={pluginShake}
+      pluginConfettiBursts={pluginConfettiBursts}
       isCurrentDraftFavorite={isCurrentDraftFavorite}
       chooseSuggestedProject={chooseSuggestedProject}
       toggleDraftFavorite={toggleDraftFavorite}
@@ -689,6 +782,7 @@ function App() {
       handlePickDirectory={handlePickDirectory}
       handleAddPluginDirectory={handleAddPluginDirectory}
       handleCreateSession={handleCreateSession}
+      executePluginCommand={executePluginCommand}
     />
   );
 }

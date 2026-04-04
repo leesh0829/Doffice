@@ -3,7 +3,7 @@ import { t } from "./localizationCatalog";
 import { Theme } from "./Theme";
 import { formatTokens, inferPendingApproval, inferStatus, relativeTime, sessionActivitySummary } from "./sessionUtils";
 import type { AppViewMode } from "./uiModel";
-import type { SessionSnapshot } from "./types";
+import type { PluginRuntimeCommand, PluginRuntimePanel, SessionSnapshot } from "./types";
 
 interface ActionCenterViewProps {
   sessions: SessionSnapshot[];
@@ -158,11 +158,15 @@ export function ActionCenterView(props: ActionCenterViewProps) {
 interface CommandPaletteViewProps {
   isOpen: boolean;
   sessions: SessionSnapshot[];
+  pluginCommands: PluginRuntimeCommand[];
+  pluginPanels: PluginRuntimePanel[];
   onClose: () => void;
   onOpenNewSession: () => void;
   onRefresh: () => void;
   onSetViewMode: (mode: AppViewMode) => void;
   onSelectSession: (sessionId: string) => void;
+  onExecutePluginCommand: (command: PluginRuntimeCommand) => void;
+  onOpenPluginPanel: (panel: PluginRuntimePanel) => void;
 }
 
 interface CommandPaletteAction {
@@ -175,7 +179,7 @@ interface CommandPaletteAction {
 }
 
 export function CommandPaletteView(props: CommandPaletteViewProps) {
-  const { isOpen, sessions, onClose, onOpenNewSession, onRefresh, onSetViewMode, onSelectSession } = props;
+  const { isOpen, sessions, pluginCommands, pluginPanels, onClose, onOpenNewSession, onRefresh, onSetViewMode, onSelectSession, onExecutePluginCommand, onOpenPluginPanel } = props;
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -247,6 +251,28 @@ export function CommandPaletteView(props: CommandPaletteViewProps) {
           onSetViewMode("terminal");
         }
       },
+      ...pluginCommands.map((command) => ({
+        id: `plugin-command-${command.pluginId}-${command.id}`,
+        title: `${command.title} · ${command.pluginName}`,
+        subtitle: "Plugin Command",
+        glyph: command.icon || "⌘",
+        tint: Theme.purple,
+        run: () => {
+          onClose();
+          onExecutePluginCommand(command);
+        }
+      })),
+      ...pluginPanels.map((panel) => ({
+        id: `plugin-panel-${panel.pluginId}-${panel.id}`,
+        title: `${panel.title} · ${panel.pluginName}`,
+        subtitle: "Plugin Panel",
+        glyph: panel.icon || "▣",
+        tint: Theme.cyan,
+        run: () => {
+          onClose();
+          onOpenPluginPanel(panel);
+        }
+      })),
       ...sessions.map((session) => ({
         id: `session-${session.id}`,
         title: session.workerName ? `${session.workerName} · ${session.projectName}` : session.projectName,
@@ -259,7 +285,7 @@ export function CommandPaletteView(props: CommandPaletteViewProps) {
         }
       }))
     ],
-    [onClose, onOpenNewSession, onRefresh, onSelectSession, onSetViewMode, sessions]
+    [onClose, onExecutePluginCommand, onOpenNewSession, onOpenPluginPanel, onRefresh, onSelectSession, onSetViewMode, pluginCommands, pluginPanels, sessions]
   );
 
   const filteredActions = useMemo(() => {
@@ -346,6 +372,29 @@ export function CommandPaletteView(props: CommandPaletteViewProps) {
           ) : null}
         </div>
         <div className="command-footer">{t("custom.command.footer")}</div>
+      </div>
+    </div>
+  );
+}
+
+export function PluginPanelOverlay(props: { panel: PluginRuntimePanel; onClose: () => void }) {
+  const { panel, onClose } = props;
+  return (
+    <div className="overlay-backdrop" onClick={onClose}>
+      <div className="overlay-panel plugin-panel-overlay" onClick={(event) => event.stopPropagation()}>
+        <div className="overlay-header">
+          <div className="overlay-title-block">
+            <span className="overlay-glyph" style={{ color: Theme.cyan }}>{panel.icon || "▣"}</span>
+            <div>
+              <strong>{panel.title}</strong>
+              <span>{panel.pluginName}</span>
+            </div>
+          </div>
+          <button className="chrome-icon-button" onClick={onClose}>✕</button>
+        </div>
+        <div className="plugin-panel-frame-shell">
+          <iframe title={`${panel.pluginName}-${panel.title}`} src={panel.entry} className="plugin-panel-frame" />
+        </div>
       </div>
     </div>
   );

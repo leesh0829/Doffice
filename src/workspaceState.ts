@@ -35,6 +35,7 @@ export interface WorkspacePreferences {
   rawTerminalMode: boolean;
   autoRefreshOnSettingsChange: boolean;
   themeMode: WorkspaceThemeMode;
+  pluginThemeId: string;
   backgroundTheme: WorkspaceBackgroundTheme;
   fontScale: WorkspaceFontScale;
   workflowStyle: WorkflowStyle;
@@ -272,6 +273,10 @@ export function getBackgroundCatalog(): BackgroundDefinition[] {
   return backgroundCatalog;
 }
 
+export function getPluginThemeCatalog() {
+  return getPluginRuntimeSnapshot().themes;
+}
+
 export function getTotalCharacterCount() {
   return getAllCharacters().length;
 }
@@ -299,6 +304,7 @@ export const defaultWorkspacePreferences: WorkspacePreferences = {
   rawTerminalMode: false,
   autoRefreshOnSettingsChange: true,
   themeMode: "dark",
+  pluginThemeId: "",
   backgroundTheme: "sunny",
   fontScale: "l",
   workflowStyle: "planner",
@@ -415,6 +421,7 @@ export function loadWorkspacePreferences(): WorkspacePreferences {
           ? parsed.autoRefreshOnSettingsChange
           : defaultWorkspacePreferences.autoRefreshOnSettingsChange,
       themeMode: parsed.themeMode === "light" || parsed.themeMode === "custom" || parsed.themeMode === "dark" ? parsed.themeMode : defaultWorkspacePreferences.themeMode,
+      pluginThemeId: typeof parsed.pluginThemeId === "string" ? parsed.pluginThemeId : defaultWorkspacePreferences.pluginThemeId,
       backgroundTheme: normalizeBackgroundTheme(parsed.backgroundTheme),
       fontScale: parsed.fontScale === "s" || parsed.fontScale === "m" || parsed.fontScale === "l" || parsed.fontScale === "xl" || parsed.fontScale === "xxl" ? parsed.fontScale : defaultWorkspacePreferences.fontScale,
       workflowStyle:
@@ -502,6 +509,21 @@ export function applyWorkspacePreferences(preferences: WorkspacePreferences) {
   root.dataset.backgroundTheme = preferences.backgroundTheme;
   root.dataset.fontScale = preferences.fontScale;
   root.dataset.appName = (preferences.workspaceName || "Doffice").trim() || "Doffice";
+  const pluginTheme = getPluginThemeCatalog().find((theme) => theme.id === preferences.pluginThemeId);
+  const customThemeActive = preferences.themeMode === "custom" && pluginTheme;
+  root.style.setProperty("--plugin-theme-accent", customThemeActive ? `#${pluginTheme.accentHex}` : "");
+  root.style.setProperty("--plugin-theme-bg", customThemeActive && pluginTheme.bgHex ? `#${pluginTheme.bgHex}` : "");
+  root.style.setProperty("--plugin-theme-card", customThemeActive && pluginTheme.cardHex ? `#${pluginTheme.cardHex}` : "");
+  root.style.setProperty("--plugin-theme-text", customThemeActive && pluginTheme.textHex ? `#${pluginTheme.textHex}` : "");
+  root.style.setProperty("--plugin-theme-green", customThemeActive && pluginTheme.greenHex ? `#${pluginTheme.greenHex}` : "");
+  root.style.setProperty("--plugin-theme-red", customThemeActive && pluginTheme.redHex ? `#${pluginTheme.redHex}` : "");
+  root.style.setProperty("--plugin-theme-yellow", customThemeActive && pluginTheme.yellowHex ? `#${pluginTheme.yellowHex}` : "");
+  root.style.setProperty("--plugin-theme-purple", customThemeActive && pluginTheme.purpleHex ? `#${pluginTheme.purpleHex}` : "");
+  root.style.setProperty("--plugin-theme-cyan", customThemeActive && pluginTheme.cyanHex ? `#${pluginTheme.cyanHex}` : "");
+  root.style.setProperty("--plugin-theme-gradient-start", customThemeActive && pluginTheme.gradientStartHex ? `#${pluginTheme.gradientStartHex}` : "");
+  root.style.setProperty("--plugin-theme-gradient-end", customThemeActive && pluginTheme.gradientEndHex ? `#${pluginTheme.gradientEndHex}` : "");
+  root.style.setProperty("--plugin-theme-use-gradient", customThemeActive && pluginTheme.useGradient ? "1" : "0");
+  root.style.setProperty("--plugin-theme-font", customThemeActive && pluginTheme.fontName ? pluginTheme.fontName : "");
 }
 
 function compactLevelTitle(level: number): string {

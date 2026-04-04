@@ -50,9 +50,69 @@
 
 :root[data-theme-mode="custom"] .window-frame {
   background:
-    radial-gradient(circle at top right, rgba(255, 149, 92, 0.16), transparent 28%),
-    radial-gradient(circle at top left, rgba(92, 207, 255, 0.14), transparent 22%),
-    #0b0c14;
+    radial-gradient(circle at top right, color-mix(in srgb, var(--plugin-theme-accent, #ff955c) 24%, transparent), transparent 28%),
+    radial-gradient(circle at top left, color-mix(in srgb, var(--plugin-theme-cyan, #5ccfff) 18%, transparent), transparent 22%),
+    linear-gradient(
+      135deg,
+      var(--plugin-theme-gradient-start, var(--plugin-theme-bg, #0b0c14)) 0%,
+      var(--plugin-theme-gradient-end, var(--plugin-theme-bg, #0b0c14)) calc(var(--plugin-theme-use-gradient, 0) * 100%),
+      var(--plugin-theme-bg, #0b0c14) 100%
+    );
+  color: var(--plugin-theme-text, #ededed);
+}
+
+:root[data-theme-mode="custom"] {
+  color-scheme: dark;
+  background: var(--plugin-theme-bg, #0b0c14);
+  color: var(--plugin-theme-text, #ededed);
+}
+
+:root[data-theme-mode="custom"] .title-bar,
+:root[data-theme-mode="custom"] .status-bar,
+:root[data-theme-mode="custom"] .sidebar-panel,
+:root[data-theme-mode="custom"] .session-card,
+:root[data-theme-mode="custom"] .session-group-card,
+:root[data-theme-mode="custom"] .terminal-grid-card,
+:root[data-theme-mode="custom"] .terminal-single,
+:root[data-theme-mode="custom"] .workspace-modal,
+:root[data-theme-mode="custom"] .browser-pane,
+:root[data-theme-mode="custom"] .git-client-shell,
+:root[data-theme-mode="custom"] .sheet-card,
+:root[data-theme-mode="custom"] .new-session-card,
+:root[data-theme-mode="custom"] .overlay-panel,
+:root[data-theme-mode="custom"] .action-card,
+:root[data-theme-mode="custom"] .command-row,
+:root[data-theme-mode="custom"] .terminal-grid-bottom-panel,
+:root[data-theme-mode="custom"] .office-selection-panel {
+  background-color: color-mix(in srgb, var(--plugin-theme-card, #151924) 92%, black 8%);
+  color: var(--plugin-theme-text, #ededed);
+  border-color: color-mix(in srgb, var(--plugin-theme-accent, #3291ff) 20%, rgba(255, 255, 255, 0.08));
+}
+
+:root[data-theme-mode="custom"] .chrome-pill,
+:root[data-theme-mode="custom"] .theme-choice.is-active,
+:root[data-theme-mode="custom"] .camera-choice.is-active,
+:root[data-theme-mode="custom"] .background-choice.is-active,
+:root[data-theme-mode="custom"] .workspace-tab-button.is-active,
+:root[data-theme-mode="custom"] .terminal-choice-chip.is-active,
+:root[data-theme-mode="custom"] .status-pill,
+:root[data-theme-mode="custom"] .plugin-status-item {
+  border-color: color-mix(in srgb, var(--plugin-theme-accent, #3291ff) 50%, transparent);
+  background: color-mix(in srgb, var(--plugin-theme-accent, #3291ff) 18%, transparent);
+  color: var(--plugin-theme-text, #ededed);
+}
+
+:root[data-theme-mode="custom"] .app-brand strong,
+:root[data-theme-mode="custom"] .status-bar,
+:root[data-theme-mode="custom"] .title-bar,
+:root[data-theme-mode="custom"] .workspace-modal-header strong {
+  color: var(--plugin-theme-text, #ededed);
+}
+
+:root[data-theme-mode="custom"] .command-glyph,
+:root[data-theme-mode="custom"] .panel-title-emoji,
+:root[data-theme-mode="custom"] .plugin-status-icon {
+  color: var(--plugin-theme-accent, #3291ff);
 }
 
 * {
@@ -107,6 +167,7 @@ textarea:focus {
 }
 
 .window-frame {
+  position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -3298,6 +3359,29 @@ textarea:focus {
   font-size: 8px;
 }
 
+.status-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plugin-status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+  padding: 0 8px;
+  border: 1px solid rgba(50, 145, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(50, 145, 255, 0.08);
+  font-family: "Consolas", monospace;
+  font-size: 10px;
+}
+
+.plugin-status-icon {
+  font-size: 11px;
+}
+
 .status-pill-button {
   padding: 0;
 }
@@ -3647,6 +3731,87 @@ textarea:focus {
   width: 18px;
   height: 18px;
   color: #707070;
+}
+
+.plugin-panel-overlay {
+  width: min(1080px, calc(100vw - 56px));
+  height: min(760px, calc(100vh - 92px));
+  display: flex;
+  flex-direction: column;
+}
+
+.plugin-panel-frame-shell {
+  flex: 1;
+  min-height: 0;
+  padding: 12px;
+}
+
+.plugin-panel-frame {
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(40, 40, 40, 0.8);
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.plugin-flash-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 38;
+  background: radial-gradient(circle at center, color-mix(in srgb, var(--plugin-flash-color, #3291ff) 45%, transparent), transparent 62%);
+  animation: plugin-flash var(--plugin-flash-duration, 220ms) ease-out forwards;
+}
+
+.plugin-confetti-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 37;
+}
+
+.plugin-confetti-piece {
+  position: absolute;
+  top: -12px;
+  width: 8px;
+  height: 14px;
+  opacity: 0.92;
+  border-radius: 2px;
+  animation: plugin-confetti-fall var(--plugin-confetti-duration, 2400ms) linear forwards;
+}
+
+.plugin-screen-shake {
+  animation: plugin-screen-shake var(--plugin-shake-duration, 420ms) ease-in-out;
+}
+
+@keyframes plugin-flash {
+  0% { opacity: 0; }
+  14% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes plugin-confetti-fall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.96;
+  }
+  100% {
+    transform: translateY(110vh) rotate(520deg);
+    opacity: 0;
+  }
+}
+
+@keyframes plugin-screen-shake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  15% { transform: translate3d(calc(var(--plugin-shake-intensity, 6px) * -1), 0, 0); }
+  32% { transform: translate3d(var(--plugin-shake-intensity, 6px), 0, 0); }
+  48% { transform: translate3d(calc(var(--plugin-shake-intensity, 6px) * -0.8), 0, 0); }
+  66% { transform: translate3d(calc(var(--plugin-shake-intensity, 6px) * 0.75), 0, 0); }
+  82% { transform: translate3d(calc(var(--plugin-shake-intensity, 6px) * -0.35), 0, 0); }
 }
 
 .terminal-overlay-backdrop {

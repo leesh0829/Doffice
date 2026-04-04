@@ -4,6 +4,7 @@ import { execFile, spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import readline from "node:readline";
+import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { t, tf } from "../src/localizationCatalog";
 
@@ -573,11 +574,12 @@ async function buildPluginRuntimeSnapshot(pluginDirs) {
         const entry = normalizePluginRelativePath(item?.entry);
         const id = String(item?.id || "").trim();
         if (!id || !entry) continue;
+        const htmlPath = path.join(pluginDir, entry);
         snapshot.panels.push({
           id,
           title: String(item?.title || id),
           icon: String(item?.icon || "square.grid.2x2"),
-          entry,
+          entry: pathToFileURL(htmlPath).toString(),
           position: String(item?.position || "panel"),
           width: Number.isFinite(Number(item?.width)) ? Number(item.width) : null,
           height: Number.isFinite(Number(item?.height)) ? Number(item.height) : null,
@@ -594,7 +596,7 @@ async function buildPluginRuntimeSnapshot(pluginDirs) {
           id,
           title: String(item?.title || id),
           icon: String(item?.icon || "terminal"),
-          script,
+          script: path.join(pluginDir, script),
           keybinding: typeof item?.keybinding === "string" ? item.keybinding : null,
           pluginId,
           pluginName
@@ -607,7 +609,7 @@ async function buildPluginRuntimeSnapshot(pluginDirs) {
         if (!id || !script) continue;
         snapshot.statusBar.push({
           id,
-          script,
+          script: path.join(pluginDir, script),
           interval: Math.max(1, Number(item?.interval) || 30),
           pluginId,
           pluginName
@@ -639,6 +641,87 @@ async function buildPluginRuntimeSnapshot(pluginDirs) {
   }
 
   return snapshot;
+}
+
+function resolvePluginScriptCommand(scriptPath) {
+  const normalizedPath = path.resolve(String(scriptPath ?? ""));
+  const extension = path.extname(normalizedPath).toLowerCase();
+  switch (extension) {
+    case ".cmd":
+    case ".bat":
+      return { command: normalizedPath, args: [], shell: true };
+    case ".ps1":
+      return { command: "powershell.exe", args: ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", normalizedPath], shell: false };
+    case ".js":
+    case ".mjs":
+    case ".cjs":
+      return { command: process.execPath, args: [normalizedPath], shell: false };
+    case ".sh":
+      return { command: "bash", args: [normalizedPath], shell: false };
+    default:
+      return { command: normalizedPath, args: [], shell: true };
+  }
+}
+
+async function runPluginScript(scriptPath, projectPath) {
+  const cwd = projectPath ? path.resolve(expandHomePath(String(projectPath))) : app.getAppPath();
+  const { command, args, shell } = resolvePluginScriptCommand(scriptPath);
+  return new Promise((resolve) => {
+    const child = spawn(command, args, {
+      cwd,
+      env: process.env,
+      windowsHide: true,
+      shell
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout?.on("data", (chunk) => {
+      stdout += String(chunk ?? "");
+    });
+    child.stderr?.on("data", (chunk) => {
+      stderr += String(chunk ?? "");
+    });
+    child.on("error", (error) => {
+      resolve({
+        ok: false,
+        output: error?.message || String(error),
+        exitCode: -1
+      });
+    });
+    child.on("close", (code) => {
+      resolve({
+        ok: code === 0,
+        output: `${stdout}${stderr}`.trim(),
+        exitCode: typeof code === "number" ? code : -1
+      });
+    });
+  });
+}
+
+async function readPluginStatusBar(scriptPath, projectPath) {
+  const result = await runPluginScript(scriptPath, projectPath);
+  if (!result.ok) {
+    return {
+      text: result.output || "Plugin error",
+      icon: "!",
+      color: "#f14c4c"
+    };
+  }
+  try {
+    const parsed = JSON.parse(result.output || "{}");
+    const rawColor = typeof parsed?.color === "string" ? parsed.color.trim() : "";
+    return {
+      text: typeof parsed?.text === "string" ? parsed.text : "",
+      icon: typeof parsed?.icon === "string" ? parsed.icon : "",
+      color: rawColor ? (rawColor.startsWith("#") ? rawColor : `#${rawColor}`) : ""
+    };
+  } catch {
+    return {
+      text: result.output || "",
+      icon: "",
+      color: ""
+    };
+  }
 }
 
 async function createPluginTemplate(parentDir) {
@@ -2936,6 +3019,8 @@ ipcMain.handle("app:restart", async () => {
 ipcMain.handle("plugin:install", async (_event, source) => installPluginFromSource(source));
 ipcMain.handle("plugin:create-template", async (_event, parentDir) => createPluginTemplate(parentDir));
 ipcMain.handle("plugin:runtime-snapshot", async (_event, pluginDirs) => buildPluginRuntimeSnapshot(pluginDirs));
+ipcMain.handle("plugin:execute-command", async (_event, payload) => runPluginScript(payload?.scriptPath, payload?.projectPath));
+ipcMain.handle("plugin:read-status-bar", async (_event, payload) => readPluginStatusBar(payload?.scriptPath, payload?.projectPath));
 ipcMain.handle("app:refresh-cli-status", async () => refreshCLIStatuses());
 ipcMain.handle("app:install-cli", async (_event, provider) => installCLI(provider));
 
