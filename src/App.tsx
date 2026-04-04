@@ -428,8 +428,7 @@ function App() {
     }));
   }
 
-  async function handleCreateSession(event: FormEvent) {
-    event.preventDefault();
+  async function handleCreateSession() {
     if (!newSessionDraft.projectPath.trim()) return;
     setBusy(true);
     try {

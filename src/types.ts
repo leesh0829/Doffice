@@ -121,8 +121,9 @@ export interface GitPanelSnapshot {
 
 export interface GitActionPayload {
   projectPath: string;
-  action: "stageAll" | "commit" | "amend" | "push" | "pull" | "branch" | "stash" | "merge";
+  action: "stageAll" | "commit" | "commitSelected" | "amend" | "push" | "pull" | "branch" | "stash" | "merge";
   input?: string;
+  selectedPaths?: string[];
 }
 
 export interface GitActionResult {

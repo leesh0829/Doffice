@@ -1198,6 +1198,11 @@ async function executeGitAction(payload) {
   const projectPath = String(payload?.projectPath ?? "").trim();
   const action = String(payload?.action ?? "").trim();
   const input = String(payload?.input ?? "").trim();
+  const selectedPaths = Array.isArray(payload?.selectedPaths)
+    ? payload.selectedPaths
+        .map((value) => String(value ?? "").trim())
+        .filter(Boolean)
+    : [];
   if (!projectPath) {
     return { ok: false, message: "Project path missing" };
   }
@@ -1211,6 +1216,33 @@ async function executeGitAction(payload) {
         if (!input) return { ok: false, message: "Commit message required" };
         await runCommand("git", ["-C", projectPath, "commit", "-m", input]);
         return { ok: true, message: "Commit created" };
+      case "commitSelected": {
+        if (!input) return { ok: false, message: "Commit message required" };
+        if (selectedPaths.length === 0) {
+          return { ok: false, message: "Select at least one file to commit" };
+        }
+
+        const stagedBefore = await runCommand("git", ["-C", projectPath, "diff", "--name-only", "--cached"]);
+        if (String(stagedBefore).trim()) {
+          return { ok: false, message: "선택 커밋은 스테이징된 변경이 없을 때만 사용할 수 있습니다." };
+        }
+
+        try {
+          await runCommand("git", ["-C", projectPath, "add", "--", ...selectedPaths]);
+          const stagedAfter = await runCommand("git", ["-C", projectPath, "diff", "--name-only", "--cached"]);
+          if (!String(stagedAfter).trim()) {
+            await runCommand("git", ["-C", projectPath, "reset", "--", ...selectedPaths]);
+            return { ok: false, message: "선택한 파일에서 커밋할 변경을 찾지 못했습니다." };
+          }
+          await runCommand("git", ["-C", projectPath, "commit", "-m", input]);
+          return { ok: true, message: `Committed ${selectedPaths.length} selected file${selectedPaths.length === 1 ? "" : "s"}` };
+        } catch (error) {
+          try {
+            await runCommand("git", ["-C", projectPath, "reset", "--", ...selectedPaths]);
+          } catch {}
+          throw error;
+        }
+      }
       case "amend":
         if (!input) return { ok: false, message: "Amend message required" };
         await runCommand("git", ["-C", projectPath, "commit", "--amend", "-m", input]);

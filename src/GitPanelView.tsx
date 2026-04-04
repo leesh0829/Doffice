@@ -40,6 +40,7 @@ export function GitPanelView(props: { selectedSession: SessionSnapshot | null })
   const [commitMessage, setCommitMessage] = useState("");
   const [actionInput, setActionInput] = useState("");
   const [actionFeedback, setActionFeedback] = useState("");
+  const [selectedCommitPaths, setSelectedCommitPaths] = useState<string[]>([]);
 
   async function refreshSnapshot() {
     if (!selectedSession?.projectPath) {
@@ -137,6 +138,8 @@ export function GitPanelView(props: { selectedSession: SessionSnapshot | null })
       })) ?? [];
   const stagedChanges = effectiveChanges.filter((change) => change.staged);
   const unstagedChanges = effectiveChanges.filter((change) => !change.staged);
+  const selectedCommitSet = useMemo(() => new Set(selectedCommitPaths), [selectedCommitPaths]);
+  const selectedUnstagedChanges = unstagedChanges.filter((change) => selectedCommitSet.has(change.path));
   const branchSummaryItems = [
     currentBranchInfo?.ahead ? { id: "push", icon: "↑", value: currentBranchInfo.ahead, tone: "green" as const } : null,
     currentBranchInfo?.behind ? { id: "pull", icon: "↓", value: currentBranchInfo.behind, tone: "green" as const } : null
@@ -150,17 +153,38 @@ export function GitPanelView(props: { selectedSession: SessionSnapshot | null })
 
   async function runGitAction(action: GitActionPayload["action"], input?: string) {
     if (!selectedSession?.projectPath) return;
-    const result = await window.doffice.executeGitAction({ projectPath: selectedSession.projectPath, action, input });
+    const commitSelected = action === "commit" && selectedCommitPaths.length > 0;
+    const result = await window.doffice.executeGitAction({
+      projectPath: selectedSession.projectPath,
+      action: commitSelected ? "commitSelected" : action,
+      input,
+      selectedPaths: commitSelected ? selectedCommitPaths : undefined
+    });
     setActionFeedback(result.message);
     if (result.ok) {
       if (action === "commit" || action === "amend") {
         setCommitMessage("");
+        setSelectedCommitPaths([]);
       }
       if (action === "branch" || action === "stash" || action === "merge") {
         setActionInput("");
       }
       await refreshSnapshot();
     }
+  }
+
+  useEffect(() => {
+    const available = new Set(unstagedChanges.map((change) => change.path));
+    setSelectedCommitPaths((current) => current.filter((path) => available.has(path)));
+  }, [selectedSession?.projectPath, unstagedChanges]);
+
+  function toggleCommitPath(path: string) {
+    setSelectedCommitPaths((current) => (current.includes(path) ? current.filter((entry) => entry !== path) : [...current, path]));
+  }
+
+  function toggleAllCommitPaths() {
+    if (unstagedChanges.length === 0) return;
+    setSelectedCommitPaths((current) => (current.length === unstagedChanges.length ? [] : unstagedChanges.map((change) => change.path)));
   }
 
   if (!selectedSession) {
@@ -188,7 +212,7 @@ export function GitPanelView(props: { selectedSession: SessionSnapshot | null })
           <div className="git-toolbar-actions">
             <button type="button" className="mini-action-button success git-action-button tone-green" onClick={() => void runGitAction("commit", commitMessage)} disabled={!commitMessage.trim()}>
               <span className="git-action-icon">✓</span>
-              커밋
+              {selectedCommitPaths.length > 0 ? `선택 ${selectedCommitPaths.length}개 커밋` : "커밋"}
             </button>
             <button type="button" className="mini-action-button git-action-button tone-blue" onClick={() => void runGitAction("push")}>
               <span className="git-action-icon">↑</span>
@@ -374,12 +398,28 @@ export function GitPanelView(props: { selectedSession: SessionSnapshot | null })
                 <div className="git-working-column">
                   <div className="git-working-column-header">
                     <span>Unstaged</span>
-                    <strong>{unstagedChanges.length}</strong>
+                    <div className="git-working-column-meta">
+                      <strong>{unstagedChanges.length}</strong>
+                      {unstagedChanges.length > 0 ? (
+                        <>
+                          <button type="button" className="git-inline-chip-button" onClick={toggleAllCommitPaths}>
+                            {selectedCommitPaths.length === unstagedChanges.length ? "해제" : "전체"}
+                          </button>
+                          {selectedCommitPaths.length > 0 ? <span className="git-selection-pill">{selectedCommitPaths.length} 선택</span> : null}
+                        </>
+                      ) : null}
+                    </div>
                   </div>
                   <div className="git-change-list git-change-list-rich">
                     {unstagedChanges.length === 0 ? <div className="leaderboard-empty">No unstaged files</div> : null}
                     {unstagedChanges.map((change) => (
-                      <ChangeRow key={`unstaged-${change.path}-${change.statusLabel}`} change={change} />
+                      <ChangeRow
+                        key={`unstaged-${change.path}-${change.statusLabel}`}
+                        change={change}
+                        selectable
+                        selected={selectedCommitSet.has(change.path)}
+                        onToggle={() => toggleCommitPath(change.path)}
+                      />
                     ))}
                   </div>
                 </div>
@@ -389,13 +429,25 @@ export function GitPanelView(props: { selectedSession: SessionSnapshot | null })
             <div className="git-detail-card">
               <div className="panel-header">
                 <span>커밋</span>
+                {selectedCommitPaths.length > 0 ? <span className="git-selection-pill">{selectedCommitPaths.length}개 선택됨</span> : null}
               </div>
               <div className="git-commit-form">
                 <textarea value={commitMessage} onChange={(event) => setCommitMessage(event.target.value)} rows={3} placeholder="커밋 메시지 입력" />
+                {selectedUnstagedChanges.length > 0 ? (
+                  <div className="git-commit-preview-list">
+                    {selectedUnstagedChanges.slice(0, 6).map((change) => (
+                      <span key={`preview-${change.path}`} className="git-commit-preview-pill">{change.fileName}</span>
+                    ))}
+                    {selectedUnstagedChanges.length > 6 ? <span className="git-commit-preview-pill">+{selectedUnstagedChanges.length - 6}</span> : null}
+                  </div>
+                ) : null}
+                {selectedCommitPaths.length > 0 && stagedChanges.length > 0 ? (
+                  <div className="git-selection-warning">선택 커밋은 스테이징된 변경이 없을 때만 실행됩니다.</div>
+                ) : null}
                 <div className="settings-action-row">
                   <button type="button" className="mini-action-button success git-action-button tone-green" onClick={() => void runGitAction("commit", commitMessage)} disabled={!commitMessage.trim()}>
                     <span className="git-action-icon">✓</span>
-                    Commit
+                    {selectedCommitPaths.length > 0 ? "선택 커밋" : "Commit"}
                   </button>
                   <button type="button" className="mini-action-button" onClick={() => void runGitAction("amend", commitMessage)} disabled={!commitMessage.trim()}>
                     Amend
@@ -411,7 +463,7 @@ export function GitPanelView(props: { selectedSession: SessionSnapshot | null })
               <div className="git-quick-actions">
                 <button type="button" className="mini-action-button git-action-button tone-green" onClick={() => void runGitAction("commit", commitMessage)} disabled={!commitMessage.trim()}>
                   <span className="git-action-icon">✓</span>
-                  커밋
+                  {selectedCommitPaths.length > 0 ? "선택 커밋" : "커밋"}
                 </button>
                 <button type="button" className="mini-action-button git-action-button tone-blue" onClick={() => void runGitAction("push")}>
                   <span className="git-action-icon">↑</span>
@@ -564,17 +616,18 @@ function RefPill(props: { refItem: GitRefSnapshot }) {
   return <span className={`git-ref-pill tone-${refItem.type}`}>{refItem.name}</span>;
 }
 
-function ChangeRow(props: { change: GitWorktreeChangeSnapshot }) {
-  const { change } = props;
+function ChangeRow(props: { change: GitWorktreeChangeSnapshot; selectable?: boolean; selected?: boolean; onToggle?: () => void }) {
+  const { change, selectable = false, selected = false, onToggle } = props;
   return (
-    <div className="git-change-row git-change-row-rich">
+    <button type="button" className={`git-change-row git-change-row-rich ${selectable ? "is-selectable" : ""} ${selected ? "is-selected" : ""}`} onClick={selectable ? onToggle : undefined}>
+      {selectable ? <span className={`git-change-selector ${selected ? "is-selected" : ""}`}>{selected ? "✓" : ""}</span> : null}
       <div className="git-change-status-pill">{change.statusLabel}</div>
       <div className="git-change-copy">
         <strong>{change.fileName}</strong>
         <span>{change.path}</span>
       </div>
       {change.staged ? <div className="git-staged-pill">staged</div> : null}
-    </div>
+    </button>
   );
 }
 

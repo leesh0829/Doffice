@@ -1,7 +1,9 @@
-import type { FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { t } from "./localizationCatalog";
 import type { NewSessionDraftState, NewSessionPresetId, NewSessionProjectRecord } from "./newSessionPreferences";
 import { relativeTime } from "./sessionUtils";
+
+const trustedProjectPathsKey = "doffice.new-session.trusted-project-paths";
 
 interface NewSessionSheetProps {
   isOpen: boolean;
@@ -13,7 +15,7 @@ interface NewSessionSheetProps {
   onClose: () => void;
   onPickDirectory: () => void;
   onAddPluginDirectory: () => void;
-  onSubmit: (event: FormEvent) => void;
+  onSubmit: () => void | Promise<void>;
   onUpdateDraft: (patch: Partial<NewSessionDraftState>) => void;
   onChooseProject: (project: NewSessionProjectRecord) => void;
   onToggleFavorite: () => void;
@@ -72,6 +74,25 @@ const codexApprovals = [
 
 const terminalCounts = [1, 2, 3, 4, 5] as const;
 
+function normalizeTrustedProjectPath(value: string) {
+  return value.trim().replace(/[\\/]+$/, "").replace(/\\/g, "/").toLowerCase();
+}
+
+function loadTrustedProjectPaths() {
+  try {
+    const raw = window.localStorage.getItem(trustedProjectPathsKey);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as string[];
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string" && value.trim().length > 0) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveTrustedProjectPaths(paths: string[]) {
+  window.localStorage.setItem(trustedProjectPathsKey, JSON.stringify(paths));
+}
+
 export function NewSessionSheet(props: NewSessionSheetProps) {
   const {
     isOpen,
@@ -89,8 +110,23 @@ export function NewSessionSheet(props: NewSessionSheetProps) {
     onToggleFavorite,
     onApplyPreset
   } = props;
+  const [showTrustPrompt, setShowTrustPrompt] = useState(false);
+  const [trustedProjectPaths, setTrustedProjectPaths] = useState<string[]>(loadTrustedProjectPaths);
 
   if (!isOpen) return null;
+
+  useEffect(() => {
+    if (!isOpen) {
+      setShowTrustPrompt(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    saveTrustedProjectPaths(trustedProjectPaths);
+  }, [trustedProjectPaths]);
+
+  const normalizedProjectPath = useMemo(() => normalizeTrustedProjectPath(draft.projectPath), [draft.projectPath]);
+  const projectIsTrusted = normalizedProjectPath.length > 0 && trustedProjectPaths.includes(normalizedProjectPath);
 
   async function handleAddAdditionalDirectory() {
     const picked = await window.doffice.pickDirectory();
@@ -106,6 +142,28 @@ export function NewSessionSheet(props: NewSessionSheetProps) {
     const next = draft.additionalDirInput.trim();
     if (!next || draft.additionalDirs.includes(next)) return;
     onUpdateDraft({ additionalDirs: [...draft.additionalDirs, next], additionalDirInput: next });
+  }
+
+  async function submitIfTrusted() {
+    if (!draft.projectPath.trim()) return;
+    await onSubmit();
+  }
+
+  async function handleFormSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!draft.projectPath.trim()) return;
+    if (!projectIsTrusted) {
+      setShowTrustPrompt(true);
+      return;
+    }
+    await submitIfTrusted();
+  }
+
+  async function approveTrustAndSubmit() {
+    if (!normalizedProjectPath) return;
+    setTrustedProjectPaths((current) => (current.includes(normalizedProjectPath) ? current : [...current, normalizedProjectPath]));
+    setShowTrustPrompt(false);
+    await submitIfTrusted();
   }
 
   function providerCard(provider: "claude" | "codex", label: string, icon: string, tone: string, subtitle: string) {
@@ -141,7 +199,7 @@ export function NewSessionSheet(props: NewSessionSheetProps) {
           </button>
         </div>
 
-        <form className="sheet-form session-sheet-form" onSubmit={onSubmit}>
+        <form className="sheet-form session-sheet-form" onSubmit={handleFormSubmit}>
           <div className="session-sheet-grid">
             <div className="session-sheet-main">
               <section className="session-config-section">
@@ -494,6 +552,31 @@ export function NewSessionSheet(props: NewSessionSheetProps) {
           </div>
         </form>
       </div>
+
+      {showTrustPrompt ? (
+        <div className="sheet-floating-overlay" onClick={() => setShowTrustPrompt(false)}>
+          <div className="sheet-card trust-prompt-card" onClick={(event) => event.stopPropagation()}>
+            <div className="sheet-title-block">
+              <strong><span className="sheet-title-icon tone-warning">🛡</span>프로젝트 신뢰 확인</strong>
+              <div className="sheet-subtitle">처음 여는 폴더는 한 번 신뢰 여부를 확인합니다.</div>
+            </div>
+            <div className="trust-path-chip">{draft.projectPath.trim()}</div>
+            <div className="trust-copy-stack">
+              <strong>이 폴더를 신뢰하고 세션을 시작할까요?</strong>
+              <span>에이전트는 이 프로젝트 안에서 Git 작업, 파일 수정, 터미널 명령 실행을 수행할 수 있습니다.</span>
+              <span>직접 만든 프로젝트거나 검토를 끝낸 경로만 신뢰하는 편이 안전합니다.</span>
+            </div>
+            <div className="trust-action-row">
+              <button type="button" className="mini-action-button" onClick={() => setShowTrustPrompt(false)} disabled={busy}>
+                돌아가기
+              </button>
+              <button type="button" className="mini-action-button success trust-continue-button" onClick={() => void approveTrustAndSubmit()} disabled={busy}>
+                신뢰하고 시작
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

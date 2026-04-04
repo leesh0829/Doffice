@@ -92,7 +92,7 @@ interface MainViewProps {
   applyNewSessionPreset: (preset: NewSessionPresetId) => void;
   handlePickDirectory: () => void;
   handleAddPluginDirectory: () => void;
-  handleCreateSession: (event: FormEvent) => void;
+  handleCreateSession: () => void | Promise<void>;
 }
 
 type PixelIconName =

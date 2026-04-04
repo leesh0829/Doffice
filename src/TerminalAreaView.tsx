@@ -35,6 +35,17 @@ interface TerminalSplitState {
   secondarySessionId: string | null;
 }
 
+interface PastedChunkRecord {
+  id: number;
+  text: string;
+  lineCount: number;
+}
+
+interface DraftPasteState {
+  counter: number;
+  chunks: PastedChunkRecord[];
+}
+
 const terminalSplitStorageKey = "doffice.terminal.single-split";
 
 function loadTerminalSplitState(): TerminalSplitState {
@@ -82,6 +93,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
   const [toolFilters, setToolFilters] = useState<string[]>([]);
   const [gridDrafts, setGridDrafts] = useState<Record<string, string>>({});
   const [splitDrafts, setSplitDrafts] = useState<Record<string, string>>({});
+  const [draftPasteState, setDraftPasteState] = useState<Record<string, DraftPasteState>>({});
   const [attachedImage, setAttachedImage] = useState<ImageAttachment | null>(null);
   const [splitState, setSplitState] = useState<TerminalSplitState>(loadTerminalSplitState);
 
@@ -125,6 +137,10 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
 
   useEffect(() => {
     setAttachedImage(null);
+  }, [selectedSession?.id]);
+
+  useEffect(() => {
+    setDraftPasteState({});
   }, [selectedSession?.id]);
 
   useEffect(() => {
@@ -175,13 +191,15 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
   async function handleSingleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selectedSession) return;
-    const nextPrompt = prompt.trim();
+    const expandedPrompt = expandPastedChunks(prompt, draftPasteState.__single__?.chunks ?? []);
+    const nextPrompt = expandedPrompt.trim();
     if (!nextPrompt) return;
     const promptWithAttachment = attachedImage
       ? [nextPrompt, "", `[첨부 이미지] ${attachedImage.path || "선택된 이미지"}`].join("\n")
       : nextPrompt;
     await sendPromptToSession(selectedSession.id, promptWithAttachment);
     setPrompt("");
+    clearDraftPasteState("__single__");
     setAttachedImage(null);
   }
 
@@ -205,6 +223,44 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
 
   function closeSplit() {
     setSplitState((current) => ({ ...current, enabled: false, secondarySessionId: null }));
+  }
+
+  function updateDraftWithPaste(key: string, previousValue: string, nextValue: string, applyValue: (value: string) => void) {
+    const addedLength = nextValue.length - previousValue.length;
+    if (addedLength <= 0) {
+      applyValue(nextValue);
+      return;
+    }
+
+    const added = nextValue.slice(nextValue.length - addedLength);
+    const lineCount = added.split(/\r?\n/).length;
+    if (lineCount < 5) {
+      applyValue(nextValue);
+      return;
+    }
+
+    setDraftPasteState((current) => {
+      const nextState = current[key] ?? { counter: 0, chunks: [] };
+      const nextId = nextState.counter + 1;
+      const placeholder = `[Pasted text #${nextId} +${lineCount} lines]`;
+      applyValue(`${nextValue.slice(0, nextValue.length - addedLength)}${placeholder}`);
+      return {
+        ...current,
+        [key]: {
+          counter: nextId,
+          chunks: [...nextState.chunks, { id: nextId, text: added, lineCount }]
+        }
+      };
+    });
+  }
+
+  function clearDraftPasteState(key: string) {
+    setDraftPasteState((current) => {
+      if (!(key in current)) return current;
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
   }
 
   return (
@@ -320,14 +376,23 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                   onSubmit={async (event) => {
                     event.preventDefault();
                     const nextPrompt = gridDrafts[session.id]?.trim();
-                    if (!nextPrompt) return;
-                    await sendPromptToSession(session.id, nextPrompt);
+                    const expandedPrompt = expandPastedChunks(gridDrafts[session.id] ?? "", draftPasteState[session.id]?.chunks ?? []).trim();
+                    if (!expandedPrompt) return;
+                    await sendPromptToSession(session.id, expandedPrompt);
                     setGridDrafts((current) => ({ ...current, [session.id]: "" }));
+                    clearDraftPasteState(session.id);
                   }}
                 >
                   <textarea
                     value={gridDrafts[session.id] ?? ""}
-                    onChange={(event) => setGridDrafts((current) => ({ ...current, [session.id]: event.target.value }))}
+                    onChange={(event) =>
+                      updateDraftWithPaste(
+                        session.id,
+                        gridDrafts[session.id] ?? "",
+                        event.target.value,
+                        (value) => setGridDrafts((current) => ({ ...current, [session.id]: value }))
+                      )
+                    }
                     onKeyDown={submitTextareaOnEnter}
                     placeholder={t("custom.direct.chat")}
                     rows={3}
@@ -355,9 +420,11 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                   onDraftChange={(value) => setSplitDrafts((current) => ({ ...current, [selectedSession.id]: value }))}
                   onSubmit={async () => {
                     const nextPrompt = (splitDrafts[selectedSession.id] ?? "").trim();
-                    if (!nextPrompt) return;
-                    await sendPromptToSession(selectedSession.id, nextPrompt);
+                    const expandedPrompt = expandPastedChunks(splitDrafts[selectedSession.id] ?? "", draftPasteState[selectedSession.id]?.chunks ?? []).trim();
+                    if (!expandedPrompt) return;
+                    await sendPromptToSession(selectedSession.id, expandedPrompt);
                     setSplitDrafts((current) => ({ ...current, [selectedSession.id]: "" }));
+                    clearDraftPasteState(selectedSession.id);
                   }}
                   onSelectSession={null}
                 />
@@ -369,9 +436,11 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                   onDraftChange={(value) => setSplitDrafts((current) => ({ ...current, [secondarySession.id]: value }))}
                   onSubmit={async () => {
                     const nextPrompt = (splitDrafts[secondarySession.id] ?? "").trim();
-                    if (!nextPrompt) return;
-                    await sendPromptToSession(secondarySession.id, nextPrompt);
+                    const expandedPrompt = expandPastedChunks(splitDrafts[secondarySession.id] ?? "", draftPasteState[secondarySession.id]?.chunks ?? []).trim();
+                    if (!expandedPrompt) return;
+                    await sendPromptToSession(secondarySession.id, expandedPrompt);
                     setSplitDrafts((current) => ({ ...current, [secondarySession.id]: "" }));
+                    clearDraftPasteState(secondarySession.id);
                   }}
                   onSelectSession={(sessionId) => setSplitState((current) => ({ ...current, secondarySessionId: sessionId }))}
                 />
@@ -614,7 +683,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
               ) : null}
               <textarea
                 value={prompt}
-                onChange={(event) => setPrompt(event.target.value)}
+                onChange={(event) => updateDraftWithPaste("__single__", prompt, event.target.value, setPrompt)}
                 onKeyDown={submitTextareaOnEnter}
                 placeholder={t("custom.send.prompt.placeholder")}
                 rows={4}
@@ -710,6 +779,10 @@ function labelForBlock(kind: SessionBlock["kind"]): string {
 function latestText(blocks: SessionBlock[]): string {
   const textBlock = [...blocks].reverse().find((block) => block.content.trim());
   return textBlock?.content ?? t("custom.no.output");
+}
+
+function expandPastedChunks(value: string, chunks: PastedChunkRecord[]): string {
+  return chunks.reduce((current, chunk) => current.replaceAll(`[Pasted text #${chunk.id} +${chunk.lineCount} lines]`, chunk.text), value);
 }
 
 function condensedBlocks(blocks: SessionBlock[]): SessionBlock[] {
