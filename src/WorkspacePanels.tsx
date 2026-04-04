@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 import type { ReportReference, SessionSnapshot } from "./types";
 import { t, tf } from "./localizationCatalog";
 import { relativeTime } from "./sessionUtils";
+import { pluginRegistry, type PluginRegistryEntry } from "./pluginRegistry";
 import {
   accessoryCatalog,
   allCharacters,
@@ -42,6 +43,7 @@ interface WorkspaceOverlayManagerProps {
 }
 
 type SettingsTab = "general" | "theme" | "office" | "tokens" | "data" | "template" | "plugins" | "support" | "security" | "shortcuts";
+type PluginSection = "installed" | "marketplace";
 
 const settingsTabs: Array<{ id: SettingsTab; labelKey: string; icon: string }> = [
   { id: "general", labelKey: "settings.tab.general", icon: "☰" },
@@ -69,36 +71,7 @@ const workflowChoices = [
 
 const backgroundChoices = backgroundCatalog;
 
-const pluginMarketplace = [
-  {
-    title: "플리 마켓 히든 캐릭터 팩",
-    subtitle: "플리 마켓에서 바로 고용할 수 있는 캐릭터 3종을 추가합니다.",
-    url: "https://raw.githubusercontent.com/jjunhaa0211/Doffice/main/plugins/flea-market-hidden-pack/plugin.json",
-    type: "rawURL",
-    tags: ["#character", "#hidden", "#market"]
-  },
-  {
-    title: "타이핑 콤보 팩",
-    subtitle: "타이핑 보상과 타이핑 이펙트 플러그인입니다.",
-    url: "https://raw.githubusercontent.com/jjunhaa0211/Doffice/main/plugins/typing-combo-pack/plugin.json",
-    type: "brewFormula",
-    tags: ["#typing", "#reward", "#combo"]
-  },
-  {
-    title: "프리미엄 가구 팩",
-    subtitle: "프리미엄 오피스 가구 8종을 추가합니다.",
-    url: "https://raw.githubusercontent.com/jjunhaa0211/Doffice/main/plugins/premium-furniture-pack/plugin.json",
-    type: "brewTap",
-    tags: ["#office", "#furniture", "#premium"]
-  },
-  {
-    title: "바닷속 비치 팩",
-    subtitle: "사무실 배경에 해변과 바닷속 테마를 추가합니다.",
-    url: "https://raw.githubusercontent.com/jjunhaa0211/Doffice/main/plugins/vacation-beach-pack/plugin.json",
-    type: "local",
-    tags: ["#theme", "#vacation", "#background"]
-  }
-];
+const pluginMarketplace = pluginRegistry;
 
 const defaultTemplateText: Record<WorkspacePreferences["workflowStyle"], string> = {
   planner: "요구사항을 개발 가능한 계획으로 정리하고 핵심 리스크를 먼저 적습니다.",
@@ -113,6 +86,67 @@ const defaultTemplateText: Record<WorkspacePreferences["workflowStyle"], string>
 
 const templateStorageKey = "doffice.settings.templates";
 const shortcutStorageKey = "doffice.settings.shortcuts";
+const pluginInstallStorageKey = "doffice.settings.plugins.installed";
+
+interface InstalledPluginRecord {
+  id: string;
+  title: string;
+  source: string;
+  enabled: boolean;
+  shared: boolean;
+  marketplaceId: string | null;
+  author: string;
+  version: string;
+  tags: string[];
+}
+
+function defaultInstalledPlugins(): InstalledPluginRecord[] {
+  return pluginMarketplace.slice(0, 2).map((item, index) => ({
+    id: `plugin-seed-${index}`,
+    title: item.name,
+    source: item.downloadURL,
+    enabled: index === 0,
+    shared: false,
+    marketplaceId: item.id,
+    author: item.author,
+    version: item.version,
+    tags: item.tags
+  }));
+}
+
+function loadInstalledPlugins(): InstalledPluginRecord[] {
+  try {
+    const raw = window.localStorage.getItem(pluginInstallStorageKey);
+    if (!raw) return defaultInstalledPlugins();
+    const parsed = JSON.parse(raw) as Partial<InstalledPluginRecord>[];
+    if (!Array.isArray(parsed)) return defaultInstalledPlugins();
+    const normalized = parsed
+      .map((item, index) => {
+        const source = typeof item.source === "string" ? item.source.trim() : "";
+        const title = typeof item.title === "string" && item.title.trim() ? item.title.trim() : source.split("/").pop() || `plugin-${index + 1}`;
+        if (!source) return null;
+        return {
+          id: typeof item.id === "string" && item.id.trim() ? item.id : `plugin-${index}-${title}`,
+          title,
+          source,
+          enabled: typeof item.enabled === "boolean" ? item.enabled : true,
+          shared: typeof item.shared === "boolean" ? item.shared : false,
+          marketplaceId: typeof item.marketplaceId === "string" && item.marketplaceId.trim() ? item.marketplaceId : null,
+          author: typeof item.author === "string" ? item.author : "Unknown",
+          version: typeof item.version === "string" ? item.version : "1.0.0",
+          tags: Array.isArray(item.tags) ? item.tags.filter((value): value is string => typeof value === "string" && value.trim().length > 0) : []
+        } satisfies InstalledPluginRecord;
+      })
+      .filter((item): item is InstalledPluginRecord => item != null);
+    return normalized.length > 0 ? normalized : defaultInstalledPlugins();
+  } catch {
+    return defaultInstalledPlugins();
+  }
+}
+
+function saveInstalledPlugins(installedPlugins: InstalledPluginRecord[]) {
+  window.localStorage.setItem(pluginInstallStorageKey, JSON.stringify(installedPlugins));
+}
 
 function loadTemplateDrafts(): Record<WorkspacePreferences["workflowStyle"], string> {
   try {
@@ -325,6 +359,7 @@ function SettingsPanel(props: {
 }) {
   const { selectedSession, sessions, totals, preferences, updatePreferences, reportCount, progress, onRefreshReports, onClose } = props;
   const [tab, setTab] = useState<SettingsTab>("general");
+  const [pluginSection, setPluginSection] = useState<PluginSection>("installed");
   const [selectedTemplateKind, setSelectedTemplateKind] = useState<WorkspacePreferences["workflowStyle"]>(preferences.workflowStyle);
   const [templateDrafts, setTemplateDrafts] = useState(loadTemplateDrafts);
   const [shortcutDrafts, setShortcutDrafts] = useState(loadShortcutDrafts);
@@ -333,17 +368,7 @@ function SettingsPanel(props: {
   const [pluginSourceInput, setPluginSourceInput] = useState("");
   const [pluginSearchText, setPluginSearchText] = useState("");
   const [pluginTagFilter, setPluginTagFilter] = useState<string>("");
-  const [installedPlugins, setInstalledPlugins] = useState<
-    Array<{ id: string; title: string; source: string; enabled: boolean; shared: boolean }>
-  >(() =>
-    pluginMarketplace.slice(0, 2).map((item, index) => ({
-      id: `plugin-${index}`,
-      title: item.title,
-      source: item.url,
-      enabled: index === 0,
-      shared: false
-    }))
-  );
+  const [installedPlugins, setInstalledPlugins] = useState<InstalledPluginRecord[]>(loadInstalledPlugins);
 
   useEffect(() => {
     saveTemplateDrafts(templateDrafts);
@@ -352,6 +377,10 @@ function SettingsPanel(props: {
   useEffect(() => {
     saveShortcutDrafts(shortcutDrafts);
   }, [shortcutDrafts]);
+
+  useEffect(() => {
+    saveInstalledPlugins(installedPlugins);
+  }, [installedPlugins]);
 
   useEffect(() => {
     setSelectedTemplateKind(preferences.workflowStyle);
@@ -373,11 +402,12 @@ function SettingsPanel(props: {
     const query = pluginSearchText.trim().toLowerCase();
     const matchesQuery =
       !query ||
-      `${item.title} ${item.subtitle} ${item.tags.join(" ")}`.toLowerCase().includes(query);
+      `${item.name} ${item.description} ${item.author} ${item.tags.join(" ")}`.toLowerCase().includes(query);
     const matchesTag = !pluginTagFilter || item.tags.includes(pluginTagFilter);
     return matchesQuery && matchesTag;
   });
   const activePluginCount = installedPlugins.filter((item) => item.enabled).length;
+  const installedMarketplaceIds = new Set(installedPlugins.map((item) => item.marketplaceId).filter((value): value is string => Boolean(value)));
   const currentTemplate = templateDrafts[selectedTemplateKind];
   const selectedTemplateMeta = workflowChoices.find((choice) => choice.id === selectedTemplateKind) ?? workflowChoices[0];
 
@@ -401,20 +431,26 @@ function SettingsPanel(props: {
     setTab(nextTab);
   }
 
-  function installPlugin(source: string, title?: string) {
+  function installPlugin(source: string, options?: { title?: string; registryEntry?: PluginRegistryEntry }) {
     const trimmed = source.trim();
     if (!trimmed) return;
+    const registryEntry = options?.registryEntry;
+    const nextTitle = options?.title ?? registryEntry?.name ?? trimmed.split("/").pop() ?? t("settings.plugins.new.plugin");
     setInstalledPlugins((current) => {
-      if (current.some((item) => item.source === trimmed || item.title === (title ?? trimmed))) {
+      if (current.some((item) => item.source === trimmed || item.title === nextTitle || (registryEntry && item.marketplaceId === registryEntry.id))) {
         return current;
       }
       return [
         {
           id: `plugin-${Date.now()}`,
-          title: title ?? trimmed.split("/").pop() ?? "새 플러그인",
+          title: nextTitle,
           source: trimmed,
           enabled: true,
-          shared: false
+          shared: false,
+          marketplaceId: registryEntry?.id ?? null,
+          author: registryEntry?.author ?? "Local",
+          version: registryEntry?.version ?? "1.0.0",
+          tags: registryEntry?.tags ?? []
         },
         ...current
       ];
@@ -435,15 +471,16 @@ function SettingsPanel(props: {
           ×
         </button>
       </div>
-      <div className="workspace-tab-strip">
-        {settingsTabs.map((item) => (
-          <button key={item.id} type="button" className={`workspace-tab-button ${tab === item.id ? "is-active" : ""}`} onClick={() => handleTabChange(item.id)}>
-            <span className="settings-tab-icon">{item.icon}</span>
-            {t(item.labelKey)}
-          </button>
-        ))}
-      </div>
-      <div className="workspace-modal-body">
+      <div className="settings-layout">
+        <nav className="workspace-tab-strip settings-sidebar-nav" aria-label={t("settings.title")}>
+          {settingsTabs.map((item) => (
+            <button key={item.id} type="button" className={`workspace-tab-button ${tab === item.id ? "is-active" : ""}`} onClick={() => handleTabChange(item.id)}>
+              <span className="settings-tab-icon">{item.icon}</span>
+              <span className="settings-tab-label">{t(item.labelKey)}</span>
+            </button>
+          ))}
+        </nav>
+        <div className="workspace-modal-body settings-modal-body">
         {tab === "general" ? (
           <div className="settings-stack">
             <SettingsCard title={<span className="settings-section-title"><span className="panel-title-emoji tone-default">☰</span>{t("settings.section.profile")}</span>}>
@@ -760,10 +797,10 @@ function SettingsPanel(props: {
                   onClick={() =>
                     updatePreferences((current) => ({
                       ...current,
-                      browserTabs: [{ id: "tab-0", title: "New Tab", url: "about:blank" }],
+                      browserTabs: [{ id: "tab-0", title: "New Tab", url: "https://www.google.com" }],
                       browserActiveTabId: "tab-0",
-                        browserBookmarks: current.browserBookmarks.slice(0, 4)
-                      }))
+                      browserBookmarks: current.browserBookmarks.slice(0, 4)
+                    }))
                   }
                 >
                   {`🗑 ${t("settings.data.delete.all")}`}
@@ -923,10 +960,10 @@ function SettingsPanel(props: {
                 </label>
               </div>
               <div className="settings-action-row">
-                <button type="button" className="mini-action-button sky-button" onClick={() => installPlugin("~/plugins/local-plugin", t("settings.plugins.local.plugin"))}>
+                <button type="button" className="mini-action-button sky-button" onClick={() => installPlugin("~/plugins/local-plugin", { title: t("settings.plugins.local.plugin") })}>
                   {`📁 ${t("settings.plugins.local.folder")}`}
                 </button>
-                <button type="button" className="mini-action-button green-button" onClick={() => installPlugin("~/plugins/new-plugin", t("settings.plugins.new.plugin"))}>
+                <button type="button" className="mini-action-button green-button" onClick={() => installPlugin("~/plugins/new-plugin", { title: t("settings.plugins.new.plugin") })}>
                   {`🔨 ${t("settings.plugins.new.plugin")}`}
                 </button>
               </div>
@@ -937,13 +974,24 @@ function SettingsPanel(props: {
                 <div className="settings-format-hint-row"><strong>{t("settings.plugins.local.path")}</strong><span>~/plugin</span></div>
               </div>
             </SettingsCard>
+            <div className="segmented-choice-row plugin-section-switch">
+              <button type="button" className={`segmented-choice ${pluginSection === "installed" ? "is-active" : ""}`} onClick={() => setPluginSection("installed")}>
+                {tf("settings.plugins.installed.tab", undefined, installedPlugins.length)}
+              </button>
+              <button type="button" className={`segmented-choice ${pluginSection === "marketplace" ? "is-active" : ""}`} onClick={() => setPluginSection("marketplace")}>
+                {tf("settings.plugins.marketplace.tab", undefined, filteredMarketplace.length)}
+              </button>
+            </div>
+            {pluginSection === "installed" ? (
             <SettingsCard title={<span className="settings-section-title"><span className="panel-title-emoji tone-green">🧱</span>{tf("settings.plugins.installed.summary", undefined, installedPlugins.length, activePluginCount)}</span>}>
               <div className="marketplace-list">
+                {installedPlugins.length === 0 ? <div className="leaderboard-empty">{t("settings.plugins.installed.empty")}</div> : null}
                 {installedPlugins.map((item) => (
                   <div key={item.id} className="marketplace-row">
                     <div className="marketplace-copy">
                       <strong>{item.title}</strong>
                       <span className="path-ellipsis">{item.source}</span>
+                      <small>{[item.author, item.version ? `v${item.version}` : null, item.tags.slice(0, 3).join(" · ")].filter(Boolean).join(" · ")}</small>
                     </div>
                     <div className="settings-inline-actions">
                       <button
@@ -963,6 +1011,8 @@ function SettingsPanel(props: {
                 ))}
               </div>
             </SettingsCard>
+            ) : null}
+            {pluginSection === "marketplace" ? (
             <SettingsCard title={<span className="settings-section-title"><span className="panel-title-emoji tone-blue">🌐</span>{t("settings.plugins.section.marketplace")}</span>}>
               <div className="settings-action-row plugin-market-actions">
                 <button type="button" className="mini-action-button blue-button" onClick={() => setPluginSearchText("")}>
@@ -984,19 +1034,25 @@ function SettingsPanel(props: {
               </div>
               <div className="marketplace-list">
                 {filteredMarketplace.map((item) => (
-                  <div key={item.title} className="marketplace-row">
+                  <div key={item.id} className="marketplace-row">
                     <div className="marketplace-copy">
-                      <strong>{item.title}</strong>
-                      <span>{item.subtitle}</span>
-                      <small>{item.tags.join(" ")}</small>
+                      <strong>{item.name}</strong>
+                      <span>{item.description}</span>
+                      <small>{`${item.author} · v${item.version} · ★${item.stars} · ${item.tags.join(" ")}`}</small>
                     </div>
-                    <button type="button" className="mini-action-button install-button" onClick={() => installPlugin(item.url, item.title)}>
-                      {t("settings.plugins.install")}
+                    <button
+                      type="button"
+                      className={`mini-action-button ${installedMarketplaceIds.has(item.id) ? "" : "install-button"}`}
+                      onClick={() => installPlugin(item.downloadURL, { title: item.name, registryEntry: item })}
+                      disabled={installedMarketplaceIds.has(item.id)}
+                    >
+                      {installedMarketplaceIds.has(item.id) ? t("settings.plugins.installed.badge") : t("settings.plugins.install")}
                     </button>
                   </div>
                 ))}
               </div>
             </SettingsCard>
+            ) : null}
           </div>
         ) : null}
 
@@ -1050,6 +1106,7 @@ function SettingsPanel(props: {
             </SettingsCard>
           </div>
         ) : null}
+        </div>
       </div>
     </div>
   );

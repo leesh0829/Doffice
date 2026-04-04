@@ -10,6 +10,8 @@ interface BrowserTab {
   id: string;
   title: string;
   url: string;
+  history: string[];
+  historyIndex: number;
 }
 
 const defaultBookmarks = [
@@ -20,38 +22,141 @@ const defaultBookmarks = [
 ];
 
 const browserStorageKey = "doffice.browser-pane";
+const defaultBrowserURL = "https://www.google.com";
+
+function tabTitleForUrl(url: string): string {
+  if (!url || url === defaultBrowserURL) {
+    return t("custom.browser.new.tab");
+  }
+  return url.replace(/^https?:\/\//, "");
+}
+
+function createBrowserTab(url = defaultBrowserURL, id = `tab-${Date.now()}`): BrowserTab {
+  return {
+    id,
+    title: tabTitleForUrl(url),
+    url,
+    history: [url],
+    historyIndex: 0
+  };
+}
+
+function normalizeNavigationTarget(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed || trimmed === "about:blank") {
+    return defaultBrowserURL;
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (/^(localhost|\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?(?:\/.*)?$/i.test(trimmed)) {
+    return `http://${trimmed}`;
+  }
+
+  if (/^[\w-]+(\.[\w-]+)+(?::\d+)?(?:\/.*)?$/i.test(trimmed)) {
+    return `https://${trimmed}`;
+  }
+
+  return `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`;
+}
+
+function displayAddress(url: string): string {
+  if (!url || url === "about:blank") {
+    return "";
+  }
+  return url.replace(/^https?:\/\//, "");
+}
+
+function normalizeTab(raw: Partial<BrowserTab> | undefined, index: number): BrowserTab {
+  const normalizedUrl = normalizeNavigationTarget(typeof raw?.url === "string" ? raw.url : defaultBrowserURL);
+  const history = Array.isArray(raw?.history)
+    ? raw.history
+        .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+        .map((value) => normalizeNavigationTarget(value))
+    : [normalizedUrl];
+  const safeHistory = history.length > 0 ? history : [normalizedUrl];
+  const historyIndex =
+    typeof raw?.historyIndex === "number" && raw.historyIndex >= 0 && raw.historyIndex < safeHistory.length
+      ? raw.historyIndex
+      : safeHistory.length - 1;
+  const url = safeHistory[historyIndex] ?? normalizedUrl;
+
+  return {
+    id: typeof raw?.id === "string" && raw.id.trim() ? raw.id : `tab-${index}`,
+    title: typeof raw?.title === "string" && raw.title.trim() ? raw.title : tabTitleForUrl(url),
+    url,
+    history: safeHistory,
+    historyIndex
+  };
+}
 
 function loadBrowserState() {
   try {
     const raw = window.localStorage.getItem(browserStorageKey);
     if (!raw) {
+      const tab = createBrowserTab();
       return {
-        tabs: [{ id: "tab-0", title: "New Tab", url: "about:blank" }],
-        activeTabId: "tab-0",
-        bookmarks: []
+        tabs: [tab],
+        activeTabId: tab.id,
+        bookmarks: [],
+        showBookmarks: false
       };
     }
     const parsed = JSON.parse(raw) as {
-      tabs?: BrowserTab[];
+      tabs?: Partial<BrowserTab>[];
       activeTabId?: string;
       bookmarks?: string[];
+      showBookmarks?: boolean;
     };
     const tabs =
-      Array.isArray(parsed.tabs) && parsed.tabs.every((tab) => tab && typeof tab.id === "string" && typeof tab.title === "string" && typeof tab.url === "string")
-        ? parsed.tabs
-        : [{ id: "tab-0", title: "New Tab", url: "about:blank" }];
-    const activeTabId = typeof parsed.activeTabId === "string" ? parsed.activeTabId : tabs[0]?.id ?? "tab-0";
+      Array.isArray(parsed.tabs) && parsed.tabs.length > 0
+        ? parsed.tabs.map((tab, index) => normalizeTab(tab, index))
+        : [createBrowserTab()];
+    const activeTabId = typeof parsed.activeTabId === "string" && tabs.some((tab) => tab.id === parsed.activeTabId)
+      ? parsed.activeTabId
+      : tabs[0]?.id ?? "tab-0";
     const bookmarks = Array.isArray(parsed.bookmarks)
-      ? parsed.bookmarks.filter((value): value is string => typeof value === "string" && !defaultBookmarks.some((item) => item.url === value))
+      ? parsed.bookmarks
+          .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+          .map((value) => normalizeNavigationTarget(value))
+          .filter((value) => !defaultBookmarks.some((item) => item.url === value))
       : [];
-    return { tabs, activeTabId, bookmarks };
-  } catch {
     return {
-      tabs: [{ id: "tab-0", title: "New Tab", url: "about:blank" }],
-      activeTabId: "tab-0",
-      bookmarks: []
+      tabs,
+      activeTabId,
+      bookmarks,
+      showBookmarks: typeof parsed.showBookmarks === "boolean" ? parsed.showBookmarks : false
+    };
+  } catch {
+    const tab = createBrowserTab();
+    return {
+      tabs: [tab],
+      activeTabId: tab.id,
+      bookmarks: [],
+      showBookmarks: false
     };
   }
+}
+
+function pushHistory(tab: BrowserTab, nextUrl: string): BrowserTab {
+  if (tab.history[tab.historyIndex] === nextUrl) {
+    return {
+      ...tab,
+      url: nextUrl,
+      title: tabTitleForUrl(nextUrl)
+    };
+  }
+
+  const nextHistory = [...tab.history.slice(0, tab.historyIndex + 1), nextUrl];
+  return {
+    ...tab,
+    url: nextUrl,
+    title: tabTitleForUrl(nextUrl),
+    history: nextHistory,
+    historyIndex: nextHistory.length - 1
+  };
 }
 
 export function BrowserPaneView(props: BrowserPaneViewProps) {
@@ -60,16 +165,16 @@ export function BrowserPaneView(props: BrowserPaneViewProps) {
   const [tabs, setTabs] = useState<BrowserTab[]>(persistedState.tabs);
   const [activeTabId, setActiveTabId] = useState(persistedState.activeTabId);
   const [savedBookmarks, setSavedBookmarks] = useState<string[]>(persistedState.bookmarks);
-  const [address, setAddress] = useState("about:blank");
-  const [showBookmarks, setShowBookmarks] = useState(true);
+  const [address, setAddress] = useState("");
+  const [showBookmarks, setShowBookmarks] = useState(persistedState.showBookmarks);
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
   const bookmarks = useMemo(() => savedBookmarks.slice(0, 12), [savedBookmarks]);
+  const canGoBack = activeTab ? activeTab.historyIndex > 0 : false;
+  const canGoForward = activeTab ? activeTab.historyIndex < activeTab.history.length - 1 : false;
 
   useEffect(() => {
-    if (activeTab) {
-      setAddress(activeTab.url);
-    }
+    setAddress(displayAddress(activeTab?.url ?? ""));
   }, [activeTab]);
 
   useEffect(() => {
@@ -79,39 +184,69 @@ export function BrowserPaneView(props: BrowserPaneViewProps) {
   }, [activeTabId, tabs]);
 
   useEffect(() => {
-    window.localStorage.setItem(browserStorageKey, JSON.stringify({ tabs, activeTabId, bookmarks: savedBookmarks }));
-  }, [tabs, activeTabId, savedBookmarks]);
+    window.localStorage.setItem(browserStorageKey, JSON.stringify({ tabs, activeTabId, bookmarks: savedBookmarks, showBookmarks }));
+  }, [tabs, activeTabId, savedBookmarks, showBookmarks]);
 
-  function createTab(url = "about:blank") {
-    const nextId = `tab-${Date.now()}`;
-    const nextTab = {
-      id: nextId,
-      title: url === "about:blank" ? "New Tab" : url.replace(/^https?:\/\//, ""),
-      url
-    };
+  function createTab(url = defaultBrowserURL) {
+    const nextTab = createBrowserTab(url);
     setTabs((current) => [...current, nextTab]);
-    setActiveTabId(nextId);
+    setActiveTabId(nextTab.id);
   }
 
-  function navigate(nextUrl: string) {
-    const normalized = /^https?:\/\//i.test(nextUrl) || nextUrl === "about:blank" ? nextUrl : `http://${nextUrl}`;
+  function navigate(nextInput: string) {
+    const normalized = normalizeNavigationTarget(nextInput);
+    setTabs((current) =>
+      current.map((tab) => (tab.id === activeTabId ? pushHistory(tab, normalized) : tab))
+    );
+  }
+
+  function stepHistory(direction: -1 | 1) {
+    setTabs((current) =>
+      current.map((tab) => {
+        if (tab.id !== activeTabId) return tab;
+        const nextIndex = tab.historyIndex + direction;
+        if (nextIndex < 0 || nextIndex >= tab.history.length) return tab;
+        const nextUrl = tab.history[nextIndex] ?? tab.url;
+        return {
+          ...tab,
+          url: nextUrl,
+          title: tabTitleForUrl(nextUrl),
+          historyIndex: nextIndex
+        };
+      })
+    );
+  }
+
+  function reloadActiveTab() {
+    if (!activeTab) return;
     setTabs((current) =>
       current.map((tab) =>
-        tab.id === activeTabId
+        tab.id === activeTab.id
           ? {
               ...tab,
-              url: normalized,
-              title: normalized === "about:blank" ? "New Tab" : normalized.replace(/^https?:\/\//, "")
+              url: `${activeTab.url}${activeTab.url.includes("?") ? "&" : "?"}reload=${Date.now()}`
             }
           : tab
       )
     );
+    window.setTimeout(() => {
+      setTabs((current) =>
+        current.map((tab) =>
+          tab.id === activeTab.id
+            ? {
+                ...tab,
+                url: activeTab.url
+              }
+            : tab
+        )
+      );
+    }, 30);
   }
 
   function closeTab(tabId: string) {
     setTabs((current) => {
       const next = current.filter((tab) => tab.id !== tabId);
-      return next.length > 0 ? next : [{ id: "tab-0", title: "New Tab", url: "about:blank" }];
+      return next.length > 0 ? next : [createBrowserTab(defaultBrowserURL, "tab-0")];
     });
     if (activeTabId === tabId) {
       setActiveTabId((current) => (current === tabId ? tabs.find((tab) => tab.id !== tabId)?.id ?? "tab-0" : current));
@@ -119,21 +254,22 @@ export function BrowserPaneView(props: BrowserPaneViewProps) {
   }
 
   function toggleBookmark(url: string) {
-    if (!url || url === "about:blank" || defaultBookmarks.some((item) => item.url === url)) return;
-    setSavedBookmarks((current) => (current.includes(url) ? current.filter((value) => value !== url) : [url, ...current].slice(0, 12)));
+    const normalized = normalizeNavigationTarget(url);
+    if (!normalized || defaultBookmarks.some((item) => item.url === normalized)) return;
+    setSavedBookmarks((current) => (current.includes(normalized) ? current.filter((value) => value !== normalized) : [normalized, ...current].slice(0, 12)));
   }
 
   return (
     <section className="browser-pane">
       <aside className={`browser-sidebar ${showBookmarks ? "" : "is-collapsed"}`}>
         <div className="browser-sidebar-header">
-          <strong>Bookmarks</strong>
+          <strong>{t("custom.browser.bookmarks")}</strong>
           <button
             type="button"
             className="browser-close-button"
             onClick={() => setShowBookmarks((current) => !current)}
           >
-            ×
+            {showBookmarks ? "×" : "☰"}
           </button>
         </div>
         {showBookmarks ? (
@@ -141,25 +277,25 @@ export function BrowserPaneView(props: BrowserPaneViewProps) {
             {bookmarks.length === 0 ? (
               <div className="browser-sidebar-empty">
                 <div className="browser-sidebar-empty-icon">⌘</div>
-                <span>No bookmarks yet</span>
+                <span>{t("custom.browser.empty")}</span>
               </div>
             ) : (
               <div className="browser-bookmark-section">
-                <span className="browser-bookmark-title">BOOKMARKS</span>
+                <span className="browser-bookmark-title">{t("custom.browser.bookmarks")}</span>
                 {bookmarks.map((bookmark) => (
                   <button key={bookmark} type="button" className="browser-bookmark-row" onClick={() => navigate(bookmark)}>
                     <span className="browser-bookmark-icon">🔖</span>
-                    <span className="path-ellipsis">{bookmark.replace(/^https?:\/\//, "")}</span>
+                    <span className="path-ellipsis">{displayAddress(bookmark)}</span>
                   </button>
                 ))}
               </div>
             )}
             <div className="browser-bookmark-section">
-              <span className="browser-bookmark-title">DEV</span>
+              <span className="browser-bookmark-title">{t("custom.browser.dev")}</span>
               {defaultBookmarks.map((bookmark) => (
                 <button key={bookmark.url} type="button" className="browser-bookmark-row" onClick={() => navigate(bookmark.url)}>
                   <span className="browser-bookmark-icon">{bookmark.icon}</span>
-                  <span>{bookmark.url.replace(/^https?:\/\//, "")}</span>
+                  <span>{displayAddress(bookmark.url)}</span>
                 </button>
               ))}
             </div>
@@ -195,7 +331,13 @@ export function BrowserPaneView(props: BrowserPaneViewProps) {
           </button>
         </div>
         <div className="browser-address-bar">
-          <button type="button" className="browser-nav-button" onClick={() => navigate(activeTab?.url ?? "about:blank")}>
+          <button type="button" className="browser-nav-button" onClick={() => stepHistory(-1)} disabled={!canGoBack}>
+            ←
+          </button>
+          <button type="button" className="browser-nav-button" onClick={() => stepHistory(1)} disabled={!canGoForward}>
+            →
+          </button>
+          <button type="button" className="browser-nav-button" onClick={reloadActiveTab}>
             ↻
           </button>
           <form
@@ -206,9 +348,9 @@ export function BrowserPaneView(props: BrowserPaneViewProps) {
             }}
           >
             <span className="browser-lock-icon">⌂</span>
-            <input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="http://localhost:5173" />
+            <input value={address} onChange={(event) => setAddress(event.target.value)} placeholder={t("custom.browser.search.placeholder")} />
           </form>
-          <button type="button" className="browser-nav-button" onClick={() => void window.doffice.openExternal(activeTab?.url ?? "about:blank")}>
+          <button type="button" className="browser-nav-button" onClick={() => void window.doffice.openExternal(activeTab?.url ?? defaultBrowserURL)}>
             ↗
           </button>
           <button type="button" className="browser-nav-button" onClick={() => toggleBookmark(activeTab?.url ?? "")}>
@@ -216,8 +358,7 @@ export function BrowserPaneView(props: BrowserPaneViewProps) {
           </button>
         </div>
         <div className="browser-surface">
-          {activeTab?.url === "about:blank" ? <div className="browser-empty-page">about:blank</div> : null}
-          {activeTab?.url !== "about:blank" ? <iframe className="browser-iframe" src={activeTab.url} title={activeTab.title || t("custom.browser")} /> : null}
+          <iframe className="browser-iframe" src={activeTab?.url ?? defaultBrowserURL} title={activeTab?.title || t("custom.browser")} />
         </div>
       </div>
     </section>

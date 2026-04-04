@@ -1,0 +1,281 @@
+{
+  "name": "배틀그라운드 팩",
+  "version": "1.0.0",
+  "description": "사무실이 전장으로! 나무와 바위에 은신하며 코딩하는 배그 컨셉",
+  "author": "WorkMan",
+  "contributes": {
+    "characters": "characters.json",
+    "themes": [
+      {
+        "id": "battleground-day",
+        "name": "배틀그라운드 (낮)",
+        "isDark": false,
+        "accentHex": "4b5320",
+        "bgHex": "e8e0d0",
+        "cardHex": "f0ead6",
+        "textHex": "2b2b1b",
+        "greenHex": "556b2f",
+        "redHex": "b22222",
+        "yellowHex": "daa520",
+        "purpleHex": "6b4226",
+        "cyanHex": "708090",
+        "useGradient": true,
+        "gradientStartHex": "4b5320",
+        "gradientEndHex": "8b7355"
+      },
+      {
+        "id": "battleground-night",
+        "name": "배틀그라운드 (밤)",
+        "isDark": true,
+        "accentHex": "556b2f",
+        "bgHex": "0d0d0d",
+        "cardHex": "1a1a1a",
+        "textHex": "a0a080",
+        "greenHex": "556b2f",
+        "redHex": "8b0000",
+        "yellowHex": "b8860b",
+        "purpleHex": "483d28",
+        "cyanHex": "4a5859",
+        "useGradient": true,
+        "gradientStartHex": "1a2e1a",
+        "gradientEndHex": "0d0d0d"
+      }
+    ],
+    "furniture": [
+      {
+        "id": "oak-tree",
+        "name": "참나무 (은엄폐)",
+        "sprite": [
+          ["", "2d5a1e", "3ecf8e", "2d5a1e", ""],
+          ["2d5a1e", "3ecf8e", "2d8a4e", "3ecf8e", "2d5a1e"],
+          ["3ecf8e", "2d8a4e", "3ecf8e", "2d8a4e", "3ecf8e"],
+          ["2d5a1e", "3ecf8e", "2d8a4e", "3ecf8e", "2d5a1e"],
+          ["", "", "6b4226", "", ""],
+          ["", "", "6b4226", "", ""],
+          ["", "6b4226", "6b4226", "6b4226", ""]
+        ],
+        "width": 2,
+        "height": 3,
+        "zone": "mainOffice"
+      },
+      {
+        "id": "boulder",
+        "name": "바위 (엄폐물)",
+        "sprite": [
+          ["", "808080", "808080", ""],
+          ["696969", "808080", "a9a9a9", "808080"],
+          ["808080", "a9a9a9", "808080", "696969"],
+          ["", "808080", "808080", ""]
+        ],
+        "width": 2,
+        "height": 1,
+        "zone": "mainOffice"
+      },
+      {
+        "id": "bush-cover",
+        "name": "수풀 (은신처)",
+        "sprite": [
+          ["", "2d8a4e", "3ecf8e", "2d8a4e", ""],
+          ["2d8a4e", "3ecf8e", "2d5a1e", "3ecf8e", "2d8a4e"],
+          ["3ecf8e", "2d5a1e", "3ecf8e", "2d5a1e", "3ecf8e"]
+        ],
+        "width": 2,
+        "height": 1,
+        "zone": "mainOffice"
+      },
+      {
+        "id": "sandbag-wall",
+        "name": "모래주머니 바리케이드",
+        "sprite": [
+          ["c2b280", "c2b280", "c2b280", "c2b280", "c2b280", "c2b280"],
+          ["b8a070", "c2b280", "b8a070", "c2b280", "b8a070", "c2b280"],
+          ["c2b280", "b8a070", "c2b280", "b8a070", "c2b280", "b8a070"]
+        ],
+        "width": 3,
+        "height": 1,
+        "zone": "mainOffice"
+      },
+      {
+        "id": "supply-crate",
+        "name": "보급 상자",
+        "sprite": [
+          ["5a5a3e", "5a5a3e", "5a5a3e", "5a5a3e"],
+          ["5a5a3e", "f5a623", "f5a623", "5a5a3e"],
+          ["5a5a3e", "5a5a3e", "5a5a3e", "5a5a3e"]
+        ],
+        "width": 2,
+        "height": 1,
+        "zone": "mainOffice"
+      },
+      {
+        "id": "watchtower",
+        "name": "감시탑",
+        "sprite": [
+          ["8b7355", "8b7355", "8b7355", "8b7355"],
+          ["", "5a5a3e", "5a5a3e", ""],
+          ["", "6b4226", "6b4226", ""],
+          ["", "6b4226", "6b4226", ""],
+          ["", "6b4226", "6b4226", ""],
+          ["6b4226", "6b4226", "6b4226", "6b4226"]
+        ],
+        "width": 2,
+        "height": 3,
+        "zone": "mainOffice"
+      },
+      {
+        "id": "military-tent",
+        "name": "군용 텐트",
+        "sprite": [
+          ["", "", "4b5320", "", ""],
+          ["", "4b5320", "556b2f", "4b5320", ""],
+          ["4b5320", "556b2f", "3b3b2e", "556b2f", "4b5320"],
+          ["4b5320", "3b3b2e", "3b3b2e", "3b3b2e", "4b5320"]
+        ],
+        "width": 2,
+        "height": 2,
+        "zone": "meetingRoom"
+      },
+      {
+        "id": "barbed-wire",
+        "name": "철조망",
+        "sprite": [
+          ["808080", "", "808080", "", "808080", "", "808080"],
+          ["", "808080", "", "808080", "", "808080", ""],
+          ["808080", "", "808080", "", "808080", "", "808080"]
+        ],
+        "width": 3,
+        "height": 1,
+        "zone": "mainOffice"
+      }
+    ],
+    "officePresets": [
+      {
+        "id": "battleground-map",
+        "name": "배틀그라운드 맵",
+        "description": "나무, 바위, 수풀로 가득한 전장. 엄폐하며 코딩하라!",
+        "furniture": [
+          {"furnitureId": "oak-tree", "col": 2, "row": 1},
+          {"furnitureId": "oak-tree", "col": 16, "row": 2},
+          {"furnitureId": "oak-tree", "col": 9, "row": 7},
+          {"furnitureId": "boulder", "col": 5, "row": 4},
+          {"furnitureId": "boulder", "col": 13, "row": 6},
+          {"furnitureId": "boulder", "col": 19, "row": 8},
+          {"furnitureId": "bush-cover", "col": 3, "row": 6},
+          {"furnitureId": "bush-cover", "col": 11, "row": 3},
+          {"furnitureId": "bush-cover", "col": 17, "row": 5},
+          {"furnitureId": "sandbag-wall", "col": 7, "row": 2},
+          {"furnitureId": "sandbag-wall", "col": 14, "row": 8},
+          {"furnitureId": "supply-crate", "col": 10, "row": 5},
+          {"furnitureId": "watchtower", "col": 1, "row": 8},
+          {"furnitureId": "military-tent", "col": 18, "row": 1},
+          {"furnitureId": "barbed-wire", "col": 6, "row": 9}
+        ]
+      }
+    ],
+    "effects": [
+      {
+        "id": "airdrop-alert",
+        "trigger": "onPromptSubmit",
+        "type": "toast",
+        "config": {
+          "text": "📦 에어드랍 투하! 프롬프트 전송 완료",
+          "icon": "shippingbox.fill",
+          "tint": "f5a623",
+          "duration": 3.0
+        },
+        "enabled": true
+      },
+      {
+        "id": "zone-shrink",
+        "trigger": "onSessionError",
+        "type": "screen-shake",
+        "config": {
+          "intensity": 8.0,
+          "duration": 0.5
+        },
+        "enabled": true
+      },
+      {
+        "id": "zone-warning",
+        "trigger": "onSessionError",
+        "type": "flash",
+        "config": {
+          "colorHex": "b22222",
+          "duration": 0.4
+        },
+        "enabled": true
+      },
+      {
+        "id": "zone-warning-toast",
+        "trigger": "onSessionError",
+        "type": "toast",
+        "config": {
+          "text": "⚠️ 자기장이 줄어들고 있습니다! 버그를 처치하세요!",
+          "icon": "exclamationmark.triangle.fill",
+          "tint": "b22222",
+          "duration": 4.0
+        },
+        "enabled": true
+      },
+      {
+        "id": "chicken-dinner",
+        "trigger": "onSessionComplete",
+        "type": "confetti",
+        "config": {
+          "colors": ["f5a623", "4b5320", "daa520", "556b2f", "8b7355"],
+          "count": 60,
+          "duration": 4.0
+        },
+        "enabled": true
+      },
+      {
+        "id": "winner-toast",
+        "trigger": "onSessionComplete",
+        "type": "toast",
+        "config": {
+          "text": "🍗 이겼닭! 오늘 저녁은 치킨이닭!",
+          "icon": "trophy.fill",
+          "tint": "f5a623",
+          "duration": 5.0
+        },
+        "enabled": true
+      },
+      {
+        "id": "kill-combo",
+        "trigger": "onPromptKeyPress",
+        "type": "combo-counter",
+        "config": {
+          "decaySeconds": 3.0,
+          "shakeOnMilestone": true
+        },
+        "enabled": true
+      }
+    ],
+    "achievements": [
+      {
+        "id": "chicken-dinner",
+        "name": "이겼닭! 오늘 저녁은 치킨이닭!",
+        "description": "배틀그라운드 테마에서 첫 세션을 완료했습니다",
+        "icon": "trophy.fill",
+        "rarity": "legendary",
+        "xp": 500
+      },
+      {
+        "id": "bush-camper",
+        "name": "수풀 캠퍼",
+        "description": "수풀에 숨어서 30분 이상 코딩했습니다",
+        "icon": "leaf.fill",
+        "rarity": "epic",
+        "xp": 350
+      }
+    ],
+    "bossLines": [
+      "적이 접근 중이다! 코드 커밋 서둘러!",
+      "자기장 밖에 있으면 CR 리젝당한다!",
+      "에어드랍에 핫픽스가 들어있다! 빨리 수거해!",
+      "수풀에 숨어있지 말고 PR 올려!",
+      "보급 상자에서 새 라이브러리 발견! 도입 검토 해봐!",
+      "이겼닭? 아직 배포 안 했잖아!"
+    ]
+  }
+}

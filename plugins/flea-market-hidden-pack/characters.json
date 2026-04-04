@@ -1,0 +1,41 @@
+[
+  {
+    "id": "night_vendor",
+    "name": "히든 야시장",
+    "archetype": "플리 마켓의 비밀 셀러",
+    "hairColor": "3b2f2f",
+    "skinTone": "e8c4a0",
+    "shirtColor": "6d597a",
+    "pantsColor": "2b2d42",
+    "hatType": "cap",
+    "accessory": "glasses",
+    "species": "Fox",
+    "jobRole": "reviewer"
+  },
+  {
+    "id": "lucky_tag",
+    "name": "히든 럭키태그",
+    "archetype": "숨겨둔 딜을 먼저 찾는 흥정 장인",
+    "hairColor": "b08968",
+    "skinTone": "f1d3b3",
+    "shirtColor": "84a59d",
+    "pantsColor": "3d405b",
+    "hatType": "beanie",
+    "accessory": "earring",
+    "species": "Cat",
+    "jobRole": "planner"
+  },
+  {
+    "id": "ghost_dealer",
+    "name": "히든 고스트딜러",
+    "archetype": "새벽에만 등장하는 히든 캐릭터",
+    "hairColor": "d9d9ff",
+    "skinTone": "d9d9ff",
+    "shirtColor": "adb5bd",
+    "pantsColor": "495057",
+    "hatType": "wizard",
+    "accessory": "mask",
+    "species": "Ghost",
+    "jobRole": "designer"
+  }
+]

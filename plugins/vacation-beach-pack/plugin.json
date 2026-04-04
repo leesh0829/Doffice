@@ -1,0 +1,189 @@
+{
+  "name": "바캉스 비치 팩",
+  "version": "1.0.0",
+  "description": "사무실을 열대 해변으로! 야자수 아래에서 코딩하는 바캉스 오피스",
+  "author": "WorkMan",
+  "contributes": {
+    "characters": "characters.json",
+    "themes": [
+      {
+        "id": "beach-day",
+        "name": "비치 데이",
+        "isDark": false,
+        "accentHex": "00bcd4",
+        "bgHex": "e0f7fa",
+        "cardHex": "ffffff",
+        "textHex": "263238",
+        "greenHex": "4caf50",
+        "redHex": "ff5722",
+        "yellowHex": "ffc107",
+        "purpleHex": "9c27b0",
+        "cyanHex": "00bcd4",
+        "useGradient": true,
+        "gradientStartHex": "00bcd4",
+        "gradientEndHex": "ff9800"
+      },
+      {
+        "id": "sunset-beach",
+        "name": "선셋 비치",
+        "isDark": true,
+        "accentHex": "ff6f00",
+        "bgHex": "1a0a2e",
+        "cardHex": "2d1b4e",
+        "textHex": "ffe0b2",
+        "greenHex": "66bb6a",
+        "redHex": "ff7043",
+        "yellowHex": "ffca28",
+        "purpleHex": "ab47bc",
+        "cyanHex": "4dd0e1",
+        "useGradient": true,
+        "gradientStartHex": "ff6f00",
+        "gradientEndHex": "e91e63"
+      }
+    ],
+    "furniture": [
+      {
+        "id": "palm-tree",
+        "name": "야자수",
+        "sprite": [
+          ["", "", "2d8a4e", "3ecf8e", "2d8a4e", ""],
+          ["", "3ecf8e", "2d8a4e", "2d8a4e", "3ecf8e", "3ecf8e"],
+          ["3ecf8e", "2d8a4e", "", "", "2d8a4e", "3ecf8e"],
+          ["", "", "", "8b5e3c", "", ""],
+          ["", "", "", "8b5e3c", "", ""],
+          ["", "", "", "8b5e3c", "", ""],
+          ["", "", "", "8b5e3c", "", ""],
+          ["", "", "8b5e3c", "8b5e3c", "", ""]
+        ],
+        "width": 2,
+        "height": 3,
+        "zone": "mainOffice"
+      },
+      {
+        "id": "beach-parasol",
+        "name": "파라솔",
+        "sprite": [
+          ["", "f14c4c", "ffffff", "f14c4c", "ffffff", ""],
+          ["f14c4c", "ffffff", "f14c4c", "ffffff", "f14c4c", "ffffff"],
+          ["", "", "", "8b7355", "", ""],
+          ["", "", "", "8b7355", "", ""]
+        ],
+        "width": 2,
+        "height": 2,
+        "zone": "mainOffice"
+      },
+      {
+        "id": "surfboard",
+        "name": "서핑보드",
+        "sprite": [
+          ["", "3291ff", ""],
+          ["3291ff", "ffffff", "3291ff"],
+          ["3291ff", "00bcd4", "3291ff"],
+          ["3291ff", "ffffff", "3291ff"],
+          ["3291ff", "00bcd4", "3291ff"],
+          ["", "3291ff", ""]
+        ],
+        "width": 1,
+        "height": 2,
+        "zone": "mainOffice"
+      },
+      {
+        "id": "beach-chair",
+        "name": "비치 체어",
+        "sprite": [
+          ["", "ff9800", "ff9800", "ff9800", ""],
+          ["8b5e3c", "ffffff", "ff9800", "ffffff", "8b5e3c"],
+          ["", "8b5e3c", "", "8b5e3c", ""]
+        ],
+        "width": 2,
+        "height": 1,
+        "zone": "mainOffice"
+      },
+      {
+        "id": "tiki-bar",
+        "name": "티키 바",
+        "sprite": [
+          ["8b5e3c", "d4a574", "d4a574", "d4a574", "8b5e3c"],
+          ["8b5e3c", "d4a574", "d4a574", "d4a574", "8b5e3c"],
+          ["6b4226", "3ecf8e", "6b4226", "3ecf8e", "6b4226"],
+          ["8b5e3c", "", "", "", "8b5e3c"]
+        ],
+        "width": 2,
+        "height": 2,
+        "zone": "pantry"
+      },
+      {
+        "id": "sand-castle",
+        "name": "모래성",
+        "sprite": [
+          ["", "f5d380", ""],
+          ["f5d380", "e8c4a0", "f5d380"],
+          ["f5d380", "f5d380", "f5d380"]
+        ],
+        "width": 1,
+        "height": 1,
+        "zone": "mainOffice"
+      }
+    ],
+    "officePresets": [
+      {
+        "id": "beach-office",
+        "name": "비치 오피스",
+        "description": "야자수와 파라솔이 있는 해변 사무실",
+        "furniture": [
+          {"furnitureId": "palm-tree", "col": 2, "row": 1},
+          {"furnitureId": "palm-tree", "col": 18, "row": 1},
+          {"furnitureId": "beach-parasol", "col": 6, "row": 3},
+          {"furnitureId": "beach-parasol", "col": 14, "row": 3},
+          {"furnitureId": "surfboard", "col": 1, "row": 5},
+          {"furnitureId": "beach-chair", "col": 7, "row": 5},
+          {"furnitureId": "beach-chair", "col": 15, "row": 5},
+          {"furnitureId": "tiki-bar", "col": 10, "row": 2},
+          {"furnitureId": "sand-castle", "col": 5, "row": 8},
+          {"furnitureId": "sand-castle", "col": 16, "row": 7}
+        ]
+      }
+    ],
+    "effects": [
+      {
+        "id": "wave-sound",
+        "trigger": "onPromptSubmit",
+        "type": "toast",
+        "config": {
+          "text": "🌊 파도가 밀려옵니다... 코드도 밀어넣자!",
+          "icon": "water.waves",
+          "tint": "00bcd4",
+          "duration": 3.0
+        },
+        "enabled": true
+      },
+      {
+        "id": "beach-complete",
+        "trigger": "onSessionComplete",
+        "type": "confetti",
+        "config": {
+          "colors": ["00bcd4", "ff9800", "ffeb3b", "4caf50", "e91e63"],
+          "count": 50,
+          "duration": 3.5
+        },
+        "enabled": true
+      }
+    ],
+    "achievements": [
+      {
+        "id": "beach-coder",
+        "name": "비치 코더",
+        "description": "바캉스 비치 팩을 설치하고 해변에서 코딩을 시작했습니다",
+        "icon": "sun.max.fill",
+        "rarity": "epic",
+        "xp": 300
+      }
+    ],
+    "bossLines": [
+      "여기가 사무실이야, 해변이야? 코드 리뷰나 해!",
+      "파라솔 아래서 코딩하면 버그가 선크림처럼 묻어나온다고!",
+      "서핑보드 치워! 스프린트 보드에 집중해!",
+      "코코넛 워터 마시면서 코딩? ...나도 한 잔 줘."
+    ]
+  }
+}

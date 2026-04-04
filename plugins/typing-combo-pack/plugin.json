@@ -1,0 +1,94 @@
+{
+  "name": "타이핑 콤보 팩",
+  "version": "1.0.0",
+  "description": "터미널 외부에서 타이핑할 때 콤보 카운터와 파티클 이펙트가 발동합니다",
+  "author": "WorkMan",
+  "contributes": {
+    "effects": [
+      {
+        "id": "typing-combo",
+        "trigger": "onPromptKeyPress",
+        "type": "combo-counter",
+        "config": {
+          "decaySeconds": 2.5,
+          "shakeOnMilestone": true
+        },
+        "enabled": true
+      },
+      {
+        "id": "typing-particles",
+        "trigger": "onPromptKeyPress",
+        "type": "particle-burst",
+        "config": {
+          "emojis": ["⌨️", "💥", "🔥", "⚡", "✨", "💫"],
+          "count": 5,
+          "duration": 0.8
+        },
+        "enabled": true
+      },
+      {
+        "id": "submit-confetti",
+        "trigger": "onPromptSubmit",
+        "type": "confetti",
+        "config": {
+          "colors": ["3291ff", "3ecf8e", "f5a623", "f14c4c", "8e4ec6"],
+          "count": 30,
+          "duration": 2.5
+        },
+        "enabled": true
+      },
+      {
+        "id": "submit-flash",
+        "trigger": "onPromptSubmit",
+        "type": "flash",
+        "config": {
+          "colorHex": "3291ff",
+          "duration": 0.2
+        },
+        "enabled": true
+      },
+      {
+        "id": "submit-sound",
+        "trigger": "onPromptSubmit",
+        "type": "sound",
+        "config": {
+          "name": "Pop"
+        },
+        "enabled": true
+      },
+      {
+        "id": "error-shake",
+        "trigger": "onSessionError",
+        "type": "screen-shake",
+        "config": {
+          "intensity": 6.0,
+          "duration": 0.4
+        },
+        "enabled": true
+      },
+      {
+        "id": "complete-toast",
+        "trigger": "onSessionComplete",
+        "type": "toast",
+        "config": {
+          "text": "세션 완료! GG 🎮",
+          "icon": "checkmark.circle.fill",
+          "tint": "3ecf8e",
+          "duration": 4.0
+        },
+        "enabled": true
+      },
+      {
+        "id": "levelup-confetti",
+        "trigger": "onLevelUp",
+        "type": "confetti",
+        "config": {
+          "colors": ["f5a623", "f14c4c", "8e4ec6", "3ecf8e", "3291ff"],
+          "count": 60,
+          "duration": 4.0
+        },
+        "enabled": true
+      }
+    ]
+  }
+}

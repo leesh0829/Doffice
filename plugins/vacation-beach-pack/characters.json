@@ -1,0 +1,28 @@
+[
+  {
+    "id": "beach_lifeguard",
+    "name": "비치 라이프가드",
+    "archetype": "해변 안전 요원 겸 시니어 개발자",
+    "hairColor": "f5d380",
+    "skinTone": "d4a574",
+    "shirtColor": "f14c4c",
+    "pantsColor": "f5d380",
+    "hatType": "cap",
+    "accessory": "sunglasses",
+    "species": "Human",
+    "jobRole": "developer"
+  },
+  {
+    "id": "coconut_coder",
+    "name": "코코넛 코더",
+    "archetype": "코코넛 워터를 마시며 코딩하는 디지털 노마드",
+    "hairColor": "2d2d2d",
+    "skinTone": "e8c4a0",
+    "shirtColor": "4ac6b7",
+    "pantsColor": "3291ff",
+    "hatType": "straw",
+    "accessory": "sunglasses",
+    "species": "Human",
+    "jobRole": "developer"
+  }
+]

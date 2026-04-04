@@ -1,0 +1,132 @@
+{
+  "name": "프리미엄 가구 팩",
+  "version": "1.0.0",
+  "description": "프리미엄 가구 8종을 추가합니다",
+  "author": "WorkMan",
+  "contributes": {
+    "furniture": [
+      {
+        "id": "aquarium",
+        "name": "아쿠아리움",
+        "sprite": [
+          ["4a90d9", "4a90d9", "4a90d9", "4a90d9"],
+          ["5bb8f5", "7ec8e3", "5bb8f5", "7ec8e3"],
+          ["5bb8f5", "f5a623", "7ec8e3", "f14c4c"],
+          ["5bb8f5", "7ec8e3", "5bb8f5", "7ec8e3"],
+          ["3ecf8e", "5bb8f5", "3ecf8e", "5bb8f5"],
+          ["8b7355", "8b7355", "8b7355", "8b7355"]
+        ],
+        "width": 2,
+        "height": 2,
+        "zone": "pantry"
+      },
+      {
+        "id": "arcade-machine",
+        "name": "아케이드 머신",
+        "sprite": [
+          ["", "2d2d2d", "2d2d2d", ""],
+          ["2d2d2d", "1a1a2e", "1a1a2e", "2d2d2d"],
+          ["2d2d2d", "3291ff", "3ecf8e", "2d2d2d"],
+          ["2d2d2d", "f14c4c", "f5a623", "2d2d2d"],
+          ["2d2d2d", "1a1a2e", "1a1a2e", "2d2d2d"],
+          ["", "f14c4c", "3291ff", ""],
+          ["2d2d2d", "2d2d2d", "2d2d2d", "2d2d2d"]
+        ],
+        "width": 2,
+        "height": 2,
+        "zone": "pantry"
+      },
+      {
+        "id": "neon-sign",
+        "name": "네온사인 'CODE'",
+        "sprite": [
+          ["ff6ec7", "3291ff", "3ecf8e", "f5a623"],
+          ["ff6ec7", "", "", "f5a623"],
+          ["ff6ec7", "3291ff", "3ecf8e", "f5a623"]
+        ],
+        "width": 2,
+        "height": 1,
+        "zone": "mainOffice"
+      },
+      {
+        "id": "bean-bag",
+        "name": "빈백 의자",
+        "sprite": [
+          ["", "8e4ec6", "8e4ec6", ""],
+          ["8e4ec6", "a06cd5", "a06cd5", "8e4ec6"],
+          ["8e4ec6", "a06cd5", "a06cd5", "8e4ec6"],
+          ["", "8e4ec6", "8e4ec6", ""]
+        ],
+        "width": 2,
+        "height": 1,
+        "zone": "pantry"
+      },
+      {
+        "id": "monstera",
+        "name": "몬스테라 화분",
+        "sprite": [
+          ["", "2d8a4e", "", ""],
+          ["2d8a4e", "3ecf8e", "2d8a4e", ""],
+          ["", "3ecf8e", "2d8a4e", "3ecf8e"],
+          ["", "2d8a4e", "3ecf8e", ""],
+          ["", "", "6b4226", ""],
+          ["", "8b5e3c", "8b5e3c", ""]
+        ],
+        "width": 1,
+        "height": 2,
+        "zone": "mainOffice"
+      },
+      {
+        "id": "standing-desk",
+        "name": "스탠딩 데스크",
+        "sprite": [
+          ["5a5a5a", "5a5a5a", "5a5a5a", "5a5a5a", "5a5a5a", "5a5a5a"],
+          ["8b7355", "d4a574", "d4a574", "d4a574", "d4a574", "8b7355"],
+          ["", "8b7355", "", "", "8b7355", ""],
+          ["", "8b7355", "", "", "8b7355", ""],
+          ["", "5a5a5a", "", "", "5a5a5a", ""]
+        ],
+        "width": 3,
+        "height": 2,
+        "zone": "mainOffice"
+      },
+      {
+        "id": "vending-machine",
+        "name": "자판기",
+        "sprite": [
+          ["3a3a3a", "3a3a3a", "3a3a3a", "3a3a3a"],
+          ["3a3a3a", "5bb8f5", "5bb8f5", "3a3a3a"],
+          ["3a3a3a", "f14c4c", "3ecf8e", "3a3a3a"],
+          ["3a3a3a", "f5a623", "3291ff", "3a3a3a"],
+          ["3a3a3a", "1a1a2e", "1a1a2e", "3a3a3a"],
+          ["3a3a3a", "3a3a3a", "3a3a3a", "3a3a3a"]
+        ],
+        "width": 2,
+        "height": 2,
+        "zone": "pantry"
+      },
+      {
+        "id": "ping-pong-table",
+        "name": "탁구대",
+        "sprite": [
+          ["2d6a4f", "2d6a4f", "ffffff", "2d6a4f", "2d6a4f", "2d6a4f"],
+          ["2d6a4f", "3ecf8e", "ffffff", "3ecf8e", "2d6a4f", ""],
+          ["", "8b7355", "", "", "8b7355", ""]
+        ],
+        "width": 3,
+        "height": 1,
+        "zone": "meetingRoom"
+      }
+    ],
+    "achievements": [
+      {
+        "id": "furniture-collector",
+        "name": "가구 컬렉터",
+        "description": "프리미엄 가구 팩을 설치했습니다",
+        "icon": "sofa.fill",
+        "rarity": "rare",
+        "xp": 200
+      }
+    ]
+  }
+}

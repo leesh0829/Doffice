@@ -27,6 +27,33 @@ interface TerminalAreaViewProps {
   openNewSession: () => void;
 }
 
+type TerminalSplitAxis = "horizontal" | "vertical";
+
+interface TerminalSplitState {
+  enabled: boolean;
+  axis: TerminalSplitAxis;
+  secondarySessionId: string | null;
+}
+
+const terminalSplitStorageKey = "doffice.terminal.single-split";
+
+function loadTerminalSplitState(): TerminalSplitState {
+  try {
+    const raw = window.localStorage.getItem(terminalSplitStorageKey);
+    if (!raw) {
+      return { enabled: false, axis: "vertical", secondarySessionId: null };
+    }
+    const parsed = JSON.parse(raw) as Partial<TerminalSplitState>;
+    return {
+      enabled: typeof parsed.enabled === "boolean" ? parsed.enabled : false,
+      axis: parsed.axis === "horizontal" ? "horizontal" : "vertical",
+      secondarySessionId: typeof parsed.secondarySessionId === "string" && parsed.secondarySessionId.trim() ? parsed.secondarySessionId : null
+    };
+  } catch {
+    return { enabled: false, axis: "vertical", secondarySessionId: null };
+  }
+}
+
 export function TerminalAreaView(props: TerminalAreaViewProps) {
   const {
     sessions,
@@ -54,11 +81,17 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
   const [searchText, setSearchText] = useState("");
   const [toolFilters, setToolFilters] = useState<string[]>([]);
   const [gridDrafts, setGridDrafts] = useState<Record<string, string>>({});
+  const [splitDrafts, setSplitDrafts] = useState<Record<string, string>>({});
   const [attachedImage, setAttachedImage] = useState<ImageAttachment | null>(null);
+  const [splitState, setSplitState] = useState<TerminalSplitState>(loadTerminalSplitState);
 
   const selectedSessionStatus = selectedSession ? inferStatus(selectedSession) : null;
   const activeSingleModel = singleModelValue(selectedSession);
   const terminalGridStyle = useMemo<CSSProperties>(() => ({ gridTemplateColumns: terminalGridTemplate(sessions.length) }), [sessions.length]);
+  const secondarySession = useMemo(
+    () => resolveSecondarySession(sessions, selectedSession?.id ?? null, splitState.secondarySessionId),
+    [sessions, selectedSession?.id, splitState.secondarySessionId]
+  );
   const filteredBlocks = useMemo(() => {
     if (!selectedSession) return [];
     return selectedSession.blocks.filter((block) => {
@@ -93,6 +126,25 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
   useEffect(() => {
     setAttachedImage(null);
   }, [selectedSession?.id]);
+
+  useEffect(() => {
+    window.localStorage.setItem(terminalSplitStorageKey, JSON.stringify(splitState));
+  }, [splitState]);
+
+  useEffect(() => {
+    if (!splitState.enabled) return;
+    if (!selectedSession) {
+      setSplitState((current) => ({ ...current, enabled: false, secondarySessionId: null }));
+      return;
+    }
+    if (secondarySession) return;
+    const fallbackId = defaultSecondarySessionId(sessions, selectedSession.id);
+    setSplitState((current) =>
+      fallbackId
+        ? { ...current, secondarySessionId: fallbackId }
+        : { ...current, enabled: false, secondarySessionId: null }
+    );
+  }, [secondarySession, selectedSession, sessions, splitState.enabled]);
 
   function toggleToolFilter(toolName: string) {
     setToolFilters((current) => (current.includes(toolName) ? current.filter((value) => value !== toolName) : [...current, toolName]));
@@ -140,6 +192,21 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
     }
   }
 
+  function openSplit(axis: TerminalSplitAxis) {
+    if (!selectedSession) return;
+    const fallbackId = secondarySession?.id ?? defaultSecondarySessionId(sessions, selectedSession.id);
+    if (!fallbackId) return;
+    setSplitState({
+      enabled: true,
+      axis,
+      secondarySessionId: fallbackId
+    });
+  }
+
+  function closeSplit() {
+    setSplitState((current) => ({ ...current, enabled: false, secondarySessionId: null }));
+  }
+
   return (
     <section className="terminal-shell">
       <div className="terminal-topbar">
@@ -178,9 +245,38 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
             );
           })}
         </div>
-        <button className="chrome-icon-button" onClick={openNewSession}>
-          ＋
-        </button>
+        <div className="terminal-topbar-actions">
+          {terminalViewMode === "single" && selectedSession ? (
+            <>
+              <button
+                type="button"
+                className={`chrome-icon-button ${splitState.enabled && splitState.axis === "horizontal" ? "is-active" : ""}`}
+                onClick={() => openSplit("horizontal")}
+                disabled={sessions.length < 2}
+                title={t("custom.split.horizontal")}
+              >
+                ⇳
+              </button>
+              <button
+                type="button"
+                className={`chrome-icon-button ${splitState.enabled && splitState.axis === "vertical" ? "is-active" : ""}`}
+                onClick={() => openSplit("vertical")}
+                disabled={sessions.length < 2}
+                title={t("custom.split.vertical")}
+              >
+                ⇔
+              </button>
+              {splitState.enabled ? (
+                <button type="button" className="chrome-icon-button" onClick={closeSplit} title={t("custom.split.close")}>
+                  ✕
+                </button>
+              ) : null}
+            </>
+          ) : null}
+          <button className="chrome-icon-button" onClick={openNewSession}>
+            ＋
+          </button>
+        </div>
       </div>
 
       {terminalViewMode === "grid" ? (
@@ -248,6 +344,40 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
 
       {terminalViewMode === "single" ? (
         selectedSession ? (
+          splitState.enabled && secondarySession ? (
+            <div className="terminal-single terminal-single-split">
+              <div className={`terminal-split-view axis-${splitState.axis}`}>
+                <SplitSessionPane
+                  session={selectedSession}
+                  sessions={sessions}
+                  draft={splitDrafts[selectedSession.id] ?? ""}
+                  busy={busy}
+                  onDraftChange={(value) => setSplitDrafts((current) => ({ ...current, [selectedSession.id]: value }))}
+                  onSubmit={async () => {
+                    const nextPrompt = (splitDrafts[selectedSession.id] ?? "").trim();
+                    if (!nextPrompt) return;
+                    await sendPromptToSession(selectedSession.id, nextPrompt);
+                    setSplitDrafts((current) => ({ ...current, [selectedSession.id]: "" }));
+                  }}
+                  onSelectSession={null}
+                />
+                <SplitSessionPane
+                  session={secondarySession}
+                  sessions={sessions.filter((session) => session.id !== selectedSession.id)}
+                  draft={splitDrafts[secondarySession.id] ?? ""}
+                  busy={busy}
+                  onDraftChange={(value) => setSplitDrafts((current) => ({ ...current, [secondarySession.id]: value }))}
+                  onSubmit={async () => {
+                    const nextPrompt = (splitDrafts[secondarySession.id] ?? "").trim();
+                    if (!nextPrompt) return;
+                    await sendPromptToSession(secondarySession.id, nextPrompt);
+                    setSplitDrafts((current) => ({ ...current, [secondarySession.id]: "" }));
+                  }}
+                  onSelectSession={(sessionId) => setSplitState((current) => ({ ...current, secondarySessionId: sessionId }))}
+                />
+              </div>
+            </div>
+          ) : (
           <div className="terminal-single">
             <div className="terminal-single-header">
               <div className="terminal-single-title">
@@ -508,6 +638,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
               </div>
             </form>
           </div>
+          )
         ) : (
           <div className="empty-stream">{t("custom.no.session.selected")}</div>
         )
@@ -753,9 +884,92 @@ function imageLabel(image: ImageAttachment): string {
   return normalized || "selected-image";
 }
 
+function defaultSecondarySessionId(sessions: SessionSnapshot[], selectedSessionId: string): string | null {
+  return sessions.find((session) => session.id !== selectedSessionId)?.id ?? null;
+}
+
+function resolveSecondarySession(
+  sessions: SessionSnapshot[],
+  selectedSessionId: string | null,
+  secondarySessionId: string | null
+): SessionSnapshot | null {
+  if (!selectedSessionId || sessions.length < 2) return null;
+  if (secondarySessionId) {
+    const matched = sessions.find((session) => session.id === secondarySessionId && session.id !== selectedSessionId);
+    if (matched) return matched;
+  }
+  return sessions.find((session) => session.id !== selectedSessionId) ?? null;
+}
+
 function terminalGridTemplate(count: number): string {
   if (count <= 1) return "minmax(0, 1fr)";
   if (count === 2) return "repeat(2, minmax(0, 1fr))";
   if (count <= 4) return "repeat(2, minmax(0, 1fr))";
   return "repeat(3, minmax(0, 1fr))";
+}
+
+function SplitSessionPane(props: {
+  session: SessionSnapshot;
+  sessions: SessionSnapshot[];
+  draft: string;
+  busy: boolean;
+  onDraftChange: (value: string) => void;
+  onSubmit: () => Promise<void>;
+  onSelectSession: ((sessionId: string) => void) | null;
+}) {
+  const { session, sessions, draft, busy, onDraftChange, onSubmit, onSelectSession } = props;
+  const status = inferStatus(session);
+  const recentBlocks = session.blocks.slice(-18);
+
+  return (
+    <article className="terminal-split-pane">
+      <div className="terminal-split-pane-header">
+        <div className="terminal-split-pane-title">
+          <span className="worker-dot" style={{ backgroundColor: session.workerColorHex }} />
+          <div className="terminal-split-pane-copy">
+            <strong>{session.workerName}</strong>
+            <span>{session.projectName}</span>
+          </div>
+        </div>
+        {onSelectSession ? (
+          <select className="terminal-split-pane-select" value={session.id} onChange={(event) => onSelectSession(event.target.value)}>
+            {sessions.map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                {candidate.workerName} · {candidate.projectName}
+              </option>
+            ))}
+          </select>
+        ) : null}
+      </div>
+      <div className="terminal-split-pane-meta">
+        <span>{status.label}</span>
+        <span>{relativeDuration(session.startTime)}</span>
+        <span>{session.completedPromptCount} prompts</span>
+        <span>{session.fileChanges.length} files</span>
+      </div>
+      <div className="terminal-split-pane-stream">
+        {recentBlocks.length === 0 ? <div className="empty-stream">{t("custom.no.output")}</div> : null}
+        {recentBlocks.map((block) => (
+          <EventBlock key={block.id} block={block} compact />
+        ))}
+      </div>
+      <form
+        className="split-pane-composer"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          await onSubmit();
+        }}
+      >
+        <textarea
+          value={draft}
+          onChange={(event) => onDraftChange(event.target.value)}
+          placeholder={t("custom.send.prompt.placeholder")}
+          rows={3}
+        />
+        <button type="submit" className="primary-button" disabled={busy || !draft.trim()}>
+          Send
+        </button>
+      </form>
+    </article>
+  );
 }

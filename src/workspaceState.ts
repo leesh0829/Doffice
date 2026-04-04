@@ -217,7 +217,7 @@ export const defaultWorkspacePreferences: WorkspacePreferences = {
   vacationCharacterIds: [],
   characterJobOverrides: {},
   enabledAccessoryIds: ["sofa", "coffeeMachine", "whiteboard"],
-  browserTabs: [{ id: "tab-0", title: "New Tab", url: "about:blank" }],
+  browserTabs: [{ id: "tab-0", title: "New Tab", url: "https://www.google.com" }],
   browserActiveTabId: "tab-0",
   browserBookmarks: defaultBrowserBookmarks
 };

@@ -1,0 +1,41 @@
+[
+  {
+    "id": "sniper_dev",
+    "name": "스나이퍼 개발자",
+    "archetype": "먼 거리에서 버그를 정조준하는 저격수",
+    "hairColor": "3b3b3b",
+    "skinTone": "c4a882",
+    "shirtColor": "4b5320",
+    "pantsColor": "3b3b2e",
+    "hatType": "helmet",
+    "accessory": "scope",
+    "species": "Human",
+    "jobRole": "developer"
+  },
+  {
+    "id": "medic_coder",
+    "name": "메딕 코더",
+    "archetype": "쓰러진 코드를 되살리는 전장의 의무병",
+    "hairColor": "8b4513",
+    "skinTone": "e8c4a0",
+    "shirtColor": "ffffff",
+    "pantsColor": "4b5320",
+    "hatType": "medic",
+    "accessory": "cross",
+    "species": "Human",
+    "jobRole": "qa"
+  },
+  {
+    "id": "scout_hacker",
+    "name": "정찰병 해커",
+    "archetype": "적진을 정찰하며 취약점을 찾는 침투 전문가",
+    "hairColor": "2d2d2d",
+    "skinTone": "d4a574",
+    "shirtColor": "556b2f",
+    "pantsColor": "3b3b2e",
+    "hatType": "beret",
+    "accessory": "radio",
+    "species": "Human",
+    "jobRole": "sre"
+  }
+]
