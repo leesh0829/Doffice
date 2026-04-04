@@ -11,7 +11,7 @@ export interface NewSessionDraftState {
   projectPath: string;
   projectName: string;
   initialPrompt: string;
-  provider: "claude" | "codex";
+  provider: "claude" | "codex" | "gemini";
   selectedModel: string;
   effortLevel: string;
   outputMode: string;
@@ -86,6 +86,10 @@ export function loadNewSessionDraft(): NewSessionDraftState {
     const parsed = JSON.parse(raw) as Partial<NewSessionDraftState>;
     const parsedModel = String(parsed.selectedModel);
     const inferredProvider =
+      parsed.provider === "gemini" ||
+      ["gemini-2.5-pro", "gemini-2.5-flash"].includes(parsedModel)
+        ? "gemini"
+        :
       parsed.provider === "codex" ||
       ["gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex", "gpt-5.2-codex", "gpt-5.2", "gpt-5.1-codex-max", "gpt-5.1-codex-mini"].includes(parsedModel)
         ? "codex"
@@ -99,6 +103,8 @@ export function loadNewSessionDraft(): NewSessionDraftState {
         "opus",
         "sonnet",
         "haiku",
+        "gemini-2.5-pro",
+        "gemini-2.5-flash",
         "gpt-5.4",
         "gpt-5.4-mini",
         "gpt-5.3-codex",

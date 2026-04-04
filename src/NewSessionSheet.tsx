@@ -45,6 +45,11 @@ const codexModels = [
   { value: "gpt-5.1-codex-mini", label: "GPT-5.1-Codex-Mini" }
 ];
 
+const geminiModels = [
+  { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" }
+];
+
 const claudeEfforts = [
   { value: "low", label: "낮음", icon: "🐢", tone: "green" },
   { value: "medium", label: "보통", icon: "🚶", tone: "blue" },
@@ -166,7 +171,7 @@ export function NewSessionSheet(props: NewSessionSheetProps) {
     await submitIfTrusted();
   }
 
-  function providerCard(provider: "claude" | "codex", label: string, icon: string, tone: string, subtitle: string) {
+  function providerCard(provider: "claude" | "codex" | "gemini", label: string, icon: string, tone: string, subtitle: string) {
     const active = draft.provider === provider;
     return (
       <button
@@ -175,7 +180,7 @@ export function NewSessionSheet(props: NewSessionSheetProps) {
         onClick={() =>
           onUpdateDraft({
             provider,
-            selectedModel: provider === "codex" ? "gpt-5.4" : "sonnet"
+            selectedModel: provider === "codex" ? "gpt-5.4" : provider === "gemini" ? "gemini-2.5-pro" : "sonnet"
           })
         }
       >
@@ -316,9 +321,10 @@ export function NewSessionSheet(props: NewSessionSheetProps) {
                 </div>
                 <div className="execution-settings-stack">
                   <div className="execution-subhead">Agent</div>
-                  <div className="execution-choice-grid two">
+                  <div className="execution-choice-grid three">
                     {providerCard("claude", "Claude", "💬", "blue", "Claude Code CLI")}
                     {providerCard("codex", "Codex", "⌘", "orange", "Codex CLI")}
+                    {providerCard("gemini", "Gemini", "✦", "green", "Gemini CLI")}
                   </div>
 
                   {draft.provider === "claude" ? (
@@ -369,7 +375,7 @@ export function NewSessionSheet(props: NewSessionSheetProps) {
                         ))}
                       </div>
                     </>
-                  ) : (
+                  ) : draft.provider === "codex" ? (
                     <>
                       <div className="session-option-grid codex-execution-grid">
                         <label className="sheet-field">
@@ -414,6 +420,19 @@ export function NewSessionSheet(props: NewSessionSheetProps) {
                         ))}
                       </div>
                     </>
+                  ) : (
+                    <div className="session-option-grid codex-execution-grid">
+                      <label className="sheet-field">
+                        <span>모델</span>
+                        <select value={draft.selectedModel} onChange={(event) => onUpdateDraft({ selectedModel: event.target.value })}>
+                          {geminiModels.map((model) => (
+                            <option key={model.value} value={model.value}>
+                              {model.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
                   )}
                 </div>
               </section>

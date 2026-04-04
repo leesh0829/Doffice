@@ -102,6 +102,7 @@ function App() {
   const [selectedId, setSelectedId] = useState(persistedUiState.selectedId);
   const [claudeStatus, setClaudeStatus] = useState<CLIStatus>(emptyCLIStatus);
   const [codexStatus, setCodexStatus] = useState<CLIStatus>(emptyCLIStatus);
+  const [geminiStatus, setGeminiStatus] = useState<CLIStatus>(emptyCLIStatus);
   const [busy, setBusy] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(persistedUiState.sidebarCollapsed);
   const [appViewMode, setAppViewMode] = useState<AppViewMode>(persistedUiState.appViewMode);
@@ -130,6 +131,7 @@ function App() {
       setSessions(payload.sessions);
       setClaudeStatus(payload.claudeStatus);
       setCodexStatus(payload.codexStatus);
+      setGeminiStatus(payload.geminiStatus);
       setSelectedId((current) => current || payload.sessions[0]?.id || "");
     });
 
@@ -375,6 +377,7 @@ function App() {
     setSessions(payload.sessions);
     setClaudeStatus(payload.claudeStatus);
     setCodexStatus(payload.codexStatus);
+    setGeminiStatus(payload.geminiStatus);
   }
 
   async function openNewSession() {
@@ -568,6 +571,7 @@ function App() {
       selectedSession={selectedSession}
       claudeStatus={claudeStatus}
       codexStatus={codexStatus}
+      geminiStatus={geminiStatus}
       sidebarCollapsed={sidebarCollapsed}
       setSidebarCollapsed={setSidebarCollapsed}
       appViewMode={appViewMode}

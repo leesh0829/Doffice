@@ -603,7 +603,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
               </div>
               <div className="single-config-groups">
                 <ConfigChoiceGroup label="Agent">
-                  {(["claude", "codex"] as const).map((provider) => (
+                  {(["claude", "codex", "gemini"] as const).map((provider) => (
                     <button
                       key={provider}
                       type="button"
@@ -611,11 +611,11 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                       onClick={() =>
                         void updateSelectedSessionConfig({
                           provider,
-                          selectedModel: provider === "codex" ? "gpt-5.4" : "sonnet"
+                          selectedModel: provider === "codex" ? "gpt-5.4" : provider === "gemini" ? "gemini-2.5-pro" : "sonnet"
                         })
                       }
                     >
-                      {provider === "codex" ? "Codex" : "Claude"}
+                      {provider === "codex" ? "Codex" : provider === "gemini" ? "Gemini" : "Claude"}
                     </button>
                   ))}
                 </ConfigChoiceGroup>
@@ -893,7 +893,14 @@ function terminalModeIcon(mode: TerminalViewMode): string {
 }
 
 function sessionProviderLabel(provider: string): string {
-  return provider === "codex" ? t("custom.agent.codex") : t("custom.agent.claude");
+  switch (provider) {
+    case "codex":
+      return t("custom.agent.codex");
+    case "gemini":
+      return t("custom.agent.gemini");
+    default:
+      return t("custom.agent.claude");
+  }
 }
 
 function ConfigChoiceGroup(props: { label: string; children: ReactNode }) {
@@ -930,13 +937,18 @@ const singleModelOptions = [
   { value: "opus", label: "Opus", model: "opus", provider: "claude" },
   { value: "sonnet", label: "Sonnet", model: "sonnet", provider: "claude" },
   { value: "haiku", label: "Haiku", model: "haiku", provider: "claude" },
-  { value: "codex", label: "Codex", model: "gpt-5.4", provider: "codex" }
+  { value: "codex", label: "Codex", model: "gpt-5.4", provider: "codex" },
+  { value: "geminiPro", label: "Gemini Pro", model: "gemini-2.5-pro", provider: "gemini" },
+  { value: "geminiFlash", label: "Gemini Flash", model: "gemini-2.5-flash", provider: "gemini" }
 ] as const;
 
 function singleModelValue(session: SessionSnapshot | null): (typeof singleModelOptions)[number]["value"] {
   if (!session) return "sonnet";
   if (session.provider === "codex") {
     return "codex";
+  }
+  if (session.provider === "gemini") {
+    return session.selectedModel === "gemini-2.5-flash" ? "geminiFlash" : "geminiPro";
   }
   if (session.selectedModel === "opus" || session.selectedModel === "haiku") {
     return session.selectedModel;

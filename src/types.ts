@@ -8,7 +8,7 @@ export type ClaudeActivity =
   | "done"
   | "error";
 
-export type AgentProvider = "claude" | "codex";
+export type AgentProvider = "claude" | "codex" | "gemini";
 
 export type CodexSandboxMode = "read-only" | "workspace-write" | "danger-full-access";
 
@@ -241,6 +241,7 @@ export interface BootstrapPayload {
   sessions: SessionSnapshot[];
   claudeStatus: CLIStatus;
   codexStatus: CLIStatus;
+  geminiStatus: CLIStatus;
 }
 
 export interface CreateSessionPayload {

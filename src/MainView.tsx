@@ -28,6 +28,7 @@ interface MainViewProps {
   selectedSession: SessionSnapshot | null;
   claudeStatus: CLIStatus;
   codexStatus: CLIStatus;
+  geminiStatus: CLIStatus;
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (value: boolean | ((current: boolean) => boolean)) => void;
   appViewMode: AppViewMode;
@@ -198,6 +199,7 @@ export function MainView(props: MainViewProps) {
     selectedSession,
     claudeStatus,
     codexStatus,
+    geminiStatus,
     sidebarCollapsed,
     setSidebarCollapsed,
     appViewMode,
@@ -390,9 +392,9 @@ export function MainView(props: MainViewProps) {
           </div>
         </div>
         <div className="title-bar-right">
-          {claudeStatus.isInstalled || codexStatus.isInstalled ? (
+          {claudeStatus.isInstalled || codexStatus.isInstalled || geminiStatus.isInstalled ? (
             <span className="title-meta">
-              {[claudeStatus.isInstalled ? `Claude ${claudeStatus.version}` : null, codexStatus.isInstalled ? `Codex ${codexStatus.version}` : null]
+              {[claudeStatus.isInstalled ? `Claude ${claudeStatus.version}` : null, codexStatus.isInstalled ? `Codex ${codexStatus.version}` : null, geminiStatus.isInstalled ? `Gemini ${geminiStatus.version}` : null]
                 .filter(Boolean)
                 .join(" · ")}
             </span>

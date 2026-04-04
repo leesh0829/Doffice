@@ -25,8 +25,15 @@ let codexStatus = {
   path: "",
   errorInfo: "Codex CLI not found. Install Codex Desktop or add the codex binary to PATH."
 };
+let geminiStatus = {
+  isInstalled: false,
+  version: "",
+  path: "",
+  errorInfo: "Gemini CLI not found. Install with: npm install -g @google/gemini-cli"
+};
 const claudeModels = ["opus", "sonnet", "haiku"];
 const codexModels = ["gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex", "gpt-5.2-codex", "gpt-5.2", "gpt-5.1-codex-max", "gpt-5.1-codex-mini"];
+const geminiModels = ["gemini-2.5-pro", "gemini-2.5-flash"];
 const dangerousPatterns = [
   { regex: /rm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+|.*--no-preserve-root)/i, severity: "Critical", description: "Force delete command" },
   { regex: /rm\s+-[a-zA-Z]*r[a-zA-Z]*\s+(\/|~|\$HOME)/i, severity: "Critical", description: "Recursive delete on root/home" },
@@ -86,7 +93,11 @@ const slashCommandDescriptors = [
   { name: "errors", usage: "", description: "Show collected errors from the session log." },
   { name: "files", usage: "", description: "Show tracked file changes for this session." },
   { name: "tokens", usage: "", description: "Show token and cost usage for this session." },
-  { name: "model", usage: "<opus|sonnet|haiku>", description: "Change the default Claude model for this session." },
+  {
+    name: "model",
+    usage: "<opus|sonnet|haiku|gpt-5.4|gpt-5.4-mini|gemini-2.5-pro|gemini-2.5-flash>",
+    description: "Change the default model for this session."
+  },
   { name: "effort", usage: "<low|medium|high|max>", description: "Change the reasoning effort level." },
   { name: "output", usage: "<full|realtime|result>", description: "Set the output mode metadata used by the UI." },
   { name: "permission", usage: "<bypass|auto|default|plan|edits>", description: "Set the permission mode for the next run." },
@@ -348,12 +359,54 @@ function isCodexModel(value) {
   return codexModels.includes(String(value ?? "").trim());
 }
 
+function isGeminiModel(value) {
+  return geminiModels.includes(String(value ?? "").trim());
+}
+
 function isClaudeModel(value) {
   return claudeModels.includes(String(value ?? "").trim());
 }
 
+function normalizeProvider(value) {
+  const provider = String(value ?? "").trim().toLowerCase();
+  if (provider === "codex" || provider === "gemini") {
+    return provider;
+  }
+  return "claude";
+}
+
 function providerForModel(value) {
-  return isCodexModel(value) ? "codex" : "claude";
+  if (isGeminiModel(value)) {
+    return "gemini";
+  }
+  if (isCodexModel(value)) {
+    return "codex";
+  }
+  return "claude";
+}
+
+function defaultModelForProvider(provider) {
+  switch (normalizeProvider(provider)) {
+    case "codex":
+      return "gpt-5.4";
+    case "gemini":
+      return "gemini-2.5-pro";
+    case "claude":
+    default:
+      return "sonnet";
+  }
+}
+
+function cliStatusForProvider(provider) {
+  switch (normalizeProvider(provider)) {
+    case "codex":
+      return codexStatus;
+    case "gemini":
+      return geminiStatus;
+    case "claude":
+    default:
+      return claudeStatus;
+  }
 }
 
 function titleCase(value) {
@@ -644,7 +697,7 @@ function normalizeSession(raw) {
   };
 
   session.selectedModel = String(raw?.selectedModel ?? "sonnet");
-  session.provider = String(raw?.provider ?? providerForModel(session.selectedModel));
+  session.provider = normalizeProvider(raw?.provider ?? providerForModel(session.selectedModel));
   session.effortLevel = String(raw?.effortLevel ?? "medium");
   session.outputMode = normalizeOutputMode(raw?.outputMode) ?? "전체";
   session.permissionMode = String(raw?.permissionMode ?? "bypassPermissions");
@@ -777,12 +830,10 @@ function createSession(payload) {
   const order = workerIndex++;
   const projectPath = String(payload.projectPath ?? "").trim();
   const projectName = String(payload.projectName ?? "").trim() || path.basename(projectPath) || `Session ${order + 1}`;
-  const provider = String(payload.provider ?? providerForModel(payload.selectedModel)) === "codex" ? "codex" : "claude";
-  const selectedModel = isClaudeModel(payload.selectedModel) || isCodexModel(payload.selectedModel)
+  const provider = normalizeProvider(payload.provider ?? providerForModel(payload.selectedModel));
+  const selectedModel = isClaudeModel(payload.selectedModel) || isCodexModel(payload.selectedModel) || isGeminiModel(payload.selectedModel)
     ? String(payload.selectedModel)
-    : provider === "codex"
-      ? "gpt-5.4"
-      : "sonnet";
+    : defaultModelForProvider(provider);
   const effortLevel = ["low", "medium", "high", "max"].includes(String(payload.effortLevel ?? ""))
     ? String(payload.effortLevel)
     : "medium";
@@ -878,7 +929,8 @@ async function runCommand(command, args, cwd) {
   const { stdout } = await execFileAsync(command, args, {
     cwd,
     windowsHide: true,
-    env: process.env
+    env: process.env,
+    shell: process.platform === "win32" && /\.(cmd|bat)$/i.test(String(command))
   });
   return stdout.toString().trim();
 }
@@ -891,11 +943,14 @@ function commandCandidates(executableName) {
   }
 
   const exeName = executableName.toLowerCase().endsWith(".exe") ? executableName : `${executableName}.exe`;
+  const cmdName = executableName.toLowerCase().endsWith(".cmd") ? executableName : `${executableName}.cmd`;
   const userProfile = process.env.USERPROFILE ?? "";
   const localAppData = process.env.LOCALAPPDATA ?? "";
+  const appData = process.env.APPDATA ?? "";
   const programFiles = process.env.ProgramFiles ?? "C:\\Program Files";
 
   const windowsCandidates = [
+    path.join(appData, "npm", cmdName),
     path.join(userProfile, ".codex", ".sandbox-bin", exeName),
     path.join(localAppData, "Programs", "Codex", "bin", exeName),
     path.join(programFiles, "Codex", "bin", exeName)
@@ -1756,7 +1811,7 @@ async function runSlashCommand(payload) {
       return session;
     }
     case "model": {
-      const nextModel = [...claudeModels, ...codexModels].find((value) => value === String(args[0] ?? "").toLowerCase());
+      const nextModel = [...claudeModels, ...codexModels, ...geminiModels].find((value) => value === String(args[0] ?? "").toLowerCase());
       if (!nextModel) {
         appendBlock(session, "status", ltf("terminal.model.current", session.selectedModel, ""));
         return session;
@@ -1892,8 +1947,8 @@ async function sendPrompt(payload) {
   if (!prompt) {
     return session;
   }
-  const provider = String(session.provider ?? providerForModel(session.selectedModel)) === "codex" ? "codex" : "claude";
-  const activeStatus = provider === "codex" ? codexStatus : claudeStatus;
+  const provider = normalizeProvider(session.provider ?? providerForModel(session.selectedModel));
+  const activeStatus = cliStatusForProvider(provider);
   if (!activeStatus.isInstalled) {
     appendBlock(session, "error", activeStatus.errorInfo);
     return session;
@@ -1910,6 +1965,92 @@ async function sendPrompt(payload) {
   appendBlock(session, "userPrompt", prompt);
 
   const permissionMode = String(payload.permissionOverride ?? session.permissionMode);
+  if (provider === "gemini") {
+    const args = [];
+    if (session.selectedModel && session.selectedModel !== "gemini-2.5-pro") {
+      args.push("--model", session.selectedModel);
+    }
+    if (permissionMode === "bypassPermissions") {
+      args.push("--yolo");
+    }
+
+    const child = spawn(activeStatus.path, args, {
+      cwd: session.projectPath,
+      env: process.env,
+      windowsHide: true,
+      shell: process.platform === "win32" && /\.(cmd|bat)$/i.test(activeStatus.path)
+    });
+    session.child = child;
+
+    let thoughtBlockId = "";
+    let stderrBuffer = "";
+
+    const appendGeminiOutput = (rawText) => {
+      const text = sanitizeText(String(rawText ?? "").replace(/^✦\s*/, ""));
+      if (!text || text === ">") {
+        return;
+      }
+      session.claudeActivity = "writing";
+      session.lastResultText = session.lastResultText ? `${session.lastResultText}\n${text}` : text;
+      const lastBlock = session.blocks.at(-1);
+      if (lastBlock?.id === thoughtBlockId && lastBlock.kind === "thought") {
+        lastBlock.content = `${lastBlock.content}\n${text}`.trim();
+        lastBlock.timestamp = nowIso();
+      } else {
+        const block = createBlock("thought", text);
+        thoughtBlockId = block.id;
+        session.blocks.push(block);
+      }
+      emitSessions();
+    };
+
+    const stdoutReader = readline.createInterface({ input: child.stdout });
+    stdoutReader.on("line", (line) => {
+      appendGeminiOutput(line);
+    });
+
+    child.stderr.on("data", (chunk) => {
+      const text = sanitizeText(chunk.toString("utf8"));
+      if (!text) {
+        return;
+      }
+      stderrBuffer = stderrBuffer ? `${stderrBuffer}\n${text}` : text;
+      appendBlock(session, "toolError", text);
+    });
+
+    child.on("error", (error) => {
+      session.child = null;
+      session.isProcessing = false;
+      session.claudeActivity = "error";
+      appendBlock(session, "error", error.message);
+    });
+
+    child.stdin.write(prompt);
+    child.stdin.end();
+
+    child.on("close", (code) => {
+      session.child = null;
+      if (!session.isProcessing) {
+        emitSessions();
+        return;
+      }
+      session.isProcessing = false;
+      if (code && code !== 0) {
+        session.claudeActivity = "error";
+        appendBlock(session, "error", stderrBuffer || `Gemini exited with code ${code}`);
+        emitSessions();
+        return;
+      }
+      session.completedPromptCount += 1;
+      session.isCompleted = true;
+      session.claudeActivity = "done";
+      appendBlock(session, "completion", lt("custom.completed"));
+      void finalizeSessionCompletion(session);
+    });
+
+    return session;
+  }
+
   if (provider === "codex") {
     const args = session.sessionId
       ? [
@@ -2117,9 +2258,10 @@ function createWindow() {
 
 app.whenReady().then(async () => {
   await loadPersistedSessions();
-  [claudeStatus, codexStatus] = await Promise.all([
+  [claudeStatus, codexStatus, geminiStatus] = await Promise.all([
     resolveCLIStatus("claude", "Claude CLI not found. Install with: npm install -g @anthropic-ai/claude-code"),
-    resolveCLIStatus("codex", "Codex CLI not found. Install Codex Desktop or add the codex binary to PATH.")
+    resolveCLIStatus("codex", "Codex CLI not found. Install Codex Desktop or add the codex binary to PATH."),
+    resolveCLIStatus("gemini", "Gemini CLI not found. Install with: npm install -g @google/gemini-cli")
   ]);
   await Promise.allSettled([...sessions.values()].map((session) => refreshGitInfo(session)));
   createWindow();
@@ -2151,7 +2293,8 @@ app.on("before-quit", (event) => {
 ipcMain.handle("app:bootstrap", async () => ({
   sessions: [...sessions.values()].sort((a, b) => a.tabOrder - b.tabOrder),
   claudeStatus,
-  codexStatus
+  codexStatus,
+  geminiStatus
 }));
 
 ipcMain.handle("git:snapshot", async (_event, payload) => getGitPanelSnapshot(payload?.projectPath, payload?.refName));
@@ -2189,11 +2332,11 @@ ipcMain.handle("session:update-config", async (_event, payload) => {
     throw new Error("Session not found");
   }
 
-  let nextProvider = session.provider === "codex" ? "codex" : "claude";
+  let nextProvider = normalizeProvider(session.provider ?? providerForModel(session.selectedModel));
   let nextModel = String(session.selectedModel ?? "").trim();
 
-  if (payload?.provider === "codex" || payload?.provider === "claude") {
-    nextProvider = payload.provider;
+  if (payload?.provider === "codex" || payload?.provider === "claude" || payload?.provider === "gemini") {
+    nextProvider = normalizeProvider(payload.provider);
   }
 
   if (typeof payload?.selectedModel === "string") {
@@ -2201,14 +2344,22 @@ ipcMain.handle("session:update-config", async (_event, payload) => {
     if (isCodexModel(requestedModel)) {
       nextProvider = "codex";
       nextModel = requestedModel;
+    } else if (isGeminiModel(requestedModel)) {
+      nextProvider = "gemini";
+      nextModel = requestedModel;
     } else if (isClaudeModel(requestedModel)) {
       nextProvider = "claude";
       nextModel = requestedModel;
     }
   }
 
-  if (!nextModel || (nextProvider === "codex" && !isCodexModel(nextModel)) || (nextProvider === "claude" && !isClaudeModel(nextModel))) {
-    nextModel = nextProvider === "codex" ? "gpt-5.4" : "sonnet";
+  if (
+    !nextModel ||
+    (nextProvider === "codex" && !isCodexModel(nextModel)) ||
+    (nextProvider === "gemini" && !isGeminiModel(nextModel)) ||
+    (nextProvider === "claude" && !isClaudeModel(nextModel))
+  ) {
+    nextModel = defaultModelForProvider(nextProvider);
   }
 
   const providerChanged = nextProvider !== session.provider;
