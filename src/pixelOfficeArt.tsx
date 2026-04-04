@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { SessionSnapshot } from "./types";
-import { allCharacters, type CharacterDefinition, type OfficeLayoutPreset, type WorkspaceBackgroundTheme } from "./workspaceState";
+import { getAllCharacters, type CharacterDefinition, type OfficeLayoutPreset, type WorkspaceBackgroundTheme } from "./workspaceState";
 
 interface TileRect {
   col: number;
@@ -17,6 +17,7 @@ interface DeskSlot {
 
 export interface OfficeDecorItem extends TileRect {
   kind: string;
+  sprite?: string[][];
 }
 
 const OFFICE_COLS = 42;
@@ -91,6 +92,7 @@ function hashValue(input: string): number {
 }
 
 export function resolveCharacterForSession(session: SessionSnapshot) {
+  const allCharacters = getAllCharacters();
   const lower = session.workerName.trim().toLowerCase();
   const exact = allCharacters.find((character) => character.name.toLowerCase() === lower);
   if (exact) return exact;
@@ -488,7 +490,27 @@ function drawRelativeRect(
   context.globalAlpha = 1;
 }
 
-function drawFurnitureSprite(context: CanvasRenderingContext2D, kind: string, x: number, y: number, w: number, h: number) {
+function drawCustomFurnitureSprite(context: CanvasRenderingContext2D, sprite: string[][], x: number, y: number, w: number, h: number) {
+  const rows = Math.max(1, sprite.length);
+  const cols = Math.max(1, ...sprite.map((row) => row.length || 0));
+  const cellWidth = w / cols;
+  const cellHeight = h / rows;
+  for (let rowIndex = 0; rowIndex < sprite.length; rowIndex += 1) {
+    const row = sprite[rowIndex] ?? [];
+    for (let colIndex = 0; colIndex < row.length; colIndex += 1) {
+      const color = (row[colIndex] ?? "").trim();
+      if (!color) continue;
+      context.fillStyle = color.startsWith("#") ? color : `#${color}`;
+      context.fillRect(x + colIndex * cellWidth, y + rowIndex * cellHeight, cellWidth, cellHeight);
+    }
+  }
+}
+
+function drawFurnitureSprite(context: CanvasRenderingContext2D, kind: string, x: number, y: number, w: number, h: number, sprite?: string[][]) {
+  if (Array.isArray(sprite) && sprite.length > 0) {
+    drawCustomFurnitureSprite(context, sprite, x, y, w, h);
+    return;
+  }
   const px = (pxX: number, pxY: number, pxW: number, pxH: number, color: string, alpha = 1) => {
     drawRelativeRect(context, x, y, w, h, pxX, pxY, pxW, pxH, color, alpha);
   };
@@ -767,7 +789,7 @@ function drawOfficeMapScene(
   }
 
   for (const item of visibleDecorItems) {
-    drawFurnitureSprite(context, item.kind, item.col * tileW, item.row * tileH, item.w * tileW, item.h * tileH);
+    drawFurnitureSprite(context, item.kind, item.col * tileW, item.row * tileH, item.w * tileW, item.h * tileH, item.sprite);
   }
 
   context.fillStyle = "#111826";

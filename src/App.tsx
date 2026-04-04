@@ -17,6 +17,7 @@ import {
   toggleFavoriteProject
 } from "./newSessionPreferences";
 import { enabledInstalledPluginDirs, loadInstalledPlugins } from "./pluginInstallState";
+import { emptyPluginRuntimeSnapshot, setPluginRuntimeSnapshot } from "./pluginRuntime";
 import { compareGroups, compareSessions, groupSessions, inferStatus, sessionActivitySummary } from "./sessionUtils";
 
 const emptyCLIStatus: CLIStatus = {
@@ -128,6 +129,7 @@ function App() {
   const [favoriteProjects, setFavoriteProjects] = useState<NewSessionProjectRecord[]>(loadFavoriteProjects);
   const [recentProjects, setRecentProjects] = useState<NewSessionProjectRecord[]>(loadRecentProjects);
   const [notifications, setNotifications] = useState<SessionNotificationItem[]>([]);
+  const [pluginRuntimeVersion, setPluginRuntimeVersion] = useState(0);
   const hasSeededSessionStateRef = useRef(false);
   const sessionStateRef = useRef<Map<string, { status: string; completedPromptCount: number }>>(new Map());
   const notificationTimersRef = useRef<Map<string, number>>(new Map());
@@ -138,6 +140,20 @@ function App() {
     setGeminiStatus(payload.geminiStatus);
   }
 
+  async function refreshPluginRuntime(nextSessions: SessionSnapshot[] = sessions) {
+    const installedPluginDirs = enabledInstalledPluginDirs(loadInstalledPlugins());
+    const sessionPluginDirs = nextSessions.flatMap((session) =>
+      Array.isArray(session.pluginDirs) ? session.pluginDirs.map((value) => value.trim()).filter(Boolean) : []
+    );
+    const pluginDirs = [...new Set([...installedPluginDirs, ...sessionPluginDirs])];
+    const snapshot =
+      pluginDirs.length > 0
+        ? await window.doffice.getPluginRuntimeSnapshot(pluginDirs).catch(() => emptyPluginRuntimeSnapshot)
+        : emptyPluginRuntimeSnapshot;
+    setPluginRuntimeSnapshot(snapshot);
+    setPluginRuntimeVersion((current) => current + 1);
+  }
+
   useEffect(() => {
     let unsubscribe = () => {};
 
@@ -145,6 +161,7 @@ function App() {
       setSessions(payload.sessions);
       applyCLIStatuses(payload);
       setSelectedId((current) => current || payload.sessions[0]?.id || "");
+      void refreshPluginRuntime(payload.sessions);
     });
 
     unsubscribe = window.doffice.onSessionsUpdated((payload) => {
@@ -159,6 +176,19 @@ function App() {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    void refreshPluginRuntime(sessions);
+  }, [sessions.map((session) => session.pluginDirs.join("||")).join("###")]);
+
+  useEffect(() => {
+    function handleInstalledPluginsChanged() {
+      void refreshPluginRuntime();
+    }
+
+    window.addEventListener("doffice:installed-plugins-changed", handleInstalledPluginsChanged);
+    return () => window.removeEventListener("doffice:installed-plugins-changed", handleInstalledPluginsChanged);
+  }, [sessions]);
 
   useEffect(() => {
     const validSessionIds = new Set(sessions.map((session) => session.id));
@@ -394,6 +424,7 @@ function App() {
     const payload = await window.doffice.bootstrap();
     setSessions(payload.sessions);
     applyCLIStatuses(payload);
+    await refreshPluginRuntime(payload.sessions);
   }
 
   async function refreshCLIStatuses() {
@@ -650,6 +681,7 @@ function App() {
       updateNewSessionDraft={updateNewSessionDraft}
       favoriteProjects={sidebarFavoriteProjects}
       recentProjects={sidebarHistoryProjects}
+      pluginRuntimeVersion={pluginRuntimeVersion}
       isCurrentDraftFavorite={isCurrentDraftFavorite}
       chooseSuggestedProject={chooseSuggestedProject}
       toggleDraftFavorite={toggleDraftFavorite}

@@ -5,18 +5,20 @@ import { relativeTime } from "./sessionUtils";
 import { pluginRegistry, type PluginRegistryEntry } from "./pluginRegistry";
 import { type InstalledPluginRecord, loadInstalledPlugins, saveInstalledPlugins } from "./pluginInstallState";
 import {
-  accessoryCatalog,
   applyWorkspacePreferences,
-  allCharacters,
-  backgroundCatalog,
   buildWorkspaceAchievements,
   defaultWorkspacePreferences,
+  getAccessoryCatalog,
+  getAllCharacters,
+  getBackgroundCatalog,
+  getTotalAchievementCount,
+  getTotalCharacterCount,
   jobCatalog,
   saveWorkspacePreferences,
   speciesCatalog,
-  totalAchievementCount,
-  totalAccessoryCount,
-  totalCharacterCount,
+  type AccessoryDefinition,
+  type BackgroundDefinition,
+  type CharacterDefinition,
   type WorkspaceAchievement,
   type WorkspacePreferences,
   type WorkspaceProgress
@@ -95,7 +97,7 @@ const providerPlanCatalog = {
   ]
 } as const;
 
-const backgroundChoices = backgroundCatalog;
+const backgroundChoices = getBackgroundCatalog();
 
 const pluginMarketplace = pluginRegistry;
 
@@ -1134,8 +1136,8 @@ function SettingsPanel(props: {
                 <div className="settings-list-row"><span><span className="panel-title-emoji tone-blue">📄</span>{t("settings.data.sessions")}</span><strong>{tf("settings.count.items", undefined, sessions.length)}</strong></div>
                 <div className="settings-list-row"><span><span className="panel-title-emoji tone-gold">⚡</span>{t("settings.data.tokens")}</span><strong>{formatCompactNumber(totals.tokens)}</strong></div>
                 <div className="settings-list-row"><span><span className="panel-title-emoji tone-sky">🏢</span>{t("settings.data.office.layout")}</span><strong>{preferences.officeLayout}</strong></div>
-                <div className="settings-list-row"><span><span className="panel-title-emoji tone-purple">🏆</span>{t("settings.data.achievements")}</span><strong>{`${countUnlockedAchievements(props.sessions, props.preferences, reportCount)}/${totalAchievementCount}`}</strong></div>
-                <div className="settings-list-row"><span><span className="panel-title-emoji tone-green">👥</span>{t("settings.data.characters")}</span><strong>{`${preferences.hiredCharacterIds.length}/${totalCharacterCount}`}</strong></div>
+                <div className="settings-list-row"><span><span className="panel-title-emoji tone-purple">🏆</span>{t("settings.data.achievements")}</span><strong>{`${countUnlockedAchievements(props.sessions, props.preferences, reportCount)}/${getTotalAchievementCount()}`}</strong></div>
+                <div className="settings-list-row"><span><span className="panel-title-emoji tone-green">👥</span>{t("settings.data.characters")}</span><strong>{`${preferences.hiredCharacterIds.length}/${getTotalCharacterCount()}`}</strong></div>
                 <div className="settings-list-row"><span><span className="panel-title-emoji tone-orange">📑</span>{t("settings.data.reports")}</span><strong>{tf("settings.count.items", undefined, reportCount)}</strong></div>
               </div>
             </SettingsCard>
@@ -1478,6 +1480,7 @@ function CharacterPanel(props: {
   const { preferences, updatePreferences, achievements, onClose } = props;
   const [selectedSpecies, setSelectedSpecies] = useState<keyof typeof speciesCatalog | "all">("all");
   const [sortMode, setSortMode] = useState<"default" | "name" | "role" | "species">("default");
+  const allCharacters = getAllCharacters();
   const unlockedAchievementIds = useMemo(
     () => new Set(achievements.filter((item) => item.unlocked).map((item) => item.id)),
     [achievements]
@@ -1513,7 +1516,7 @@ function CharacterPanel(props: {
       <div className="workspace-modal-header">
         <div>
           <strong><span className="panel-title-emoji tone-blue">👥</span>캐릭터</strong>
-          <span>{`${preferences.hiredCharacterIds.length}명 고용 / ${totalCharacterCount}명 전체`}</span>
+          <span>{`${preferences.hiredCharacterIds.length}명 고용 / ${getTotalCharacterCount()}명 전체`}</span>
         </div>
         <button type="button" className="workspace-close-button" onClick={onClose}>×</button>
       </div>
@@ -1526,7 +1529,7 @@ function CharacterPanel(props: {
             onClick={() => setSelectedSpecies("all")}
           >
             <strong>All</strong>
-            <span>{totalCharacterCount}</span>
+            <span>{getTotalCharacterCount()}</span>
           </button>
           {Object.entries(speciesCatalog).map(([species, meta]) => {
             const count = allCharacters.filter((character) => character.species === species).length;
@@ -1549,7 +1552,7 @@ function CharacterPanel(props: {
         <div className="character-stat-badges">
           <span className="character-stat-badge" title="고용 현황">
             <span className="character-stat-icon" aria-hidden="true">👥</span>
-            <span>{`${preferences.hiredCharacterIds.length}/12`}</span>
+            <span>{`${preferences.hiredCharacterIds.length}/${Math.max(12, getTotalCharacterCount())}`}</span>
           </span>
           {roleStatKeys.map((role) => (
             <span
@@ -1690,6 +1693,7 @@ function AccessoryPanel(props: {
 }) {
   const { preferences, updatePreferences, achievements, progress, onClose } = props;
   const [mode, setMode] = useState<"accessories" | "background">("accessories");
+  const accessoryCatalog = getAccessoryCatalog();
   const unlockedAchievementIds = useMemo(
     () => new Set(achievements.filter((item) => item.unlocked).map((item) => item.id)),
     [achievements]
@@ -2066,7 +2070,7 @@ function CharacterSection(props: { title: string; tone: "active" | "available" |
 }
 
 function CharacterRosterCard(props: {
-  character: (typeof allCharacters)[number];
+  character: CharacterDefinition;
   locked: boolean;
   onVacation?: boolean;
   lockReason?: string;
@@ -2108,7 +2112,7 @@ function CharacterRosterCard(props: {
   );
 }
 
-function PixelCharacterAvatar(props: { character: (typeof allCharacters)[number]; locked?: boolean }) {
+function PixelCharacterAvatar(props: { character: CharacterDefinition; locked?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -2505,7 +2509,7 @@ function PixelCharacterAvatar(props: { character: (typeof allCharacters)[number]
 }
 
 function AccessoryPreviewCard(props: {
-  item: (typeof accessoryCatalog)[number];
+  item: AccessoryDefinition;
   themeId: string;
   enabled: boolean;
   locked: boolean;
@@ -2526,8 +2530,8 @@ function AccessoryPreviewCard(props: {
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
     context.clearRect(0, 0, width, height);
 
-    drawAccessoryPreviewScene(context, props.item.id, props.themeId, props.locked);
-  }, [props.item.id, props.themeId, props.locked]);
+    drawAccessoryPreviewScene(context, props.item, props.themeId, props.locked);
+  }, [props.item, props.themeId, props.locked]);
 
   return (
     <div className="accessory-preview-card">
@@ -2536,7 +2540,7 @@ function AccessoryPreviewCard(props: {
   );
 }
 
-function BackgroundPreviewCard(props: { choice: (typeof backgroundChoices)[number]; locked: boolean }) {
+function BackgroundPreviewCard(props: { choice: BackgroundDefinition; locked: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -2644,7 +2648,7 @@ function previewPalette(themeId: string) {
 
 function drawAccessoryPreviewScene(
   context: CanvasRenderingContext2D,
-  itemId: string,
+  item: AccessoryDefinition,
   themeId: string,
   locked: boolean
 ) {
@@ -2689,11 +2693,32 @@ function drawAccessoryPreviewScene(
   }
   context.globalAlpha = 1;
 
-  drawFurniturePreview(context, itemId);
+  if (item.sprite?.length) {
+    drawCustomAccessoryPreview(context, item.sprite);
+  } else {
+    drawFurniturePreview(context, item.id);
+  }
 
   if (locked) {
     context.fillStyle = "rgba(0,0,0,0.56)";
     context.fillRect(0, 0, width, height);
+  }
+}
+
+function drawCustomAccessoryPreview(context: CanvasRenderingContext2D, sprite: string[][]) {
+  const rows = Math.max(1, sprite.length);
+  const cols = Math.max(1, ...sprite.map((row) => row.length || 0));
+  const cellSize = Math.min(8, Math.floor(Math.min(48 / rows, 56 / cols)));
+  const originX = Math.round((108 - cols * cellSize) / 2);
+  const originY = Math.round((58 - rows * cellSize) / 2) + 4;
+  for (let rowIndex = 0; rowIndex < sprite.length; rowIndex += 1) {
+    const row = sprite[rowIndex] ?? [];
+    for (let colIndex = 0; colIndex < row.length; colIndex += 1) {
+      const color = (row[colIndex] ?? "").trim();
+      if (!color) continue;
+      context.fillStyle = color.startsWith("#") ? color : `#${color}`;
+      context.fillRect(originX + colIndex * cellSize, originY + rowIndex * cellSize, cellSize, cellSize);
+    }
   }
 }
 
@@ -2896,7 +2921,7 @@ function AchievementCardView(props: { achievement: WorkspaceAchievement }) {
   );
 }
 
-function sortCharacters(characters: (typeof allCharacters)[number][], sortMode: "default" | "name" | "role" | "species") {
+function sortCharacters(characters: CharacterDefinition[], sortMode: "default" | "name" | "role" | "species") {
   return [...characters].sort((lhs, rhs) => {
     switch (sortMode) {
       case "name":

@@ -49,6 +49,7 @@ export function loadInstalledPlugins(): InstalledPluginRecord[] {
 
 export function saveInstalledPlugins(installedPlugins: InstalledPluginRecord[]) {
   window.localStorage.setItem(pluginInstallStorageKey, JSON.stringify(installedPlugins));
+  window.dispatchEvent(new CustomEvent("doffice:installed-plugins-changed"));
 }
 
 export function enabledInstalledPluginDirs(installedPlugins: InstalledPluginRecord[]): string[] {

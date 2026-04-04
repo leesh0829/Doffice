@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import { t } from "./localizationCatalog";
+import { getPluginRuntimeSnapshot } from "./pluginRuntime";
 import { formatTokens, inferStatus } from "./sessionUtils";
 import type { SessionSnapshot } from "./types";
 import type { ProjectGroup } from "./uiModel";
-import { accessoryCatalog, jobCatalog, type OfficeCameraMode, type OfficeLayoutPreset, type WorkspaceBackgroundTheme } from "./workspaceState";
+import { estimateDisplayUnits } from "./unicodeWidth";
+import { getAccessoryCatalog, jobCatalog, type OfficeCameraMode, type OfficeLayoutPreset, type WorkspaceBackgroundTheme } from "./workspaceState";
 import { OfficeMapCanvas, PixelCharacterSprite, resolveCharacterForSession, type OfficeDecorItem } from "./pixelOfficeArt";
 
 type OfficeVariant = "compact" | "full";
@@ -104,6 +106,28 @@ const decorItems: OfficeDecorItem[] = [
   { col: 29, row: 17, w: 1, h: 1, kind: "plant" },
   { col: 39, row: 17, w: 1, h: 1, kind: "lamp" }
 ];
+
+const pluginZoneAnchors: Record<string, Array<{ col: number; row: number }>> = {
+  mainoffice: [
+    { col: 23, row: 3 },
+    { col: 26, row: 4 },
+    { col: 22, row: 9 },
+    { col: 25, row: 12 },
+    { col: 23, row: 17 }
+  ],
+  pantry: [
+    { col: 30, row: 3 },
+    { col: 33, row: 5 },
+    { col: 37, row: 3 },
+    { col: 35, row: 8 }
+  ],
+  meetingroom: [
+    { col: 31, row: 13 },
+    { col: 35, row: 13 },
+    { col: 31, row: 16 },
+    { col: 36, row: 16 }
+  ]
+};
 
 const roamTiles = [
   { col: 24, row: 4 },
@@ -277,6 +301,56 @@ function clampWorkerPosition(x: number, y: number) {
 
 function motionTargetKey(x: number, y: number) {
   return `${x.toFixed(2)},${y.toFixed(2)}`;
+}
+
+function buildPluginDecorItems(enabledAccessoryIds: string[]) {
+  const accessoryEntries = getAccessoryCatalog();
+  const pluginFurnitureEntries = accessoryEntries.filter((item) => item.sprite && enabledAccessoryIds.includes(item.id));
+  if (pluginFurnitureEntries.length === 0) return [];
+
+  const furnitureById = new Map(pluginFurnitureEntries.map((item) => [item.id, item]));
+  const runtimeSnapshot = getPluginRuntimeSnapshot();
+  const firstPresetByPlugin = new Map(
+    runtimeSnapshot.officePresets.map((preset) => [preset.pluginId, preset] as const)
+  );
+  const placedFurnitureIds = new Set<string>();
+  const pluginDecorItems: OfficeDecorItem[] = [];
+
+  for (const preset of firstPresetByPlugin.values()) {
+    for (const placement of preset.furniture) {
+      const furniture = furnitureById.get(placement.furnitureId);
+      if (!furniture) continue;
+      placedFurnitureIds.add(furniture.id);
+      pluginDecorItems.push({
+        kind: furniture.id,
+        col: placement.col,
+        row: placement.row,
+        w: furniture.width,
+        h: furniture.height,
+        sprite: furniture.sprite
+      });
+    }
+  }
+
+  const zoneOffsets = new Map<string, number>();
+  for (const furniture of pluginFurnitureEntries) {
+    if (placedFurnitureIds.has(furniture.id)) continue;
+    const zoneKey = String(furniture.zone || "mainOffice").replace(/[^a-z]/gi, "").toLowerCase();
+    const anchors = pluginZoneAnchors[zoneKey] ?? pluginZoneAnchors.mainoffice;
+    const anchorIndex = zoneOffsets.get(zoneKey) ?? 0;
+    const anchor = anchors[anchorIndex % anchors.length] ?? anchors[0]!;
+    zoneOffsets.set(zoneKey, anchorIndex + 1);
+    pluginDecorItems.push({
+      kind: furniture.id,
+      col: anchor.col,
+      row: anchor.row,
+      w: furniture.width,
+      h: furniture.height,
+      sprite: furniture.sprite
+    });
+  }
+
+  return pluginDecorItems;
 }
 
 export function OfficeSceneView(props: OfficeSceneViewProps) {
@@ -478,10 +552,11 @@ export function OfficeSceneView(props: OfficeSceneViewProps) {
   const selectedCharacter = selectedSession ? resolveCharacterForSession(selectedSession) : null;
   const selectedStatus = selectedSession ? inferStatus(selectedSession) : null;
   const selectedRoleLabel = selectedCharacter ? jobCatalog[selectedCharacter.jobRole].shortLabel : "";
+  const accessoryCatalog = getAccessoryCatalog();
   const enabledKinds = new Set(
     accessoryCatalog.flatMap((entry) => (enabledAccessoryIds.includes(entry.id) ? entry.officeKinds : []))
   );
-  const visibleDecorItems = decorItems.filter((item) => {
+  const baseDecorItems = decorItems.filter((item) => {
     if (["sofa", "round-table", "meeting-table", "coffee", "water", "board", "lamp", "picture", "plant", "shelf", "printer", "trash"].includes(item.kind)) {
       const requiredByAccessory = accessoryCatalog.some((entry) => entry.officeKinds.includes(item.kind));
       if (requiredByAccessory) {
@@ -490,6 +565,7 @@ export function OfficeSceneView(props: OfficeSceneViewProps) {
     }
     return true;
   });
+  const visibleDecorItems = [...baseDecorItems, ...buildPluginDecorItems(enabledAccessoryIds)];
   const followedPlacement = followingSessionId ? placements.find((placement) => placement.session.id === followingSessionId) ?? null : null;
   const isFollowing = followedPlacement != null;
   const focusPlacement = officeCamera === "focus" ? followedPlacement ?? placements.find((placement) => placement.session.id === selectedSession?.id) ?? placements[0] ?? null : null;
@@ -561,13 +637,13 @@ export function OfficeSceneView(props: OfficeSceneViewProps) {
                     handleWorkerSelect(worker.session);
                   }}
                 >
-                  <span className="office-worker-project">{worker.projectName}</span>
+                  <span className="office-worker-project" style={{ minWidth: `${estimateDisplayUnits(worker.projectName) * 0.52 + 1.8}em` }}>{worker.projectName}</span>
                   <span className="office-worker-shadow" />
                   <span className="office-worker-body-wrap">
                     <PixelCharacterSprite character={worker.character} className="office-worker-canvas" scale={2} walking={worker.pose === "roaming"} />
                   </span>
                   <span className="office-worker-badge">{workerBadge(worker.session)}</span>
-                  <span className="office-worker-tag" style={{ color: worker.session.workerColorHex }}>{worker.session.workerName}</span>
+                  <span className="office-worker-tag" style={{ color: worker.session.workerColorHex, minWidth: `${estimateDisplayUnits(worker.session.workerName) * 0.54 + 1}em` }}>{worker.session.workerName}</span>
                 </button>
               );
             })}

@@ -16,11 +16,11 @@ import {
   applyWorkspacePreferences,
   buildWorkspaceAchievements,
   deriveWorkspaceProgress,
+  getTotalAchievementCount,
+  getTotalAccessoryCount,
+  getTotalCharacterCount,
   loadWorkspacePreferences,
   saveWorkspacePreferences,
-  totalAchievementCount,
-  totalAccessoryCount,
-  totalCharacterCount,
   type WorkspacePreferences
 } from "./workspaceState";
 
@@ -90,6 +90,7 @@ interface MainViewProps {
   updateNewSessionDraft: (patch: Partial<NewSessionDraftState>) => void;
   favoriteProjects: NewSessionProjectRecord[];
   recentProjects: NewSessionProjectRecord[];
+  pluginRuntimeVersion: number;
   isCurrentDraftFavorite: boolean;
   chooseSuggestedProject: (project: NewSessionProjectRecord) => void;
   toggleDraftFavorite: () => void;
@@ -251,6 +252,7 @@ export function MainView(props: MainViewProps) {
     updateNewSessionDraft,
     favoriteProjects,
     recentProjects,
+    pluginRuntimeVersion,
     isCurrentDraftFavorite,
     chooseSuggestedProject,
     toggleDraftFavorite,
@@ -337,24 +339,24 @@ export function MainView(props: MainViewProps) {
   );
   const achievements = useMemo(
     () => buildWorkspaceAchievements(workspacePreferences, sessions, reportEntries.length),
-    [reportEntries.length, sessions, workspacePreferences]
+    [pluginRuntimeVersion, reportEntries.length, sessions, workspacePreferences]
   );
   const unlockedAchievements = achievements.filter((item) => item.unlocked).length;
   const workspaceCounts = useMemo(
     () => ({
       hiredCharacters: workspacePreferences.hiredCharacterIds.length,
-      totalCharacters: totalCharacterCount,
+      totalCharacters: getTotalCharacterCount(),
       enabledAccessories: workspacePreferences.enabledAccessoryIds.length,
-      totalAccessories: totalAccessoryCount,
+      totalAccessories: getTotalAccessoryCount(),
       reports: reportEntries.length,
       unlockedAchievements,
-      totalAchievements: totalAchievementCount,
+      totalAchievements: getTotalAchievementCount(),
       level: progress.level,
       levelTitle: progress.levelTitle,
       totalXP: progress.totalXP,
       progressPercent: progress.completionRate
     }),
-    [progress, reportEntries.length, unlockedAchievements, workspacePreferences.enabledAccessoryIds.length, workspacePreferences.hiredCharacterIds.length]
+    [pluginRuntimeVersion, progress, reportEntries.length, unlockedAchievements, workspacePreferences.enabledAccessoryIds.length, workspacePreferences.hiredCharacterIds.length]
   );
 
   return (

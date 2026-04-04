@@ -339,6 +339,308 @@ async function installPluginFromSource(source) {
   return installLocalPluginDirectory(trimmed);
 }
 
+const pluginSpeciesEmoji = {
+  human: "👤",
+  cat: "🐱",
+  dog: "🐶",
+  rabbit: "🐰",
+  bear: "🐻",
+  penguin: "🐧",
+  fox: "🦊",
+  robot: "🤖",
+  claude: "✨",
+  alien: "👽",
+  ghost: "👻",
+  dragon: "🐉",
+  chicken: "🐔",
+  owl: "🦉",
+  frog: "🐸",
+  panda: "🐼",
+  unicorn: "🦄",
+  skeleton: "💀"
+};
+
+const pluginJobSkillLabels = {
+  developer: "개발자",
+  qa: "QA",
+  reporter: "보고서",
+  boss: "보스",
+  planner: "기획자",
+  reviewer: "리뷰어",
+  designer: "디자이너",
+  sre: "SRE"
+};
+
+function normalizePluginSpecies(value) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return Object.prototype.hasOwnProperty.call(pluginSpeciesEmoji, normalized) ? normalized : "human";
+}
+
+function normalizePluginJobRole(value) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return Object.prototype.hasOwnProperty.call(pluginJobSkillLabels, normalized) ? normalized : "developer";
+}
+
+function normalizePluginTier(value) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  switch (normalized) {
+    case "mythic":
+    case "legendary":
+    case "epic":
+    case "rare":
+    case "common":
+      return normalized;
+    default:
+      return "rare";
+  }
+}
+
+function normalizePluginAchievementIcon(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "🏆";
+  if (/\p{Extended_Pictographic}/u.test(raw)) return raw;
+  switch (raw) {
+    case "sun.max.fill":
+      return "☀️";
+    case "sofa.fill":
+      return "🛋️";
+    default:
+      return "🏆";
+  }
+}
+
+function normalizeHexToken(value, fallback = "") {
+  const normalized = String(value ?? "").trim().replace(/^#/, "");
+  return /^[0-9a-f]{3}([0-9a-f]{3})?$/i.test(normalized) ? normalized : fallback;
+}
+
+function normalizeStringMatrix(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((row) => (Array.isArray(row) ? row.map((cell) => normalizeHexToken(cell) || "") : []));
+}
+
+async function readPluginJSONFile(pluginDir, relativePath) {
+  const safeRelativePath = normalizePluginRelativePath(relativePath);
+  if (!safeRelativePath) {
+    return null;
+  }
+  const targetPath = path.join(pluginDir, safeRelativePath);
+  const raw = await fs.readFile(targetPath, "utf8");
+  return JSON.parse(raw);
+}
+
+async function buildPluginRuntimeSnapshot(pluginDirs) {
+  const snapshot = {
+    pluginIds: [],
+    characters: [],
+    furniture: [],
+    achievements: [],
+    officePresets: [],
+    themes: [],
+    panels: [],
+    commands: [],
+    statusBar: [],
+    effects: [],
+    bossLines: []
+  };
+  const seenPluginIds = new Set();
+
+  for (const rawPluginDir of Array.isArray(pluginDirs) ? pluginDirs : []) {
+    const pluginDir = path.resolve(expandHomePath(String(rawPluginDir ?? "").trim()));
+    if (!pluginDir) continue;
+    try {
+      const { manifest } = await readPluginManifest(pluginDir);
+      const pluginName = String(manifest?.name || path.basename(pluginDir) || "Plugin").trim();
+      const pluginId = sanitizePluginSlug(pluginName);
+      if (!seenPluginIds.has(pluginId)) {
+        seenPluginIds.add(pluginId);
+        snapshot.pluginIds.push(pluginId);
+      }
+
+      const contributes = manifest?.contributes ?? {};
+
+      if (contributes.characters) {
+        const characters = await readPluginJSONFile(pluginDir, contributes.characters).catch(() => null);
+        for (const entry of Array.isArray(characters) ? characters : []) {
+          const species = normalizePluginSpecies(entry?.species);
+          const jobRole = normalizePluginJobRole(entry?.jobRole);
+          const shirtColor = normalizeHexToken(entry?.shirtColor, "7d5ad6");
+          snapshot.characters.push({
+            id: String(entry?.id || `${pluginId}-${snapshot.characters.length + 1}`),
+            name: String(entry?.name || "Plugin"),
+            role: String(entry?.archetype || entry?.role || "플러그인 캐릭터"),
+            skill: pluginJobSkillLabels[jobRole],
+            species,
+            emoji: pluginSpeciesEmoji[species],
+            hairColor: normalizeHexToken(entry?.hairColor, "4a3728"),
+            skinTone: normalizeHexToken(entry?.skinTone, "ffd5b8"),
+            shirtColor,
+            pantsColor: normalizeHexToken(entry?.pantsColor, "3a4050"),
+            hatType: String(entry?.hatType || "none"),
+            accessory: String(entry?.accessory || "none"),
+            requiredAchievement: typeof entry?.requiredAchievement === "string" ? entry.requiredAchievement : null,
+            jobRole,
+            isStarter: Boolean(entry?.isStarter || entry?.isHired),
+            pluginId,
+            pluginName
+          });
+        }
+      }
+
+      for (const item of Array.isArray(contributes.furniture) ? contributes.furniture : []) {
+        const id = String(item?.id || "").trim();
+        const sprite = normalizeStringMatrix(item?.sprite);
+        if (!id || sprite.length === 0) continue;
+        snapshot.furniture.push({
+          id,
+          name: String(item?.name || id),
+          icon: "🧩",
+          officeKinds: [id],
+          width: Math.max(1, Number(item?.width) || 1),
+          height: Math.max(1, Number(item?.height) || 1),
+          isWallItem: String(item?.zone || "").toLowerCase() === "wall",
+          requiredLevel: null,
+          requiredAchievement: null,
+          sprite,
+          zone: String(item?.zone || "mainOffice"),
+          pluginId,
+          pluginName
+        });
+      }
+
+      for (const item of Array.isArray(contributes.achievements) ? contributes.achievements : []) {
+        const id = String(item?.id || "").trim();
+        if (!id) continue;
+        snapshot.achievements.push({
+          id,
+          tier: normalizePluginTier(item?.rarity),
+          title: String(item?.name || id),
+          subtitle: String(item?.description || pluginName),
+          xp: Math.max(0, Number(item?.xp) || 0),
+          icon: normalizePluginAchievementIcon(item?.icon),
+          pluginId,
+          pluginName
+        });
+      }
+
+      for (const item of Array.isArray(contributes.officePresets) ? contributes.officePresets : []) {
+        const id = String(item?.id || "").trim();
+        if (!id) continue;
+        snapshot.officePresets.push({
+          id,
+          name: String(item?.name || id),
+          description: String(item?.description || ""),
+          furniture: Array.isArray(item?.furniture)
+            ? item.furniture
+                .map((placement) => ({
+                  furnitureId: String(placement?.furnitureId || "").trim(),
+                  col: Number(placement?.col) || 0,
+                  row: Number(placement?.row) || 0
+                }))
+                .filter((placement) => placement.furnitureId)
+            : [],
+          pluginId,
+          pluginName
+        });
+      }
+
+      for (const item of Array.isArray(contributes.themes) ? contributes.themes : []) {
+        const id = String(item?.id || "").trim();
+        if (!id) continue;
+        snapshot.themes.push({
+          id,
+          name: String(item?.name || id),
+          isDark: Boolean(item?.isDark),
+          accentHex: normalizeHexToken(item?.accentHex, "7d5ad6"),
+          bgHex: normalizeHexToken(item?.bgHex),
+          cardHex: normalizeHexToken(item?.cardHex),
+          textHex: normalizeHexToken(item?.textHex),
+          greenHex: normalizeHexToken(item?.greenHex),
+          redHex: normalizeHexToken(item?.redHex),
+          yellowHex: normalizeHexToken(item?.yellowHex),
+          purpleHex: normalizeHexToken(item?.purpleHex),
+          cyanHex: normalizeHexToken(item?.cyanHex),
+          useGradient: Boolean(item?.useGradient),
+          gradientStartHex: normalizeHexToken(item?.gradientStartHex),
+          gradientEndHex: normalizeHexToken(item?.gradientEndHex),
+          fontName: String(item?.fontName || ""),
+          pluginId,
+          pluginName
+        });
+      }
+
+      for (const item of Array.isArray(contributes.panels) ? contributes.panels : []) {
+        const entry = normalizePluginRelativePath(item?.entry);
+        const id = String(item?.id || "").trim();
+        if (!id || !entry) continue;
+        snapshot.panels.push({
+          id,
+          title: String(item?.title || id),
+          icon: String(item?.icon || "square.grid.2x2"),
+          entry,
+          position: String(item?.position || "panel"),
+          width: Number.isFinite(Number(item?.width)) ? Number(item.width) : null,
+          height: Number.isFinite(Number(item?.height)) ? Number(item.height) : null,
+          pluginId,
+          pluginName
+        });
+      }
+
+      for (const item of Array.isArray(contributes.commands) ? contributes.commands : []) {
+        const script = normalizePluginRelativePath(item?.script);
+        const id = String(item?.id || "").trim();
+        if (!id || !script) continue;
+        snapshot.commands.push({
+          id,
+          title: String(item?.title || id),
+          icon: String(item?.icon || "terminal"),
+          script,
+          keybinding: typeof item?.keybinding === "string" ? item.keybinding : null,
+          pluginId,
+          pluginName
+        });
+      }
+
+      for (const item of Array.isArray(contributes.statusBar) ? contributes.statusBar : []) {
+        const script = normalizePluginRelativePath(item?.script);
+        const id = String(item?.id || "").trim();
+        if (!id || !script) continue;
+        snapshot.statusBar.push({
+          id,
+          script,
+          interval: Math.max(1, Number(item?.interval) || 30),
+          pluginId,
+          pluginName
+        });
+      }
+
+      for (const item of Array.isArray(contributes.effects) ? contributes.effects : []) {
+        const id = String(item?.id || "").trim();
+        if (!id) continue;
+        snapshot.effects.push({
+          id,
+          trigger: String(item?.trigger || ""),
+          type: String(item?.type || ""),
+          config: item?.config && typeof item.config === "object" ? item.config : {},
+          enabled: item?.enabled !== false,
+          pluginId,
+          pluginName
+        });
+      }
+
+      for (const line of Array.isArray(contributes.bossLines) ? contributes.bossLines : []) {
+        if (typeof line === "string" && line.trim()) {
+          snapshot.bossLines.push(line.trim());
+        }
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return snapshot;
+}
+
 async function createPluginTemplate(parentDir) {
   const resolvedParent = path.resolve(expandHomePath(String(parentDir ?? "").trim()));
   if (!resolvedParent) {
@@ -2633,6 +2935,7 @@ ipcMain.handle("app:restart", async () => {
 });
 ipcMain.handle("plugin:install", async (_event, source) => installPluginFromSource(source));
 ipcMain.handle("plugin:create-template", async (_event, parentDir) => createPluginTemplate(parentDir));
+ipcMain.handle("plugin:runtime-snapshot", async (_event, pluginDirs) => buildPluginRuntimeSnapshot(pluginDirs));
 ipcMain.handle("app:refresh-cli-status", async () => refreshCLIStatuses());
 ipcMain.handle("app:install-cli", async (_event, provider) => installCLI(provider));
 

@@ -1,4 +1,5 @@
 import { setPreferredLocale } from "./localizationCatalog";
+import { getPluginRuntimeSnapshot } from "./pluginRuntime";
 import type { SessionSnapshot } from "./types";
 import {
   macAchievementCatalog,
@@ -100,6 +101,10 @@ export interface AccessoryDefinition {
   isWallItem: boolean;
   requiredLevel: number | null;
   requiredAchievement: string | null;
+  sprite?: string[][];
+  zone?: string;
+  pluginId?: string;
+  pluginName?: string;
 }
 
 export interface BackgroundDefinition {
@@ -117,6 +122,8 @@ export interface WorkspaceAchievement {
   xp: number;
   icon: string;
   unlocked: boolean;
+  pluginId?: string;
+  pluginName?: string;
 }
 
 export interface WorkspaceProgress {
@@ -188,6 +195,94 @@ export const accessoryCatalog: AccessoryDefinition[] = macFurnitureCatalog.map((
 }));
 
 export const backgroundCatalog: BackgroundDefinition[] = macBackgroundCatalog;
+
+function dedupeById<T extends { id: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  const result: T[] = [];
+  for (const item of items) {
+    if (!item?.id || seen.has(item.id)) continue;
+    seen.add(item.id);
+    result.push(item);
+  }
+  return result;
+}
+
+function toPluginCharacterDefinitions(): CharacterDefinition[] {
+  return getPluginRuntimeSnapshot().characters
+    .map((character) => ({
+      id: character.id,
+      name: character.name,
+      role: character.role,
+      skill: character.skill,
+      species: character.species as MacCharacterSpecies,
+      emoji: character.emoji,
+      hairColor: character.hairColor,
+      skinTone: character.skinTone,
+      shirtColor: character.shirtColor,
+      pantsColor: character.pantsColor,
+      hatType: character.hatType,
+      accessory: character.accessory,
+      requiredAchievement: character.requiredAchievement,
+      jobRole: character.jobRole as MacWorkerJob,
+      isStarter: character.isStarter
+    }));
+}
+
+function toPluginAccessoryDefinitions(): AccessoryDefinition[] {
+  return getPluginRuntimeSnapshot().furniture.map((item) => ({
+    id: item.id,
+    name: item.name,
+    icon: item.icon,
+    officeKinds: item.officeKinds,
+    width: item.width,
+    height: item.height,
+    isWallItem: item.isWallItem,
+    requiredLevel: item.requiredLevel,
+    requiredAchievement: item.requiredAchievement,
+    sprite: item.sprite,
+    zone: item.zone,
+    pluginId: item.pluginId,
+    pluginName: item.pluginName
+  }));
+}
+
+function toPluginWorkspaceAchievements(): WorkspaceAchievement[] {
+  return getPluginRuntimeSnapshot().achievements.map((achievement) => ({
+    id: achievement.id,
+    tier: achievement.tier as MacAchievementTier,
+    title: achievement.title,
+    subtitle: achievement.subtitle,
+    xp: achievement.xp,
+    icon: achievement.icon,
+    unlocked: true,
+    pluginId: achievement.pluginId,
+    pluginName: achievement.pluginName
+  }));
+}
+
+export function getAllCharacters(): CharacterDefinition[] {
+  return dedupeById([...allCharacters, ...toPluginCharacterDefinitions()]);
+}
+
+export function getAccessoryCatalog(): AccessoryDefinition[] {
+  return dedupeById([...accessoryCatalog, ...toPluginAccessoryDefinitions()]);
+}
+
+export function getBackgroundCatalog(): BackgroundDefinition[] {
+  return backgroundCatalog;
+}
+
+export function getTotalCharacterCount() {
+  return getAllCharacters().length;
+}
+
+export function getTotalAccessoryCount() {
+  return getAccessoryCatalog().length;
+}
+
+export function getTotalAchievementCount() {
+  return buildWorkspaceAchievements(defaultWorkspacePreferences, [], 0).length;
+}
 
 export const defaultBrowserBookmarks = [
   "http://localhost:3000",
@@ -599,7 +694,7 @@ export function buildWorkspaceAchievements(
 ): WorkspaceAchievement[] {
   const progress = deriveWorkspaceProgress(preferences, sessions, reportCount);
   const derived = deriveAchievementUnlocks(preferences, sessions, progress);
-  return macAchievementCatalog.map((achievement) => ({
+  const baseAchievements = macAchievementCatalog.map((achievement) => ({
     id: achievement.id,
     tier: achievement.tier,
     title: achievement.title,
@@ -608,4 +703,5 @@ export function buildWorkspaceAchievements(
     icon: achievement.icon,
     unlocked: isAchievementUnlocked(achievement.id, derived)
   }));
+  return dedupeById([...baseAchievements, ...toPluginWorkspaceAchievements()]);
 }

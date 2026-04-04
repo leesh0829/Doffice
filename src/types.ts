@@ -243,6 +243,143 @@ export interface CLIStatusPayload {
   geminiStatus: CLIStatus;
 }
 
+export interface PluginRuntimeCharacter {
+  id: string;
+  name: string;
+  role: string;
+  skill: string;
+  species: string;
+  emoji: string;
+  hairColor: string;
+  skinTone: string;
+  shirtColor: string;
+  pantsColor: string;
+  hatType: string;
+  accessory: string;
+  requiredAchievement: string | null;
+  jobRole: string;
+  isStarter: boolean;
+  pluginId: string;
+  pluginName: string;
+}
+
+export interface PluginRuntimeFurniture {
+  id: string;
+  name: string;
+  icon: string;
+  officeKinds: string[];
+  width: number;
+  height: number;
+  isWallItem: boolean;
+  requiredLevel: number | null;
+  requiredAchievement: string | null;
+  sprite: string[][];
+  zone: string;
+  pluginId: string;
+  pluginName: string;
+}
+
+export interface PluginRuntimeAchievement {
+  id: string;
+  tier: string;
+  title: string;
+  subtitle: string;
+  xp: number;
+  icon: string;
+  pluginId: string;
+  pluginName: string;
+}
+
+export interface PluginRuntimeOfficePresetPlacement {
+  furnitureId: string;
+  col: number;
+  row: number;
+}
+
+export interface PluginRuntimeOfficePreset {
+  id: string;
+  name: string;
+  description: string;
+  furniture: PluginRuntimeOfficePresetPlacement[];
+  pluginId: string;
+  pluginName: string;
+}
+
+export interface PluginRuntimeTheme {
+  id: string;
+  name: string;
+  isDark: boolean;
+  accentHex: string;
+  bgHex: string;
+  cardHex: string;
+  textHex: string;
+  greenHex: string;
+  redHex: string;
+  yellowHex: string;
+  purpleHex: string;
+  cyanHex: string;
+  useGradient: boolean;
+  gradientStartHex: string;
+  gradientEndHex: string;
+  fontName: string;
+  pluginId: string;
+  pluginName: string;
+}
+
+export interface PluginRuntimePanel {
+  id: string;
+  title: string;
+  icon: string;
+  entry: string;
+  position: string;
+  width: number | null;
+  height: number | null;
+  pluginId: string;
+  pluginName: string;
+}
+
+export interface PluginRuntimeCommand {
+  id: string;
+  title: string;
+  icon: string;
+  script: string;
+  keybinding: string | null;
+  pluginId: string;
+  pluginName: string;
+}
+
+export interface PluginRuntimeStatusBarItem {
+  id: string;
+  script: string;
+  interval: number;
+  pluginId: string;
+  pluginName: string;
+}
+
+export interface PluginRuntimeEffect {
+  id: string;
+  trigger: string;
+  type: string;
+  config: Record<string, unknown>;
+  enabled: boolean;
+  pluginId: string;
+  pluginName: string;
+}
+
+export interface PluginRuntimeSnapshot {
+  pluginIds: string[];
+  characters: PluginRuntimeCharacter[];
+  furniture: PluginRuntimeFurniture[];
+  achievements: PluginRuntimeAchievement[];
+  officePresets: PluginRuntimeOfficePreset[];
+  themes: PluginRuntimeTheme[];
+  panels: PluginRuntimePanel[];
+  commands: PluginRuntimeCommand[];
+  statusBar: PluginRuntimeStatusBarItem[];
+  effects: PluginRuntimeEffect[];
+  bossLines: string[];
+}
+
 export interface BootstrapPayload extends CLIStatusPayload {
   sessions: SessionSnapshot[];
 }
@@ -314,6 +451,7 @@ export interface DofficeBridge {
   restartApp: () => Promise<void>;
   installPluginSource: (source: string) => Promise<PluginInstallResult>;
   createPluginTemplate: (parentDir: string) => Promise<PluginInstallResult>;
+  getPluginRuntimeSnapshot: (pluginDirs: string[]) => Promise<PluginRuntimeSnapshot>;
   refreshCLIStatuses: () => Promise<CLIStatusPayload>;
   installCLI: (provider: AgentProvider) => Promise<CLIInstallResult>;
   getGitSnapshot: (projectPath: string, refName?: string) => Promise<GitPanelSnapshot>;

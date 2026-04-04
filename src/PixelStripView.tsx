@@ -2,6 +2,7 @@ import { t } from "./localizationCatalog";
 import type { ProjectGroup } from "./uiModel";
 import { inferStatus } from "./sessionUtils";
 import type { WorkspaceBackgroundTheme } from "./workspaceState";
+import { estimateDisplayUnits } from "./unicodeWidth";
 import { PixelCharacterSprite, resolveCharacterForSession } from "./pixelOfficeArt";
 
 interface StripGroup {
@@ -85,7 +86,7 @@ export function PixelStripView(props: { groupedSessions: ProjectGroup[]; backgro
                     walking={group.statusClass === "processing"}
                   />
                 ) : null}
-                <span className="pixel-strip-group-worker" style={{ color: group.workerColor }}>
+                <span className="pixel-strip-group-worker" style={{ color: group.workerColor, minWidth: `${estimateDisplayUnits(group.workerName) * 0.52 + 1}em` }}>
                   {group.workerName}
                 </span>
               </div>
@@ -98,7 +99,7 @@ export function PixelStripView(props: { groupedSessions: ProjectGroup[]; backgro
               </div>
 
               <div className="pixel-strip-group-label">
-                <strong>{group.projectName}</strong>
+                <strong style={{ minWidth: `${estimateDisplayUnits(group.projectName) * 0.52 + 1.8}em` }}>{group.projectName}</strong>
               </div>
             </div>
           ))}
@@ -110,7 +111,7 @@ export function PixelStripView(props: { groupedSessions: ProjectGroup[]; backgro
           {groups.map((group) => (
             <div key={group.id} className={`pixel-strip-status-item status-${group.statusClass}`}>
               <span className="pixel-strip-status-dot" />
-              <span className="pixel-strip-status-name">{group.projectName}</span>
+              <span className="pixel-strip-status-name" style={{ minWidth: `${estimateDisplayUnits(group.projectName) * 0.52 + 1.8}em` }}>{group.projectName}</span>
             </div>
           ))}
         </div>
