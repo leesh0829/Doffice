@@ -20,6 +20,8 @@ interface TerminalAreaViewProps {
   busy: boolean;
   sendPrompt: (event: FormEvent) => void;
   sendPromptToSession: (sessionId: string, prompt: string) => Promise<void>;
+  openRawTerminalForSession: (sessionId: string) => Promise<void>;
+  sendRawInputToSession: (sessionId: string, text: string) => Promise<void>;
   approvePendingApproval: () => void;
   denyPendingApproval: () => void;
   dismissDangerousWarning: () => void;
@@ -83,6 +85,8 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
     busy,
     sendPrompt,
     sendPromptToSession,
+    openRawTerminalForSession,
+    sendRawInputToSession,
     approvePendingApproval,
     denyPendingApproval,
     dismissDangerousWarning,
@@ -103,6 +107,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
   const [attachedImage, setAttachedImage] = useState<ImageAttachment | null>(null);
   const [splitState, setSplitState] = useState<TerminalSplitState>(loadTerminalSplitState);
   const [gridBottomPanel, setGridBottomPanel] = useState<GridBottomPanel>("none");
+  const rawTerminalMode = workspacePreferences.rawTerminalMode;
   const effectiveTerminalViewMode =
     terminalViewMode === "git" || terminalViewMode === "browser"
       ? terminalViewMode
@@ -219,6 +224,14 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
     });
   }
 
+  async function dispatchPromptToSession(sessionId: string, nextPrompt: string) {
+    if (rawTerminalMode) {
+      await sendRawInputToSession(sessionId, nextPrompt);
+      return;
+    }
+    await sendPromptToSession(sessionId, nextPrompt);
+  }
+
   async function handleSingleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selectedSession) return;
@@ -229,7 +242,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
     const promptWithAttachment = attachedImage
       ? [nextPrompt, "", `[첨부 이미지] ${attachedImage.path || "선택된 이미지"}`].join("\n")
       : nextPrompt;
-    await sendPromptToSession(selectedSession.id, promptWithAttachment);
+    await dispatchPromptToSession(selectedSession.id, promptWithAttachment);
     setPrompt("");
     clearDraftPasteState("__single__");
     setAttachedImage(null);
@@ -359,6 +372,16 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                   ✕
                 </button>
               ) : null}
+              {rawTerminalMode ? (
+                <button
+                  type="button"
+                  className="chrome-icon-button"
+                  onClick={() => void openRawTerminalForSession(selectedSession.id)}
+                  title="Open raw terminal"
+                >
+                  ⌘
+                </button>
+              ) : null}
             </>
           ) : null}
           <button className="chrome-icon-button" onClick={openNewSession}>
@@ -393,6 +416,11 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                     <button className={`pin-button ${pinned ? "is-active" : ""}`} onClick={() => togglePinnedSession(session.id)}>
                       {pinned ? t("custom.unpin") : t("custom.pin")}
                     </button>
+                    {rawTerminalMode ? (
+                      <button className="pin-button" onClick={() => void openRawTerminalForSession(session.id)}>
+                        Raw
+                      </button>
+                    ) : null}
                   </div>
                   <div className="terminal-grid-meta">
                     <span>{session.workerName}</span>
@@ -413,7 +441,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                       if (sessionLimitReached) return;
                       const expandedPrompt = expandPastedChunks(gridDrafts[session.id] ?? "", draftPasteState[session.id]?.chunks ?? []).trim();
                       if (!expandedPrompt) return;
-                      await sendPromptToSession(session.id, expandedPrompt);
+                      await dispatchPromptToSession(session.id, expandedPrompt);
                       setGridDrafts((current) => ({ ...current, [session.id]: "" }));
                       clearDraftPasteState(session.id);
                     }}
@@ -504,36 +532,38 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                   session={selectedSession}
                   sessions={sessions}
                   workspacePreferences={workspacePreferences}
+                  rawTerminalMode={rawTerminalMode}
                   draft={splitDrafts[selectedSession.id] ?? ""}
                   busy={busy}
                   onDraftChange={(value) => setSplitDrafts((current) => ({ ...current, [selectedSession.id]: value }))}
                   onSubmit={async () => {
-                    const nextPrompt = (splitDrafts[selectedSession.id] ?? "").trim();
                     const expandedPrompt = expandPastedChunks(splitDrafts[selectedSession.id] ?? "", draftPasteState[selectedSession.id]?.chunks ?? []).trim();
                     if (!expandedPrompt) return;
-                    await sendPromptToSession(selectedSession.id, expandedPrompt);
+                    await dispatchPromptToSession(selectedSession.id, expandedPrompt);
                     setSplitDrafts((current) => ({ ...current, [selectedSession.id]: "" }));
                     clearDraftPasteState(selectedSession.id);
                   }}
                   onPromptKeyPress={onPromptKeyPress}
+                  onOpenRawTerminal={openRawTerminalForSession}
                   onSelectSession={null}
                 />
                 <SplitSessionPane
                   session={secondarySession}
                   sessions={sessions.filter((session) => session.id !== selectedSession.id)}
                   workspacePreferences={workspacePreferences}
+                  rawTerminalMode={rawTerminalMode}
                   draft={splitDrafts[secondarySession.id] ?? ""}
                   busy={busy}
                   onDraftChange={(value) => setSplitDrafts((current) => ({ ...current, [secondarySession.id]: value }))}
                   onSubmit={async () => {
-                    const nextPrompt = (splitDrafts[secondarySession.id] ?? "").trim();
                     const expandedPrompt = expandPastedChunks(splitDrafts[secondarySession.id] ?? "", draftPasteState[secondarySession.id]?.chunks ?? []).trim();
                     if (!expandedPrompt) return;
-                    await sendPromptToSession(secondarySession.id, expandedPrompt);
+                    await dispatchPromptToSession(secondarySession.id, expandedPrompt);
                     setSplitDrafts((current) => ({ ...current, [secondarySession.id]: "" }));
                     clearDraftPasteState(secondarySession.id);
                   }}
                   onPromptKeyPress={onPromptKeyPress}
+                  onOpenRawTerminal={openRawTerminalForSession}
                   onSelectSession={(sessionId) => setSplitState((current) => ({ ...current, secondarySessionId: sessionId }))}
                 />
               </div>
@@ -691,6 +721,11 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                   <span className="terminal-config-pill">{t("terminal.config.model")} {singleModelLabel(activeSingleModel)}</span>
                   <span className="terminal-config-pill">{t("custom.effort")} {effortLabel(selectedSession.effortLevel)}</span>
                   <span className="terminal-config-pill tone-warning">{t("custom.enable.brief")} {selectedSession.enableBrief ? "ON" : "OFF"}</span>
+                  {rawTerminalMode ? (
+                    <span className={`terminal-config-pill ${selectedSession.tmuxMode ? "tone-accent" : ""}`}>
+                      {selectedSession.tmuxMode ? "Raw · tmux" : "Raw Terminal"}
+                    </span>
+                  ) : null}
                 </div>
               </div>
               <div className="single-config-groups">
@@ -787,6 +822,16 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
               />
               <div className="composer-actions">
                 <div className="composer-utility-actions">
+                  {rawTerminalMode ? (
+                    <button
+                      type="button"
+                      className="mini-action-button icon-action-button"
+                      onClick={() => void openRawTerminalForSession(selectedSession.id)}
+                      title="Open raw terminal"
+                    >
+                      ⌘
+                    </button>
+                  ) : null}
                   <button type="button" className="mini-action-button icon-action-button" onClick={() => void handlePickAttachment()}>
                     🖼
                   </button>
@@ -1094,14 +1139,16 @@ function SplitSessionPane(props: {
   session: SessionSnapshot;
   sessions: SessionSnapshot[];
   workspacePreferences: WorkspacePreferences;
+  rawTerminalMode: boolean;
   draft: string;
   busy: boolean;
   onDraftChange: (value: string) => void;
   onSubmit: () => Promise<void>;
   onPromptKeyPress: (sessionId: string, previousValue: string, nextValue: string) => void;
+  onOpenRawTerminal: (sessionId: string) => Promise<void>;
   onSelectSession: ((sessionId: string) => void) | null;
 }) {
-  const { session, sessions, workspacePreferences, draft, busy, onDraftChange, onSubmit, onPromptKeyPress, onSelectSession } = props;
+  const { session, sessions, workspacePreferences, rawTerminalMode, draft, busy, onDraftChange, onSubmit, onPromptKeyPress, onOpenRawTerminal, onSelectSession } = props;
   const status = inferStatus(session);
   const recentBlocks = session.blocks.slice(-18);
   const sessionTokenLimit = sessionTokenLimitForProvider(session.provider, workspacePreferences);
@@ -1125,6 +1172,11 @@ function SplitSessionPane(props: {
               </option>
             ))}
           </select>
+        ) : null}
+        {rawTerminalMode ? (
+          <button type="button" className="mini-action-button" onClick={() => void onOpenRawTerminal(session.id)}>
+            Raw
+          </button>
         ) : null}
       </div>
       <div className="terminal-split-pane-meta">

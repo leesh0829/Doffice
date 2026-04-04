@@ -269,6 +269,19 @@ export interface AutomationServerStatus {
   transport: "named-pipe" | "unix-socket";
 }
 
+export interface TmuxSessionInfo {
+  id: string;
+  sessionName: string;
+  windowCount: number;
+  isAttached: boolean;
+}
+
+export interface TmuxStatus {
+  available: boolean;
+  path: string;
+  sessions: TmuxSessionInfo[];
+}
+
 export interface PluginRuntimeCharacter {
   id: string;
   name: string;
@@ -462,6 +475,7 @@ export interface CreateSessionPayload {
   enableChrome?: boolean;
   forkSession?: boolean;
   enableBrief?: boolean;
+  tmuxMode?: boolean;
 }
 
 export interface PromptPayload {
@@ -488,6 +502,7 @@ export interface DofficeBridge {
   bootstrap: () => Promise<BootstrapPayload>;
   restartApp: () => Promise<void>;
   getAutomationServerStatus: () => Promise<AutomationServerStatus>;
+  getTmuxStatus: () => Promise<TmuxStatus>;
   installPluginSource: (source: string) => Promise<PluginInstallResult>;
   createPluginTemplate: (parentDir: string) => Promise<PluginInstallResult>;
   getPluginRuntimeSnapshot: (pluginDirs: string[]) => Promise<PluginRuntimeSnapshot>;
@@ -510,6 +525,8 @@ export interface DofficeBridge {
   dismissSensitiveWarning: (sessionId: string) => Promise<SessionSnapshot>;
   stopSession: (sessionId: string) => Promise<SessionSnapshot>;
   removeSession: (sessionId: string) => Promise<void>;
+  openRawTerminal: (sessionId: string) => Promise<SSHLaunchResult>;
+  sendRawInput: (sessionId: string, text: string) => Promise<SessionSnapshot>;
   listSSHProfiles: () => Promise<SSHProfile[]>;
   saveSSHProfile: (profile: Partial<SSHProfile>) => Promise<SSHProfile[]>;
   deleteSSHProfile: (profileId: string) => Promise<SSHProfile[]>;

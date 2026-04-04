@@ -134,7 +134,8 @@ const slashCommandDescriptors = [
   { name: "fork", usage: "", description: "Enable fork-session mode for the next run." },
   { name: "worktree", usage: "", description: "Toggle worktree mode for this session." },
   { name: "chrome", usage: "", description: "Toggle Chrome integration for this session." },
-  { name: "brief", usage: "", description: "Toggle brief output mode for this session." }
+  { name: "brief", usage: "", description: "Toggle brief output mode for this session." },
+  { name: "tmux", usage: "[toggle|status|list|open|kill]", description: "Manage external raw terminal tmux sessions." }
 ];
 const outputModeLabels = {
   full: "전체",
@@ -307,6 +308,212 @@ async function openSSHProfile(profileId) {
     command,
     message: `Opened SSH connection for ${profile.name || `${profile.username}@${profile.host}`}`
   };
+}
+
+function bashSingleQuote(value) {
+  return `'${String(value ?? "").replace(/'/g, "'\\''")}'`;
+}
+
+function tmuxSessionNameFor(session) {
+  const normalizedId = String(session?.id ?? "session").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 18) || "session";
+  return `doffice-${normalizedId}`;
+}
+
+async function runRawShell(command) {
+  if (process.platform === "win32") {
+    return execFileAsync("wsl.exe", ["bash", "-lc", command], {
+      windowsHide: true,
+      env: process.env
+    });
+  }
+  const shellPath = process.env.SHELL || "bash";
+  return execFileAsync(shellPath, ["-lc", command], {
+    windowsHide: true,
+    env: process.env
+  });
+}
+
+async function resolveTmuxPath() {
+  try {
+    const { stdout } = await runRawShell("command -v tmux || true");
+    return String(stdout ?? "").trim();
+  } catch {
+    return "";
+  }
+}
+
+async function listTmuxSessions() {
+  const tmuxPath = await resolveTmuxPath();
+  if (!tmuxPath) {
+    return {
+      available: false,
+      path: "",
+      sessions: []
+    };
+  }
+
+  try {
+    const { stdout } = await runRawShell("tmux list-sessions -F '#{session_name}\t#{session_windows}\t#{?session_attached,1,0}'");
+    const sessions = String(stdout ?? "")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [sessionName, windowCount, attached] = line.split("\t");
+        return {
+          id: sessionName,
+          sessionName,
+          windowCount: Math.max(1, Number(windowCount) || 1),
+          isAttached: attached === "1"
+        };
+      });
+    return {
+      available: true,
+      path: tmuxPath,
+      sessions
+    };
+  } catch (error) {
+    const message = `${error?.stderr ?? ""}${error?.stdout ?? ""}${error?.message ?? ""}`.toLowerCase();
+    if (message.includes("no server running")) {
+      return {
+        available: true,
+        path: tmuxPath,
+        sessions: []
+      };
+    }
+    throw error;
+  }
+}
+
+async function rawWorkingDirectoryForSession(session) {
+  const projectPath = path.resolve(expandHomePath(String(session?.projectPath ?? "")) || process.cwd());
+  if (process.platform !== "win32") {
+    return projectPath;
+  }
+  const { stdout } = await execFileAsync("wsl.exe", ["wslpath", "-a", projectPath], {
+    windowsHide: true,
+    env: process.env
+  });
+  return String(stdout ?? "").trim() || projectPath;
+}
+
+async function ensureTmuxSession(session) {
+  const tmuxPath = await resolveTmuxPath();
+  if (!tmuxPath) {
+    throw new Error("tmux is not installed in WSL.");
+  }
+  const sessionName = tmuxSessionNameFor(session);
+  const workDir = await rawWorkingDirectoryForSession(session);
+  await runRawShell(
+    `tmux has-session -t ${bashSingleQuote(sessionName)} 2>/dev/null || tmux new-session -d -s ${bashSingleQuote(sessionName)} -c ${bashSingleQuote(workDir)}`
+  );
+  return { sessionName, workDir, path: tmuxPath };
+}
+
+async function killTmuxSession(session) {
+  const sessionName = tmuxSessionNameFor(session);
+  await runRawShell(`tmux kill-session -t ${bashSingleQuote(sessionName)}`);
+  return sessionName;
+}
+
+async function openRawTerminal(sessionId) {
+  const session = sessions.get(String(sessionId ?? ""));
+  if (!session) {
+    throw new Error("Session not found");
+  }
+
+  try {
+    let command = "";
+    if (session.tmuxMode) {
+      const tmuxInfo = await ensureTmuxSession(session);
+      command = `tmux attach-session -t ${bashSingleQuote(tmuxInfo.sessionName)}`;
+      if (process.platform === "win32") {
+        const child = spawn("cmd.exe", ["/c", "start", "", "wsl.exe", "bash", "-lc", command], {
+          detached: true,
+          windowsHide: false,
+          stdio: "ignore"
+        });
+        child.unref();
+      } else {
+        const shellPath = process.env.SHELL || "/bin/bash";
+        const child = spawn(shellPath, ["-lc", command], {
+          detached: true,
+          stdio: "ignore"
+        });
+        child.unref();
+      }
+      appendBlock(session, "status", `Opened raw tmux terminal: ${tmuxInfo.sessionName}`);
+      return {
+        ok: true,
+        command,
+        message: `Opened raw tmux terminal: ${tmuxInfo.sessionName}`
+      };
+    }
+
+    const projectPath = path.resolve(expandHomePath(session.projectPath));
+    command = process.platform === "win32" ? `cd /d "${projectPath}"` : `cd ${bashSingleQuote(projectPath)} && exec ${process.env.SHELL || "/bin/bash"} -l`;
+    if (process.platform === "win32") {
+      const child = spawn("cmd.exe", ["/c", "start", "", "cmd.exe", "/k", command], {
+        detached: true,
+        windowsHide: false,
+        stdio: "ignore"
+      });
+      child.unref();
+    } else {
+      const shellPath = process.env.SHELL || "/bin/bash";
+      const child = spawn(shellPath, ["-lc", command], {
+        detached: true,
+        stdio: "ignore"
+      });
+      child.unref();
+    }
+    appendBlock(session, "status", "Opened raw terminal for this session.");
+    return {
+      ok: true,
+      command,
+      message: "Opened raw terminal for this session."
+    };
+  } catch (error) {
+    const message = String(error?.message ?? error ?? "Failed to open raw terminal");
+    appendBlock(session, "error", message);
+    return {
+      ok: false,
+      command: "",
+      message
+    };
+  }
+}
+
+async function sendRawInput(payload) {
+  const session = sessions.get(String(payload?.sessionId ?? ""));
+  if (!session) {
+    throw new Error("Session not found");
+  }
+  const text = String(payload?.text ?? "").replace(/\r\n/g, "\n").trim();
+  if (!text) {
+    return session;
+  }
+
+  session.lastPromptText = text;
+  appendBlock(session, "userPrompt", text);
+
+  try {
+    if (session.tmuxMode) {
+      const tmuxInfo = await ensureTmuxSession(session);
+      await runRawShell(
+        `tmux set-buffer -- ${bashSingleQuote(text)} && tmux paste-buffer -t ${bashSingleQuote(tmuxInfo.sessionName)} && tmux send-keys -t ${bashSingleQuote(tmuxInfo.sessionName)} Enter`
+      );
+      appendBlock(session, "status", `Sent prompt to tmux session ${tmuxInfo.sessionName}.`);
+      return session;
+    }
+
+    clipboard.writeText(text);
+    appendBlock(session, "status", "Raw terminal mode is external. Prompt copied to clipboard.");
+    return session;
+  } catch (error) {
+    appendBlock(session, "error", String(error?.message ?? error ?? "Failed to send raw input"));
+    return session;
+  }
 }
 
 function pluginInstallBasePath() {
@@ -1897,7 +2104,7 @@ function createSession(payload) {
     fromPR: "",
     manualLaunch: false,
     enableBrief: Boolean(payload.enableBrief),
-    tmuxMode: false,
+    tmuxMode: Boolean(payload.tmuxMode),
     strictMcpConfig: false,
     settingSources: "",
     settingsFileOrJSON: "",
@@ -3004,6 +3211,42 @@ async function runSlashCommand(payload) {
       appendBlock(session, "status", ltf("slash.status.brief.toggle", toggleLabel(session.enableBrief)));
       return session;
     }
+    case "tmux": {
+      const action = String(args[0] ?? "toggle").trim().toLowerCase();
+      if (action === "status" || action === "list") {
+        try {
+          const status = await listTmuxSessions();
+          if (!status.available) {
+            appendBlock(session, "status", "tmux is not available in WSL.");
+            return session;
+          }
+          const summary = status.sessions.length
+            ? status.sessions.map((item) => `${item.sessionName} · ${item.windowCount}w${item.isAttached ? " · attached" : ""}`).join("\n")
+            : "No tmux sessions running.";
+          appendBlock(session, "status", `tmux · ${status.path}\n${summary}`);
+        } catch (error) {
+          appendBlock(session, "error", String(error?.message ?? error ?? "Failed to read tmux status"));
+        }
+        return session;
+      }
+      if (action === "open" || action === "attach" || action === "restore") {
+        session.tmuxMode = true;
+        await openRawTerminal(session.id);
+        return session;
+      }
+      if (action === "kill") {
+        try {
+          const sessionName = await killTmuxSession(session);
+          appendBlock(session, "status", `Killed tmux session ${sessionName}.`);
+        } catch (error) {
+          appendBlock(session, "error", String(error?.message ?? error ?? "Failed to kill tmux session"));
+        }
+        return session;
+      }
+      session.tmuxMode = !session.tmuxMode;
+      appendBlock(session, "status", `tmux mode ${session.tmuxMode ? "enabled" : "disabled"}.`);
+      return session;
+    }
     default: {
       appendBlock(session, "status", ltf("custom.unknown.command", name));
       return session;
@@ -3393,6 +3636,7 @@ ipcMain.handle("app:restart", async () => {
   }, 120);
 });
 ipcMain.handle("automation:status", async () => currentAutomationServerStatus());
+ipcMain.handle("tmux:status", async () => listTmuxSessions());
 ipcMain.handle("plugin:install", async (_event, source) => installPluginFromSource(source));
 ipcMain.handle("plugin:create-template", async (_event, parentDir) => createPluginTemplate(parentDir));
 ipcMain.handle("plugin:runtime-snapshot", async (_event, pluginDirs) => buildPluginRuntimeSnapshot(pluginDirs));
@@ -3434,6 +3678,8 @@ ipcMain.handle("session:create", async (_event, payload) => {
 
 ipcMain.handle("session:prompt", async (_event, payload) => sendPrompt(payload));
 ipcMain.handle("session:slash-command", async (_event, payload) => runSlashCommand(payload));
+ipcMain.handle("session:open-raw-terminal", async (_event, sessionId) => openRawTerminal(sessionId));
+ipcMain.handle("session:send-raw-input", async (_event, payload) => sendRawInput(payload));
 ipcMain.handle("session:update-config", async (_event, payload) => {
   const session = sessions.get(String(payload?.sessionId ?? ""));
   if (!session) {

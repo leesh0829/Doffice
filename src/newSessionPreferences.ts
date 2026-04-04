@@ -34,6 +34,7 @@ export interface NewSessionDraftState {
   enableChrome: boolean;
   enableBrief: boolean;
   forkSession: boolean;
+  tmuxMode: boolean;
 }
 
 export type NewSessionPresetId = "balanced" | "planFirst" | "safeReview" | "parallelBuild";
@@ -68,7 +69,8 @@ export const defaultNewSessionDraft: NewSessionDraftState = {
   fallbackModel: "",
   enableChrome: true,
   enableBrief: false,
-  forkSession: false
+  forkSession: false,
+  tmuxMode: false
 };
 
 export function loadFavoriteProjects(): NewSessionProjectRecord[] {
@@ -159,7 +161,8 @@ export function loadNewSessionDraft(): NewSessionDraftState {
       fallbackModel: typeof parsed.fallbackModel === "string" ? parsed.fallbackModel : defaultNewSessionDraft.fallbackModel,
       enableChrome: typeof parsed.enableChrome === "boolean" ? parsed.enableChrome : defaultNewSessionDraft.enableChrome,
       enableBrief: typeof parsed.enableBrief === "boolean" ? parsed.enableBrief : defaultNewSessionDraft.enableBrief,
-      forkSession: typeof parsed.forkSession === "boolean" ? parsed.forkSession : defaultNewSessionDraft.forkSession
+      forkSession: typeof parsed.forkSession === "boolean" ? parsed.forkSession : defaultNewSessionDraft.forkSession,
+      tmuxMode: typeof parsed.tmuxMode === "boolean" ? parsed.tmuxMode : defaultNewSessionDraft.tmuxMode
     };
   } catch {
     return defaultNewSessionDraft;

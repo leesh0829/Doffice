@@ -713,7 +713,8 @@ function App() {
         sessionName: newSessionDraft.sessionName.trim() || undefined,
         enableChrome: newSessionDraft.enableChrome,
         forkSession: newSessionDraft.forkSession,
-        enableBrief: newSessionDraft.enableBrief
+        enableBrief: newSessionDraft.enableBrief,
+        tmuxMode: newSessionDraft.tmuxMode
       });
       const isFavorite = favoriteProjects.some((project) => project.path === newSessionDraft.projectPath.trim());
       setRecentProjects((current) =>
@@ -780,6 +781,31 @@ function App() {
       },
       5200
     );
+  }
+
+  async function openRawTerminalForSession(sessionId: string) {
+    const result = await window.doffice.openRawTerminal(sessionId);
+    appendNotification(
+      {
+        id: `raw-terminal-${sessionId}-${Date.now()}`,
+        sessionId,
+        title: "Raw Terminal",
+        detail: result.message,
+        tint: result.ok ? "#3ecf8e" : "#f14c4c",
+        glyph: result.ok ? "⌘" : "!"
+      },
+      result.ok ? 4200 : 7000
+    );
+  }
+
+  async function sendRawInputToSession(sessionId: string, text: string) {
+    if (!text.trim()) return;
+    setBusy(true);
+    try {
+      await window.doffice.sendRawInput(sessionId, text);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function executePluginCommand(scriptPath: string, title: string) {
@@ -931,6 +957,8 @@ function App() {
       notifyPluginMessage={handlePluginPanelNotify}
       onWorkspaceLevelUp={handleWorkspaceLevelUp}
       onPromptKeyPress={handlePromptKeyPress}
+      openRawTerminalForSession={openRawTerminalForSession}
+      sendRawInputToSession={sendRawInputToSession}
     />
   );
 }

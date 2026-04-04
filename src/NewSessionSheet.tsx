@@ -509,6 +509,15 @@ export function NewSessionSheet(props: NewSessionSheetProps) {
                       />
                     </label>
 
+                    <label className="sheet-toggle advanced-toggle-pill wide">
+                      <span><span className="sheet-inline-icon tone-purple">⌘</span>tmux 세션 유지 <small>raw terminal + WSL tmux</small></span>
+                      <input
+                        type="checkbox"
+                        checked={draft.tmuxMode}
+                        onChange={(event) => onUpdateDraft({ tmuxMode: event.target.checked })}
+                      />
+                    </label>
+
                     <label className="sheet-field">
                       <span><span className="sheet-inline-icon tone-orange">🛠</span>허용 도구 (쉼표 구분)</span>
                       <input value={draft.allowedTools} onChange={(event) => onUpdateDraft({ allowedTools: event.target.value })} placeholder="예: Bash,Read,Edit,Write" />

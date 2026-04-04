@@ -108,6 +108,8 @@ interface MainViewProps {
   notifyPluginMessage: (pluginName: string, text: string) => void;
   onWorkspaceLevelUp: (level: number) => void;
   onPromptKeyPress: (sessionId: string, previousValue: string, nextValue: string) => void;
+  openRawTerminalForSession: (sessionId: string) => Promise<void>;
+  sendRawInputToSession: (sessionId: string, text: string) => Promise<void>;
 }
 
 type PixelIconName =
@@ -278,7 +280,9 @@ export function MainView(props: MainViewProps) {
     executePluginCommand,
     notifyPluginMessage,
     onWorkspaceLevelUp,
-    onPromptKeyPress
+    onPromptKeyPress,
+    openRawTerminalForSession,
+    sendRawInputToSession
   } = props;
 
   const officeHeight = officeExpanded ? 380 : 240;
@@ -647,6 +651,8 @@ export function MainView(props: MainViewProps) {
                 removeSession={removeSession}
                 openNewSession={openNewSession}
                 onPromptKeyPress={onPromptKeyPress}
+                openRawTerminalForSession={openRawTerminalForSession}
+                sendRawInputToSession={sendRawInputToSession}
               />
             </div>
           ) : null}
@@ -689,6 +695,8 @@ export function MainView(props: MainViewProps) {
                 removeSession={removeSession}
                 openNewSession={openNewSession}
                 onPromptKeyPress={onPromptKeyPress}
+                openRawTerminalForSession={openRawTerminalForSession}
+                sendRawInputToSession={sendRawInputToSession}
               />
             </div>
           ) : null}
@@ -715,6 +723,8 @@ export function MainView(props: MainViewProps) {
               removeSession={removeSession}
               openNewSession={openNewSession}
               onPromptKeyPress={onPromptKeyPress}
+              openRawTerminalForSession={openRawTerminalForSession}
+              sendRawInputToSession={sendRawInputToSession}
             />
           ) : null}
         </main>

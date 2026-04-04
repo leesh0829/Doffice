@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import type { AgentProvider, AutomationServerStatus, CLIInstallResult, CLIStatus, CLIStatusPayload, PluginInstallResult, ReportReference, SessionSnapshot, SSHProfile } from "./types";
+import type { AgentProvider, AutomationServerStatus, CLIInstallResult, CLIStatus, CLIStatusPayload, PluginInstallResult, ReportReference, SessionSnapshot, SSHProfile, TmuxStatus } from "./types";
 import { t, tf } from "./localizationCatalog";
 import { relativeTime } from "./sessionUtils";
 import { pluginRegistry, type PluginRegistryEntry } from "./pluginRegistry";
@@ -419,6 +419,7 @@ function SettingsPanel(props: {
   const [cliActionState, setCliActionState] = useState<AgentProvider | "refresh" | null>(null);
   const [cliActionMessage, setCliActionMessage] = useState("");
   const [automationStatus, setAutomationStatus] = useState<AutomationServerStatus | null>(null);
+  const [tmuxStatus, setTmuxStatus] = useState<TmuxStatus | null>(null);
   const [sshProfiles, setSSHProfiles] = useState<SSHProfile[]>([]);
   const [sshDraft, setSSHDraft] = useState<SSHProfile>(emptySSHProfileDraft);
   const [sshActionMessage, setSSHActionMessage] = useState("");
@@ -448,9 +449,10 @@ function SettingsPanel(props: {
   }, [preferences.secretKey]);
 
   useEffect(() => {
-    void Promise.all([window.doffice.getAutomationServerStatus(), window.doffice.listSSHProfiles()])
-      .then(([nextAutomationStatus, nextSSHProfiles]) => {
+    void Promise.all([window.doffice.getAutomationServerStatus(), window.doffice.getTmuxStatus(), window.doffice.listSSHProfiles()])
+      .then(([nextAutomationStatus, nextTmuxStatus, nextSSHProfiles]) => {
         setAutomationStatus(nextAutomationStatus);
+        setTmuxStatus(nextTmuxStatus);
         setSSHProfiles(nextSSHProfiles);
       })
       .catch((error) => {
@@ -615,11 +617,13 @@ function SettingsPanel(props: {
   }
 
   async function refreshAutomationTerminalTools() {
-    const [nextAutomationStatus, nextSSHProfiles] = await Promise.all([
+    const [nextAutomationStatus, nextTmuxStatus, nextSSHProfiles] = await Promise.all([
       window.doffice.getAutomationServerStatus(),
+      window.doffice.getTmuxStatus(),
       window.doffice.listSSHProfiles()
     ]);
     setAutomationStatus(nextAutomationStatus);
+    setTmuxStatus(nextTmuxStatus);
     setSSHProfiles(nextSSHProfiles);
   }
 
@@ -816,6 +820,11 @@ function SettingsPanel(props: {
                 {automationStatus
                   ? `Automation server · ${automationStatus.running ? "ON" : "OFF"} · ${automationStatus.path}`
                   : "Automation server 정보를 불러오는 중입니다."}
+              </div>
+              <div className="settings-card-note">
+                {tmuxStatus
+                  ? `tmux · ${tmuxStatus.available ? "ON" : "OFF"}${tmuxStatus.path ? ` · ${tmuxStatus.path}` : ""} · ${tmuxStatus.sessions.length} session${tmuxStatus.sessions.length === 1 ? "" : "s"}`
+                  : "tmux 상태를 불러오는 중입니다."}
               </div>
               <div className="settings-action-row">
                 <button type="button" className="mini-action-button" onClick={() => void refreshAutomationTerminalTools()}>
