@@ -243,6 +243,32 @@ export interface CLIStatusPayload {
   geminiStatus: CLIStatus;
 }
 
+export type SSHAuthMethod = "password" | "key" | "agent";
+
+export interface SSHProfile {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  username: string;
+  authMethod: SSHAuthMethod;
+  keyPath: string;
+  remoteWorkDir: string;
+  sshCommand: string;
+}
+
+export interface SSHLaunchResult {
+  ok: boolean;
+  command: string;
+  message: string;
+}
+
+export interface AutomationServerStatus {
+  running: boolean;
+  path: string;
+  transport: "named-pipe" | "unix-socket";
+}
+
 export interface PluginRuntimeCharacter {
   id: string;
   name: string;
@@ -461,6 +487,7 @@ export interface UpdateSessionConfigPayload {
 export interface DofficeBridge {
   bootstrap: () => Promise<BootstrapPayload>;
   restartApp: () => Promise<void>;
+  getAutomationServerStatus: () => Promise<AutomationServerStatus>;
   installPluginSource: (source: string) => Promise<PluginInstallResult>;
   createPluginTemplate: (parentDir: string) => Promise<PluginInstallResult>;
   getPluginRuntimeSnapshot: (pluginDirs: string[]) => Promise<PluginRuntimeSnapshot>;
@@ -483,6 +510,10 @@ export interface DofficeBridge {
   dismissSensitiveWarning: (sessionId: string) => Promise<SessionSnapshot>;
   stopSession: (sessionId: string) => Promise<SessionSnapshot>;
   removeSession: (sessionId: string) => Promise<void>;
+  listSSHProfiles: () => Promise<SSHProfile[]>;
+  saveSSHProfile: (profile: Partial<SSHProfile>) => Promise<SSHProfile[]>;
+  deleteSSHProfile: (profileId: string) => Promise<SSHProfile[]>;
+  openSSHProfile: (profileId: string) => Promise<SSHLaunchResult>;
   pickDirectory: () => Promise<string>;
   openPath: (targetPath: string) => Promise<void>;
   revealPath: (targetPath: string) => Promise<void>;
@@ -492,4 +523,6 @@ export interface DofficeBridge {
   pickImageFile: () => Promise<ImageAttachment | null>;
   showSessionContextMenu: (sessionId: string) => Promise<void>;
   onSessionsUpdated: (callback: (payload: SessionSnapshot[]) => void) => () => void;
+  onAutomationSelectSession: (callback: (sessionId: string) => void) => () => void;
+  onAutomationOpenBrowser: (callback: (payload: { url: string; sessionId?: string }) => void) => () => void;
 }

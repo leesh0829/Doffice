@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("doffice", {
   bootstrap: () => ipcRenderer.invoke("app:bootstrap"),
   restartApp: () => ipcRenderer.invoke("app:restart"),
+  getAutomationServerStatus: () => ipcRenderer.invoke("automation:status"),
   installPluginSource: (source: string) => ipcRenderer.invoke("plugin:install", source),
   createPluginTemplate: (parentDir: string) => ipcRenderer.invoke("plugin:create-template", parentDir),
   getPluginRuntimeSnapshot: (pluginDirs: string[]) => ipcRenderer.invoke("plugin:runtime-snapshot", pluginDirs),
@@ -25,6 +26,10 @@ contextBridge.exposeInMainWorld("doffice", {
   dismissSensitiveWarning: (sessionId: string) => ipcRenderer.invoke("session:dismiss-sensitive-warning", sessionId),
   stopSession: (sessionId: string) => ipcRenderer.invoke("session:stop", sessionId),
   removeSession: (sessionId: string) => ipcRenderer.invoke("session:remove", sessionId),
+  listSSHProfiles: () => ipcRenderer.invoke("ssh:list"),
+  saveSSHProfile: (profile: unknown) => ipcRenderer.invoke("ssh:save", profile),
+  deleteSSHProfile: (profileId: string) => ipcRenderer.invoke("ssh:delete", profileId),
+  openSSHProfile: (profileId: string) => ipcRenderer.invoke("ssh:open", profileId),
   pickDirectory: () => ipcRenderer.invoke("dialog:pick-directory"),
   openPath: (targetPath: string) => ipcRenderer.invoke("path:open", targetPath),
   revealPath: (targetPath: string) => ipcRenderer.invoke("path:reveal", targetPath),
@@ -37,5 +42,15 @@ contextBridge.exposeInMainWorld("doffice", {
     const listener = (_event: Electron.IpcRendererEvent, payload: unknown) => callback(payload);
     ipcRenderer.on("sessions:updated", listener);
     return () => ipcRenderer.removeListener("sessions:updated", listener);
+  },
+  onAutomationSelectSession: (callback: (sessionId: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, sessionId: string) => callback(sessionId);
+    ipcRenderer.on("automation:select-session", listener);
+    return () => ipcRenderer.removeListener("automation:select-session", listener);
+  },
+  onAutomationOpenBrowser: (callback: (payload: { url: string; sessionId?: string }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, payload: { url: string; sessionId?: string }) => callback(payload);
+    ipcRenderer.on("automation:open-browser", listener);
+    return () => ipcRenderer.removeListener("automation:open-browser", listener);
   }
 });

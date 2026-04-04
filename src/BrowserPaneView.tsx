@@ -284,6 +284,17 @@ export function BrowserPaneView(props: BrowserPaneViewProps) {
     return () => window.cancelAnimationFrame(frame);
   }, [browserScope, activeTab?.id, activeTab?.url]);
 
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ url?: string; sessionId?: string }>).detail;
+      if (!detail?.url) return;
+      if (detail.sessionId && detail.sessionId !== (props.selectedSession?.id ?? "")) return;
+      navigate(detail.url);
+    };
+    window.addEventListener("doffice:open-browser-url", handler);
+    return () => window.removeEventListener("doffice:open-browser-url", handler);
+  }, [props.selectedSession?.id]);
+
   function updateWorkspaceState(update: (current: BrowserWorkspaceState) => BrowserWorkspaceState) {
     setWorkspaceState((current) => update(current));
   }

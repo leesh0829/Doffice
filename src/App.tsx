@@ -350,6 +350,26 @@ function App() {
   }, [sessions]);
 
   useEffect(() => {
+    const unsubscribeSelect = window.doffice.onAutomationSelectSession((sessionId) => {
+      setSelectedId(sessionId);
+    });
+    const unsubscribeOpenBrowser = window.doffice.onAutomationOpenBrowser((payload) => {
+      if (payload.sessionId) {
+        setSelectedId(payload.sessionId);
+      }
+      setAppViewMode("terminal");
+      setTerminalViewMode("browser");
+      window.setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("doffice:open-browser-url", { detail: payload }));
+      }, 40);
+    });
+    return () => {
+      unsubscribeSelect();
+      unsubscribeOpenBrowser();
+    };
+  }, []);
+
+  useEffect(() => {
     const validSessionIds = new Set(sessions.map((session) => session.id));
     setPinnedSessionIds((current) => {
       const next = current.filter((sessionId) => validSessionIds.has(sessionId));

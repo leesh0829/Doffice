@@ -2,6 +2,8 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, shell } from "electron";
 import { execFile, spawn } from "node:child_process";
 import fs from "node:fs/promises";
+import net from "node:net";
+import os from "node:os";
 import path from "node:path";
 import readline from "node:readline";
 import { pathToFileURL } from "node:url";
@@ -14,6 +16,8 @@ let mainWindow = null;
 let workerIndex = 0;
 let sessions = new Map();
 let persistTimer = null;
+let automationServer = null;
+let sshProfiles = [];
 let claudeStatus = {
   isInstalled: false,
   version: "",
@@ -154,6 +158,155 @@ const permissionModeAliases = {
 
 function sessionStorePath() {
   return path.join(app.getPath("userData"), "sessions.json");
+}
+
+function sshProfilesPath() {
+  return path.join(app.getPath("userData"), "ssh-profiles.json");
+}
+
+function automationServerPath() {
+  return process.platform === "win32" ? "\\\\.\\pipe\\doffice.sock" : path.join(os.tmpdir(), "doffice.sock");
+}
+
+function automationServerTransport() {
+  return process.platform === "win32" ? "named-pipe" : "unix-socket";
+}
+
+function currentAutomationServerStatus() {
+  return {
+    running: Boolean(automationServer?.listening),
+    path: automationServerPath(),
+    transport: automationServerTransport()
+  };
+}
+
+function normalizeSSHProfile(raw) {
+  const host = String(raw?.host ?? "").trim();
+  const username = String(raw?.username ?? "").trim();
+  const keyPath = String(raw?.keyPath ?? "").trim();
+  const remoteWorkDir = String(raw?.remoteWorkDir ?? "").trim();
+  const authMethod =
+    raw?.authMethod === "password" || raw?.authMethod === "key" || raw?.authMethod === "agent"
+      ? raw.authMethod
+      : "agent";
+  const profile = {
+    id: String(raw?.id ?? crypto.randomUUID()),
+    name: String(raw?.name ?? "").trim(),
+    host,
+    port: Math.max(1, Number(raw?.port) || 22),
+    username,
+    authMethod,
+    keyPath,
+    remoteWorkDir
+  };
+  return {
+    ...profile,
+    sshCommand: buildSSHCommand(profile)
+  };
+}
+
+function buildSSHCommand(profile) {
+  const host = String(profile?.host ?? "").trim();
+  const username = String(profile?.username ?? "").trim();
+  if (!host || !username) return "";
+  let command = "ssh";
+  if (Number(profile?.port) > 0 && Number(profile.port) !== 22) {
+    command += ` -p ${Number(profile.port)}`;
+  }
+  if (profile?.authMethod === "key" && String(profile?.keyPath ?? "").trim()) {
+    command += ` -i "${String(profile.keyPath).trim().replace(/"/g, '\\"')}"`;
+  }
+  command += ` ${username}@${host}`;
+  if (String(profile?.remoteWorkDir ?? "").trim()) {
+    const escapedDir = String(profile.remoteWorkDir).trim().replace(/'/g, "'\\''");
+    command += ` -t "cd '${escapedDir}' && exec $SHELL -l"`;
+  }
+  return command;
+}
+
+async function loadSSHProfiles() {
+  try {
+    const raw = await fs.readFile(sshProfilesPath(), "utf8");
+    const parsed = JSON.parse(raw);
+    sshProfiles = Array.isArray(parsed) ? parsed.map((profile) => normalizeSSHProfile(profile)).filter((profile) => profile.host && profile.username) : [];
+  } catch (error) {
+    if (error?.code !== "ENOENT") {
+      console.error("Failed to load SSH profiles", error);
+    }
+    sshProfiles = [];
+  }
+}
+
+async function persistSSHProfiles() {
+  await fs.mkdir(path.dirname(sshProfilesPath()), { recursive: true });
+  await fs.writeFile(
+    sshProfilesPath(),
+    JSON.stringify(
+      sshProfiles.map(({ sshCommand, ...profile }) => profile),
+      null,
+      2
+    ),
+    "utf8"
+  );
+}
+
+async function saveSSHProfileRecord(rawProfile) {
+  const nextProfile = normalizeSSHProfile(rawProfile);
+  if (!nextProfile.host || !nextProfile.username) {
+    throw new Error("SSH profile requires host and username.");
+  }
+  const index = sshProfiles.findIndex((profile) => profile.id === nextProfile.id);
+  if (index >= 0) {
+    sshProfiles[index] = nextProfile;
+  } else {
+    sshProfiles = [...sshProfiles, nextProfile];
+  }
+  await persistSSHProfiles();
+  return sshProfiles;
+}
+
+async function deleteSSHProfileRecord(profileId) {
+  sshProfiles = sshProfiles.filter((profile) => profile.id !== String(profileId ?? ""));
+  await persistSSHProfiles();
+  return sshProfiles;
+}
+
+async function openSSHProfile(profileId) {
+  const profile = sshProfiles.find((item) => item.id === String(profileId ?? ""));
+  if (!profile) {
+    throw new Error("SSH profile not found");
+  }
+  const command = buildSSHCommand(profile);
+  if (!command) {
+    throw new Error("SSH command is empty");
+  }
+
+  if (process.platform === "win32") {
+    try {
+      const child = spawn("cmd.exe", ["/c", "start", "", "cmd.exe", "/k", command], {
+        detached: true,
+        windowsHide: false,
+        shell: true,
+        stdio: "ignore"
+      });
+      child.unref();
+    } catch (error) {
+      throw new Error(error?.message ?? "Failed to open SSH terminal");
+    }
+  } else {
+    const shellPath = process.env.SHELL || "/bin/bash";
+    const child = spawn(shellPath, ["-lc", command], {
+      detached: true,
+      stdio: "ignore"
+    });
+    child.unref();
+  }
+
+  return {
+    ok: true,
+    command,
+    message: `Opened SSH connection for ${profile.name || `${profile.username}@${profile.host}`}`
+  };
 }
 
 function pluginInstallBasePath() {
@@ -1431,6 +1584,222 @@ function emitSessions() {
     return;
   }
   mainWindow.webContents.send("sessions:updated", [...sessions.values()].sort((a, b) => a.tabOrder - b.tabOrder));
+}
+
+function automationSessionInfo(session) {
+  return {
+    id: session.id,
+    name: session.projectName,
+    path: session.projectPath,
+    worker: session.workerName,
+    status: session.isCompleted ? "completed" : session.isProcessing ? "processing" : session.isRunning ? "running" : "stopped",
+    activity: session.claudeActivity,
+    model: session.selectedModel,
+    tokensUsed: session.tokensUsed,
+    cost: session.totalCost,
+    isProcessing: session.isProcessing,
+    isCompleted: session.isCompleted,
+    errorCount: session.blocks.filter((block) => block.kind === "toolError" || block.kind === "error").length,
+    commandCount: session.blocks.filter((block) => block.kind === "toolUse").length
+  };
+}
+
+function automationSuccess(payload) {
+  return { ok: true, ...payload };
+}
+
+function automationError(message) {
+  return { ok: false, error: message };
+}
+
+async function processAutomationRequest(rawLine) {
+  let json;
+  try {
+    json = JSON.parse(rawLine);
+  } catch {
+    return automationError('Invalid request. Expected JSON with "command" field.');
+  }
+  const command = String(json?.command ?? "").trim().toLowerCase();
+  if (!command) {
+    return automationError('Missing "command" field.');
+  }
+
+  switch (command) {
+    case "list-tabs":
+      return automationSuccess({
+        tabs: [...sessions.values()].sort((a, b) => a.tabOrder - b.tabOrder).map((session) => automationSessionInfo(session))
+      });
+    case "select-tab": {
+      const sessionId = String(json?.id ?? "").trim();
+      if (!sessionId) return automationError('Missing "id" parameter.');
+      if (!sessions.has(sessionId)) return automationError(`Tab not found: ${sessionId}`);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("automation:select-session", sessionId);
+      }
+      return automationSuccess({ selected: sessionId });
+    }
+    case "new-tab": {
+      const projectPath = String(json?.path ?? process.env.HOME ?? process.cwd()).trim();
+      const projectName = String(json?.name ?? "").trim() || path.basename(projectPath) || "Session";
+      const prompt = typeof json?.prompt === "string" ? json.prompt : "";
+      const session = createSession({
+        projectPath,
+        projectName,
+        initialPrompt: "",
+        manualLaunch: true
+      });
+      await refreshGitInfo(session);
+      emitSessions();
+      if (prompt.trim()) {
+        await sendPrompt({ sessionId: session.id, prompt });
+      }
+      return automationSuccess({ id: session.id, name: projectName, path: projectPath });
+    }
+    case "close-tab": {
+      const sessionId = String(json?.id ?? "").trim();
+      if (!sessionId) return automationError('Missing "id" parameter.');
+      const session = sessions.get(sessionId);
+      if (!session) return automationError(`Tab not found: ${sessionId}`);
+      if (session.child && !session.child.killed) {
+        session.child.kill();
+      }
+      sessions.delete(sessionId);
+      emitSessions();
+      return automationSuccess({ closed: sessionId });
+    }
+    case "send-input": {
+      const sessionId = String(json?.id ?? "").trim();
+      const text = String(json?.text ?? "");
+      if (!sessionId || !text.trim()) {
+        return automationError('Missing "id" or "text" parameter.');
+      }
+      if (!sessions.has(sessionId)) return automationError(`Tab not found: ${sessionId}`);
+      await sendPrompt({ sessionId, prompt: text });
+      return automationSuccess({ sent: true, id: sessionId });
+    }
+    case "get-status":
+      return automationSuccess({
+        tabCount: sessions.size,
+        totalTokens: [...sessions.values()].reduce((sum, session) => sum + Number(session.tokensUsed || 0), 0),
+        activeTab: [...sessions.values()].sort((a, b) => a.tabOrder - b.tabOrder)[0] ? automationSessionInfo([...sessions.values()].sort((a, b) => a.tabOrder - b.tabOrder)[0]) : null,
+        tabs: [...sessions.values()].sort((a, b) => a.tabOrder - b.tabOrder).map((session) => automationSessionInfo(session))
+      });
+    case "open-browser": {
+      const url = String(json?.url ?? "").trim();
+      const sessionId = String(json?.id ?? "").trim();
+      if (!url) return automationError('Missing "url" parameter.');
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("automation:open-browser", {
+          url,
+          sessionId: sessionId || undefined
+        });
+      }
+      return automationSuccess({ opened: url, id: sessionId || undefined });
+    }
+    case "get-notifications": {
+      const notifications = [];
+      for (const session of sessions.values()) {
+        if (session.pendingApproval) {
+          notifications.push({
+            type: "pending_approval",
+            tabId: session.id,
+            tabName: session.projectName,
+            command: session.pendingApproval.command,
+            reason: session.pendingApproval.reason
+          });
+        }
+        if (session.dangerousCommandWarning) {
+          notifications.push({
+            type: "dangerous_command",
+            tabId: session.id,
+            tabName: session.projectName,
+            warning: session.dangerousCommandWarning
+          });
+        }
+        if (session.sensitiveFileWarning) {
+          notifications.push({
+            type: "sensitive_file",
+            tabId: session.id,
+            tabName: session.projectName,
+            warning: session.sensitiveFileWarning
+          });
+        }
+        if (session.isCompleted) {
+          notifications.push({
+            type: "completed",
+            tabId: session.id,
+            tabName: session.projectName,
+            tokensUsed: session.tokensUsed,
+            cost: session.totalCost
+          });
+        }
+        const latestError = [...session.blocks].reverse().find((block) => block.kind === "toolError" || block.kind === "error");
+        if (latestError) {
+          notifications.push({
+            type: "error",
+            tabId: session.id,
+            tabName: session.projectName,
+            error: latestError.content
+          });
+        }
+      }
+      return automationSuccess({ notifications, count: notifications.length });
+    }
+    case "ping":
+      return automationSuccess({ message: "pong" });
+    default:
+      return automationError(`Unknown command: ${command}`);
+  }
+}
+
+async function startAutomationServer() {
+  if (automationServer?.listening) {
+    return currentAutomationServerStatus();
+  }
+  const socketPath = automationServerPath();
+  if (process.platform !== "win32") {
+    await fs.unlink(socketPath).catch(() => undefined);
+  }
+  automationServer = net.createServer((socket) => {
+    socket.setEncoding("utf8");
+    let buffer = "";
+    socket.on("data", (chunk) => {
+      buffer += String(chunk ?? "");
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() ?? "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        void processAutomationRequest(trimmed)
+          .then((response) => {
+            socket.write(`${JSON.stringify(response)}\n`);
+          })
+          .catch((error) => {
+            socket.write(`${JSON.stringify(automationError(error?.message ?? "Automation request failed"))}\n`);
+          });
+      }
+    });
+  });
+  await new Promise((resolve, reject) => {
+    automationServer.once("error", reject);
+    automationServer.listen(socketPath, () => {
+      automationServer.off("error", reject);
+      resolve(undefined);
+    });
+  });
+  return currentAutomationServerStatus();
+}
+
+async function stopAutomationServer() {
+  if (!automationServer) return;
+  const server = automationServer;
+  automationServer = null;
+  await new Promise((resolve) => {
+    server.close(() => resolve(undefined));
+  }).catch(() => undefined);
+  if (process.platform !== "win32") {
+    await fs.unlink(automationServerPath()).catch(() => undefined);
+  }
 }
 
 function workerColor(index) {
@@ -2978,8 +3347,12 @@ function createWindow() {
 
 app.whenReady().then(async () => {
   await loadPersistedSessions();
+  await loadSSHProfiles();
   await refreshCLIStatuses();
   await Promise.allSettled([...sessions.values()].map((session) => refreshGitInfo(session)));
+  await startAutomationServer().catch((error) => {
+    console.error("Failed to start automation server", error);
+  });
   createWindow();
 
   app.on("activate", () => {
@@ -3001,7 +3374,10 @@ app.on("before-quit", (event) => {
     .catch((error) => {
       console.error("Failed to flush sessions before quit", error);
     })
-    .finally(() => {
+    .finally(async () => {
+      await stopAutomationServer().catch((error) => {
+        console.error("Failed to stop automation server", error);
+      });
       app.exit(0);
     });
 });
@@ -3016,6 +3392,7 @@ ipcMain.handle("app:restart", async () => {
     app.exit(0);
   }, 120);
 });
+ipcMain.handle("automation:status", async () => currentAutomationServerStatus());
 ipcMain.handle("plugin:install", async (_event, source) => installPluginFromSource(source));
 ipcMain.handle("plugin:create-template", async (_event, parentDir) => createPluginTemplate(parentDir));
 ipcMain.handle("plugin:runtime-snapshot", async (_event, pluginDirs) => buildPluginRuntimeSnapshot(pluginDirs));
@@ -3023,6 +3400,10 @@ ipcMain.handle("plugin:execute-command", async (_event, payload) => runPluginScr
 ipcMain.handle("plugin:read-status-bar", async (_event, payload) => readPluginStatusBar(payload?.scriptPath, payload?.projectPath));
 ipcMain.handle("app:refresh-cli-status", async () => refreshCLIStatuses());
 ipcMain.handle("app:install-cli", async (_event, provider) => installCLI(provider));
+ipcMain.handle("ssh:list", async () => sshProfiles);
+ipcMain.handle("ssh:save", async (_event, profile) => saveSSHProfileRecord(profile));
+ipcMain.handle("ssh:delete", async (_event, profileId) => deleteSSHProfileRecord(profileId));
+ipcMain.handle("ssh:open", async (_event, profileId) => openSSHProfile(profileId));
 
 ipcMain.handle("git:snapshot", async (_event, payload) => getGitPanelSnapshot(payload?.projectPath, payload?.refName));
 ipcMain.handle("git:execute", async (_event, payload) => executeGitAction(payload));

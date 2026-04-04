@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import type { AgentProvider, CLIInstallResult, CLIStatus, CLIStatusPayload, PluginInstallResult, ReportReference, SessionSnapshot } from "./types";
+import type { AgentProvider, AutomationServerStatus, CLIInstallResult, CLIStatus, CLIStatusPayload, PluginInstallResult, ReportReference, SessionSnapshot, SSHProfile } from "./types";
 import { t, tf } from "./localizationCatalog";
 import { relativeTime } from "./sessionUtils";
 import { pluginRegistry, type PluginRegistryEntry } from "./pluginRegistry";
@@ -173,6 +173,20 @@ function loadShortcutDrafts() {
 
 function saveShortcutDrafts(nextDrafts: Record<string, string>) {
   window.localStorage.setItem(shortcutStorageKey, JSON.stringify(nextDrafts));
+}
+
+function emptySSHProfileDraft(): SSHProfile {
+  return {
+    id: "",
+    name: "",
+    host: "",
+    port: 22,
+    username: "",
+    authMethod: "agent",
+    keyPath: "",
+    remoteWorkDir: "",
+    sshCommand: ""
+  };
 }
 
 const shortcutRowsSession = [
@@ -404,6 +418,10 @@ function SettingsPanel(props: {
   const [pluginActionMessage, setPluginActionMessage] = useState("");
   const [cliActionState, setCliActionState] = useState<AgentProvider | "refresh" | null>(null);
   const [cliActionMessage, setCliActionMessage] = useState("");
+  const [automationStatus, setAutomationStatus] = useState<AutomationServerStatus | null>(null);
+  const [sshProfiles, setSSHProfiles] = useState<SSHProfile[]>([]);
+  const [sshDraft, setSSHDraft] = useState<SSHProfile>(emptySSHProfileDraft);
+  const [sshActionMessage, setSSHActionMessage] = useState("");
 
   useEffect(() => {
     saveTemplateDrafts(templateDrafts);
@@ -428,6 +446,17 @@ function SettingsPanel(props: {
   useEffect(() => {
     setSecretKeyDraft(preferences.secretKey);
   }, [preferences.secretKey]);
+
+  useEffect(() => {
+    void Promise.all([window.doffice.getAutomationServerStatus(), window.doffice.listSSHProfiles()])
+      .then(([nextAutomationStatus, nextSSHProfiles]) => {
+        setAutomationStatus(nextAutomationStatus);
+        setSSHProfiles(nextSSHProfiles);
+      })
+      .catch((error) => {
+        setSSHActionMessage(error instanceof Error ? error.message : "SSH 정보를 불러오지 못했습니다.");
+      });
+  }, []);
 
   const marketplaceTags = useMemo(
     () => Array.from(new Set(pluginMarketplace.flatMap((item) => item.tags))),
@@ -583,6 +612,43 @@ function SettingsPanel(props: {
     } finally {
       setCliActionState(null);
     }
+  }
+
+  async function refreshAutomationTerminalTools() {
+    const [nextAutomationStatus, nextSSHProfiles] = await Promise.all([
+      window.doffice.getAutomationServerStatus(),
+      window.doffice.listSSHProfiles()
+    ]);
+    setAutomationStatus(nextAutomationStatus);
+    setSSHProfiles(nextSSHProfiles);
+  }
+
+  async function handleSaveSSHProfile() {
+    if (!sshDraft.host.trim() || !sshDraft.username.trim()) {
+      setSSHActionMessage("SSH 프로필에는 host 와 username 이 필요합니다.");
+      return;
+    }
+    const nextProfiles = await window.doffice.saveSSHProfile(sshDraft);
+    setSSHProfiles(nextProfiles);
+    setSSHDraft(emptySSHProfileDraft());
+    setSSHActionMessage("SSH 프로필을 저장했습니다.");
+  }
+
+  function handleEditSSHProfile(profile: SSHProfile) {
+    setSSHDraft(profile);
+    setSSHActionMessage("");
+  }
+
+  async function handleDeleteSSHProfile(profileId: string) {
+    const nextProfiles = await window.doffice.deleteSSHProfile(profileId);
+    setSSHProfiles(nextProfiles);
+    setSSHDraft((current) => (current.id === profileId ? emptySSHProfileDraft() : current));
+    setSSHActionMessage("SSH 프로필을 삭제했습니다.");
+  }
+
+  async function handleOpenSSHProfile(profileId: string) {
+    const result = await window.doffice.openSSHProfile(profileId);
+    setSSHActionMessage(result.message);
   }
 
   async function installPlugin(source: string, options?: { title?: string; registryEntry?: PluginEntryLike }) {
@@ -746,6 +812,84 @@ function SettingsPanel(props: {
                   </button>
                 </div>
               </div>
+              <div className="settings-card-note">
+                {automationStatus
+                  ? `Automation server · ${automationStatus.running ? "ON" : "OFF"} · ${automationStatus.path}`
+                  : "Automation server 정보를 불러오는 중입니다."}
+              </div>
+              <div className="settings-action-row">
+                <button type="button" className="mini-action-button" onClick={() => void refreshAutomationTerminalTools()}>
+                  새로고침
+                </button>
+                {automationStatus ? (
+                  <button type="button" className="mini-action-button" onClick={() => void window.doffice.copyText(automationStatus.path)}>
+                    경로 복사
+                  </button>
+                ) : null}
+              </div>
+              <div className="marketplace-list">
+                {sshProfiles.length === 0 ? <div className="leaderboard-empty">저장된 SSH 프로필이 없습니다.</div> : null}
+                {sshProfiles.map((profile) => (
+                  <div key={profile.id} className="marketplace-row">
+                    <div className="marketplace-copy">
+                      <strong>{profile.name || `${profile.username}@${profile.host}`}</strong>
+                      <span>{`${profile.username}@${profile.host}:${profile.port}`}</span>
+                      <small className="path-ellipsis">{profile.remoteWorkDir || profile.sshCommand}</small>
+                    </div>
+                    <div className="settings-inline-actions">
+                      <button type="button" className="mini-action-button success" onClick={() => void handleOpenSSHProfile(profile.id)}>연결</button>
+                      <button type="button" className="mini-action-button" onClick={() => handleEditSSHProfile(profile)}>편집</button>
+                      <button type="button" className="mini-action-button" onClick={() => void window.doffice.copyText(profile.sshCommand)}>복사</button>
+                      <button type="button" className="mini-action-button danger-text" onClick={() => void handleDeleteSSHProfile(profile.id)}>삭제</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="settings-form-grid">
+                <label>
+                  <span>이름</span>
+                  <input value={sshDraft.name} onChange={(event) => setSSHDraft((current) => ({ ...current, name: event.target.value }))} placeholder="example server" />
+                </label>
+                <label>
+                  <span>Host</span>
+                  <input value={sshDraft.host} onChange={(event) => setSSHDraft((current) => ({ ...current, host: event.target.value }))} placeholder="127.0.0.1" />
+                </label>
+                <label>
+                  <span>Port</span>
+                  <input type="number" min={1} value={sshDraft.port} onChange={(event) => setSSHDraft((current) => ({ ...current, port: Math.max(1, Number(event.target.value) || 22) }))} />
+                </label>
+                <label>
+                  <span>Username</span>
+                  <input value={sshDraft.username} onChange={(event) => setSSHDraft((current) => ({ ...current, username: event.target.value }))} placeholder="adelie" />
+                </label>
+                <label>
+                  <span>Auth</span>
+                  <select value={sshDraft.authMethod} onChange={(event) => setSSHDraft((current) => ({ ...current, authMethod: event.target.value as SSHProfile["authMethod"] }))}>
+                    <option value="agent">SSH Agent</option>
+                    <option value="key">SSH Key</option>
+                    <option value="password">Password</option>
+                  </select>
+                </label>
+                <label className="settings-form-grid-span">
+                  <span>Key Path</span>
+                  <input value={sshDraft.keyPath} onChange={(event) => setSSHDraft((current) => ({ ...current, keyPath: event.target.value }))} placeholder="~/.ssh/id_ed25519" />
+                </label>
+                <label className="settings-form-grid-span">
+                  <span>Remote Workdir</span>
+                  <input value={sshDraft.remoteWorkDir} onChange={(event) => setSSHDraft((current) => ({ ...current, remoteWorkDir: event.target.value }))} placeholder="~/project" />
+                </label>
+              </div>
+              <div className="settings-action-row">
+                <button type="button" className="mini-action-button success" onClick={() => void handleSaveSSHProfile()}>
+                  {sshDraft.id ? "프로필 업데이트" : "프로필 저장"}
+                </button>
+                {sshDraft.id ? (
+                  <button type="button" className="mini-action-button" onClick={() => setSSHDraft(emptySSHProfileDraft())}>
+                    새 프로필
+                  </button>
+                ) : null}
+              </div>
+              {sshActionMessage ? <div className="settings-card-note">{sshActionMessage}</div> : null}
             </SettingsCard>
             <SettingsCard title={<span className="settings-section-title"><span className="panel-title-emoji tone-green">⚡</span>{t("settings.section.cli")}</span>}>
               <div className="settings-action-row">
