@@ -54,6 +54,12 @@ export interface WorkspacePreferences {
   claudeSessionTokenLimit: number;
   codexSessionTokenLimit: number;
   geminiSessionTokenLimit: number;
+  claudeWeeklyLimit: number;
+  codexWeeklyLimit: number;
+  geminiWeeklyLimit: number;
+  claudePlanName: string;
+  codexPlanName: string;
+  geminiPlanName: string;
   warnAtBudgetThreshold: boolean;
   protectDangerousCommands: boolean;
   protectSensitiveFiles: boolean;
@@ -218,6 +224,12 @@ export const defaultWorkspacePreferences: WorkspacePreferences = {
   claudeSessionTokenLimit: 0,
   codexSessionTokenLimit: 0,
   geminiSessionTokenLimit: 0,
+  claudeWeeklyLimit: 0,
+  codexWeeklyLimit: 0,
+  geminiWeeklyLimit: 0,
+  claudePlanName: "",
+  codexPlanName: "",
+  geminiPlanName: "",
   warnAtBudgetThreshold: true,
   protectDangerousCommands: true,
   protectSensitiveFiles: true,
@@ -350,6 +362,18 @@ export function loadWorkspacePreferences(): WorkspacePreferences {
         typeof parsed.codexSessionTokenLimit === "number" ? parsed.codexSessionTokenLimit : defaultWorkspacePreferences.codexSessionTokenLimit,
       geminiSessionTokenLimit:
         typeof parsed.geminiSessionTokenLimit === "number" ? parsed.geminiSessionTokenLimit : defaultWorkspacePreferences.geminiSessionTokenLimit,
+      claudeWeeklyLimit:
+        typeof parsed.claudeWeeklyLimit === "number" ? parsed.claudeWeeklyLimit : defaultWorkspacePreferences.claudeWeeklyLimit,
+      codexWeeklyLimit:
+        typeof parsed.codexWeeklyLimit === "number" ? parsed.codexWeeklyLimit : defaultWorkspacePreferences.codexWeeklyLimit,
+      geminiWeeklyLimit:
+        typeof parsed.geminiWeeklyLimit === "number" ? parsed.geminiWeeklyLimit : defaultWorkspacePreferences.geminiWeeklyLimit,
+      claudePlanName:
+        typeof parsed.claudePlanName === "string" ? parsed.claudePlanName : defaultWorkspacePreferences.claudePlanName,
+      codexPlanName:
+        typeof parsed.codexPlanName === "string" ? parsed.codexPlanName : defaultWorkspacePreferences.codexPlanName,
+      geminiPlanName:
+        typeof parsed.geminiPlanName === "string" ? parsed.geminiPlanName : defaultWorkspacePreferences.geminiPlanName,
       warnAtBudgetThreshold: typeof parsed.warnAtBudgetThreshold === "boolean" ? parsed.warnAtBudgetThreshold : defaultWorkspacePreferences.warnAtBudgetThreshold,
       protectDangerousCommands: typeof parsed.protectDangerousCommands === "boolean" ? parsed.protectDangerousCommands : defaultWorkspacePreferences.protectDangerousCommands,
       protectSensitiveFiles: typeof parsed.protectSensitiveFiles === "boolean" ? parsed.protectSensitiveFiles : defaultWorkspacePreferences.protectSensitiveFiles,

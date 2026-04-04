@@ -2395,6 +2395,12 @@ ipcMain.handle("app:bootstrap", async () => ({
   sessions: [...sessions.values()].sort((a, b) => a.tabOrder - b.tabOrder),
   ...currentCLIStatusPayload()
 }));
+ipcMain.handle("app:restart", async () => {
+  setTimeout(() => {
+    app.relaunch();
+    app.exit(0);
+  }, 120);
+});
 ipcMain.handle("app:refresh-cli-status", async () => refreshCLIStatuses());
 ipcMain.handle("app:install-cli", async (_event, provider) => installCLI(provider));
 

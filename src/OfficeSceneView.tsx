@@ -477,7 +477,7 @@ export function OfficeSceneView(props: OfficeSceneViewProps) {
 
   const selectedCharacter = selectedSession ? resolveCharacterForSession(selectedSession) : null;
   const selectedStatus = selectedSession ? inferStatus(selectedSession) : null;
-  const selectedRoleLabel = selectedCharacter ? jobCatalog[selectedCharacter.jobRole].label : "";
+  const selectedRoleLabel = selectedCharacter ? jobCatalog[selectedCharacter.jobRole].shortLabel : "";
   const enabledKinds = new Set(
     accessoryCatalog.flatMap((entry) => (enabledAccessoryIds.includes(entry.id) ? entry.officeKinds : []))
   );

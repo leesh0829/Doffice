@@ -5,11 +5,13 @@ import { relativeTime } from "./sessionUtils";
 import { pluginRegistry, type PluginRegistryEntry } from "./pluginRegistry";
 import {
   accessoryCatalog,
+  applyWorkspacePreferences,
   allCharacters,
   backgroundCatalog,
   buildWorkspaceAchievements,
   defaultWorkspacePreferences,
   jobCatalog,
+  saveWorkspacePreferences,
   speciesCatalog,
   totalAchievementCount,
   totalAccessoryCount,
@@ -73,6 +75,24 @@ const workflowChoices = [
   { id: "report", label: "보고서", icon: "📄", tone: "blue", subtitle: "최종 Markdown 보고서 구조와 작성 지침입니다." },
   { id: "sre", label: "SRE", icon: "🖳", tone: "yellow", subtitle: "배포/운영 안정성 점검 방식입니다." }
 ];
+
+const providerPlanCatalog = {
+  claude: [
+    { name: "Pro", weeklyLimit: 25_000_000 },
+    { name: "Max 5x", weeklyLimit: 125_000_000 },
+    { name: "Max 20x", weeklyLimit: 500_000_000 },
+    { name: "Team", weeklyLimit: 50_000_000 },
+    { name: "Enterprise", weeklyLimit: 100_000_000 }
+  ],
+  codex: [
+    { name: "Pro", weeklyLimit: 30_000_000 },
+    { name: "Team", weeklyLimit: 60_000_000 }
+  ],
+  gemini: [
+    { name: "Advanced", weeklyLimit: 40_000_000 },
+    { name: "Business", weeklyLimit: 80_000_000 }
+  ]
+} as const;
 
 const backgroundChoices = backgroundCatalog;
 
@@ -496,6 +516,80 @@ function SettingsPanel(props: {
     updatePreferences({ secretKey: secretKeyDraft.trim() });
   }
 
+  function persistPreferences(nextPreferences: WorkspacePreferences) {
+    saveWorkspacePreferences(nextPreferences);
+    applyWorkspacePreferences(nextPreferences);
+    updatePreferences(nextPreferences);
+  }
+
+  async function requestRestartForPreferences(
+    patch: Partial<WorkspacePreferences>,
+    confirmationMessage: string
+  ) {
+    const nextPreferences = { ...preferences, ...patch };
+    if (JSON.stringify(nextPreferences) === JSON.stringify(preferences)) return;
+    if (!window.confirm(confirmationMessage)) return;
+    persistPreferences(nextPreferences);
+    await window.doffice.restartApp();
+  }
+
+  const combinedProviderWeeklyLimit =
+    preferences.claudeWeeklyLimit + preferences.codexWeeklyLimit + preferences.geminiWeeklyLimit;
+  const combinedProviderDailyLimit = combinedProviderWeeklyLimit > 0 ? Math.floor(combinedProviderWeeklyLimit / 7) : 0;
+
+  function applyProviderPlan(provider: AgentProvider, planName: string, weeklyLimit: number) {
+    const suggestedSessionLimit = Math.floor(weeklyLimit / 7);
+    switch (provider) {
+      case "claude":
+        updatePreferences({
+          claudePlanName: planName,
+          claudeWeeklyLimit: weeklyLimit,
+          claudeSessionTokenLimit: suggestedSessionLimit
+        });
+        return;
+      case "codex":
+        updatePreferences({
+          codexPlanName: planName,
+          codexWeeklyLimit: weeklyLimit,
+          codexSessionTokenLimit: suggestedSessionLimit
+        });
+        return;
+      case "gemini":
+        updatePreferences({
+          geminiPlanName: planName,
+          geminiWeeklyLimit: weeklyLimit,
+          geminiSessionTokenLimit: suggestedSessionLimit
+        });
+        return;
+    }
+  }
+
+  function clearProviderPlan(provider: AgentProvider) {
+    switch (provider) {
+      case "claude":
+        updatePreferences({
+          claudePlanName: "",
+          claudeWeeklyLimit: 0,
+          claudeSessionTokenLimit: 0
+        });
+        return;
+      case "codex":
+        updatePreferences({
+          codexPlanName: "",
+          codexWeeklyLimit: 0,
+          codexSessionTokenLimit: 0
+        });
+        return;
+      case "gemini":
+        updatePreferences({
+          geminiPlanName: "",
+          geminiWeeklyLimit: 0,
+          geminiSessionTokenLimit: 0
+        });
+        return;
+    }
+  }
+
   function handleTabChange(nextTab: SettingsTab) {
     commitWorkspaceNameDraft();
     setTab(nextTab);
@@ -620,7 +714,12 @@ function SettingsPanel(props: {
                     key={id}
                     type="button"
                     className={`segmented-choice ${preferences.language === id ? "is-active" : ""}`}
-                    onClick={() => updatePreferences({ language: id as WorkspacePreferences["language"] })}
+                    onClick={() =>
+                      void requestRestartForPreferences(
+                        { language: id as WorkspacePreferences["language"] },
+                        t("settings.restart.language.confirm")
+                      )
+                    }
                   >
                     {label}
                   </button>
@@ -717,7 +816,12 @@ function SettingsPanel(props: {
                     key={id}
                     type="button"
                     className={`theme-choice theme-choice-tone ${preferences.themeMode === id ? "is-active" : ""}`}
-                    onClick={() => updatePreferences({ themeMode: id as WorkspacePreferences["themeMode"] })}
+                    onClick={() =>
+                      void requestRestartForPreferences(
+                        { themeMode: id as WorkspacePreferences["themeMode"] },
+                        t("settings.restart.theme.confirm")
+                      )
+                    }
                   >
                     <span className="choice-icon">{icon}</span>
                     <span>{label}</span>
@@ -751,7 +855,12 @@ function SettingsPanel(props: {
                     key={size}
                     type="button"
                     className={`theme-choice ${preferences.fontScale === size ? "is-active" : ""}`}
-                    onClick={() => updatePreferences({ fontScale: size as WorkspacePreferences["fontScale"] })}
+                    onClick={() =>
+                      void requestRestartForPreferences(
+                        { fontScale: size as WorkspacePreferences["fontScale"] },
+                        t("settings.restart.font.confirm")
+                      )
+                    }
                   >
                     {size.toUpperCase()}
                   </button>
@@ -813,64 +922,73 @@ function SettingsPanel(props: {
                   <span>{t("settings.tokens.today")}</span>
                   <strong>{formatCompactNumber(Math.max(0, Math.round(totals.tokens / 5)))}</strong>
                   <small>$0.00</small>
-                  <span className="settings-inline-progress"><span style={{ width: `${Math.min(100, preferences.dailyBudgetUSD > 0 ? (totals.tokens / Math.max(1, preferences.dailyBudgetUSD * 49000)) * 100 : 18)}%` }} /></span>
+                  <span className="settings-inline-progress"><span style={{ width: `${Math.max(0, Math.min(100, preferences.dailyBudgetUSD > 0 ? (totals.tokens / Math.max(1, preferences.dailyBudgetUSD * 49000)) * 100 : 18))}%` }} /></span>
                 </div>
                 <div className="usage-card">
                   <span>{t("settings.tokens.this.week")}</span>
                   <strong>{formatCompactNumber(totals.tokens)}</strong>
                   <small>{`$${(totals.tokens / 49000).toFixed(2)}`}</small>
-                  <span className="settings-inline-progress"><span style={{ width: `${Math.min(100, preferences.sessionBudgetUSD > 0 ? (totals.tokens / Math.max(1, preferences.sessionBudgetUSD * 49000)) * 100 : 36)}%` }} /></span>
+                  <span className="settings-inline-progress"><span style={{ width: `${Math.max(0, Math.min(100, preferences.sessionBudgetUSD > 0 ? (totals.tokens / Math.max(1, preferences.sessionBudgetUSD * 49000)) * 100 : 36))}%` }} /></span>
                 </div>
               </div>
-              <div className="settings-form-grid">
-                <label>
-                  <span>{t("settings.tokens.daily.limit")}</span>
-                  <input
-                    type="number"
-                    value={preferences.dailyBudgetUSD}
-                    onChange={(event) => updatePreferences({ dailyBudgetUSD: Number(event.target.value) || 0 })}
-                  />
-                </label>
-                <label>
-                  <span>{t("settings.tokens.session.limit")}</span>
-                  <input
-                    type="number"
-                    value={preferences.sessionBudgetUSD}
-                    onChange={(event) => updatePreferences({ sessionBudgetUSD: Number(event.target.value) || 0 })}
-                  />
-                </label>
-              </div>
-              <div className="settings-notice-banner settings-token-note-inline">
-                <span className="panel-title-emoji tone-green">🛡</span>
-                <span>{t("settings.tokens.recommendation")}</span>
-              </div>
-              <div className="settings-action-row">
-                <button
-                  type="button"
-                  className="mini-action-button apply-button"
-                  onClick={() =>
-                    updatePreferences({
-                      dailyBudgetUSD: Math.max(preferences.dailyBudgetUSD, 5),
-                      sessionBudgetUSD: Math.max(preferences.sessionBudgetUSD, 2)
-                    })
-                  }
-                >
-                  {t("settings.tokens.apply.recommended")}
-                </button>
-                <button
-                  type="button"
-                  className="mini-action-button reset-button"
-                  onClick={() =>
-                    updatePreferences((current) => ({
-                      ...current,
-                      dailyBudgetUSD: 0,
-                      sessionBudgetUSD: 0
-                    }))
-                  }
-                >
-                  {t("settings.tokens.clear.history")}
-                </button>
-              </div>
+              {preferences.tokenProtectionEnabled ? (
+                <>
+                  <div className="settings-form-grid">
+                    <label>
+                      <span>{t("settings.tokens.daily.limit")}</span>
+                      <input
+                        type="number"
+                        value={preferences.dailyBudgetUSD}
+                        onChange={(event) => updatePreferences({ dailyBudgetUSD: Number(event.target.value) || 0 })}
+                      />
+                    </label>
+                    <label>
+                      <span>{t("settings.tokens.session.limit")}</span>
+                      <input
+                        type="number"
+                        value={preferences.sessionBudgetUSD}
+                        onChange={(event) => updatePreferences({ sessionBudgetUSD: Number(event.target.value) || 0 })}
+                      />
+                    </label>
+                  </div>
+                  <div className="settings-notice-banner settings-token-note-inline">
+                    <span className="panel-title-emoji tone-green">🛡</span>
+                    <span>{t("settings.tokens.recommendation")}</span>
+                  </div>
+                  <div className="settings-action-row">
+                    <button
+                      type="button"
+                      className="mini-action-button apply-button"
+                      onClick={() =>
+                        updatePreferences({
+                          dailyBudgetUSD: Math.max(preferences.dailyBudgetUSD, 5),
+                          sessionBudgetUSD: Math.max(preferences.sessionBudgetUSD, 2)
+                        })
+                      }
+                    >
+                      {t("settings.tokens.apply.recommended")}
+                    </button>
+                    <button
+                      type="button"
+                      className="mini-action-button reset-button"
+                      onClick={() =>
+                        updatePreferences((current) => ({
+                          ...current,
+                          dailyBudgetUSD: 0,
+                          sessionBudgetUSD: 0
+                        }))
+                      }
+                    >
+                      {t("settings.tokens.clear.history")}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="settings-notice-banner settings-token-note-inline muted">
+                  <span className="panel-title-emoji tone-default">⊝</span>
+                  <span>{t("settings.tokens.protection.disabled.desc")}</span>
+                </div>
+              )}
             </SettingsCard>
             <SettingsCard title={<span className="settings-section-title"><span className="panel-title-emoji tone-green">🛡</span>{t("settings.tokens.protection.title")}</span>}>
               <ToggleRow
@@ -912,6 +1030,77 @@ function SettingsPanel(props: {
               </div>
               <div className="settings-card-note">{t("settings.tokens.provider.limits")}</div>
             </SettingsCard>
+            {preferences.tokenProtectionEnabled ? (
+              <SettingsCard title={<span className="settings-section-title"><span className="panel-title-emoji tone-purple">∑</span>{t("settings.tokens.plan.title")}</span>}>
+                <div className="settings-card-note">{t("settings.tokens.plan.subtitle")}</div>
+                {combinedProviderWeeklyLimit > 0 ? (
+                  <div className="settings-notice-banner settings-token-plan-summary">
+                    <span className="panel-title-emoji tone-accent">◈</span>
+                    <span>{tf("settings.tokens.plan.summary", undefined, formatCompactNumber(combinedProviderWeeklyLimit), formatCompactNumber(combinedProviderDailyLimit))}</span>
+                  </div>
+                ) : null}
+                <div className="provider-plan-grid">
+                  {([
+                    {
+                      id: "claude" as const,
+                      label: t("settings.tokens.provider.claude"),
+                      selectedPlan: preferences.claudePlanName,
+                      weeklyLimit: preferences.claudeWeeklyLimit,
+                      sessionLimit: preferences.claudeSessionTokenLimit,
+                      plans: providerPlanCatalog.claude
+                    },
+                    {
+                      id: "codex" as const,
+                      label: t("settings.tokens.provider.codex"),
+                      selectedPlan: preferences.codexPlanName,
+                      weeklyLimit: preferences.codexWeeklyLimit,
+                      sessionLimit: preferences.codexSessionTokenLimit,
+                      plans: providerPlanCatalog.codex
+                    },
+                    {
+                      id: "gemini" as const,
+                      label: t("settings.tokens.provider.gemini"),
+                      selectedPlan: preferences.geminiPlanName,
+                      weeklyLimit: preferences.geminiWeeklyLimit,
+                      sessionLimit: preferences.geminiSessionTokenLimit,
+                      plans: providerPlanCatalog.gemini
+                    }
+                  ]).map((entry) => (
+                    <div key={entry.id} className="provider-plan-card">
+                      <div className="provider-plan-header">
+                        <strong>{entry.label}</strong>
+                        <span>
+                          {entry.selectedPlan
+                            ? tf("settings.tokens.plan.active", undefined, entry.selectedPlan, formatCompactNumber(entry.weeklyLimit))
+                            : t("settings.tokens.plan.none")}
+                        </span>
+                      </div>
+                      <div className="provider-plan-chip-row">
+                        {entry.plans.map((plan) => (
+                          <button
+                            key={plan.name}
+                            type="button"
+                            className={`plan-chip ${entry.selectedPlan === plan.name ? "is-active" : ""}`}
+                            onClick={() => applyProviderPlan(entry.id, plan.name, plan.weeklyLimit)}
+                          >
+                            <strong>{plan.name}</strong>
+                            <span>{tf("settings.tokens.plan.weekly", undefined, formatCompactNumber(plan.weeklyLimit))}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <div className="provider-plan-footer">
+                        <span>{tf("settings.tokens.plan.session.suggestion", undefined, formatCompactNumber(entry.sessionLimit))}</span>
+                        {entry.selectedPlan ? (
+                          <button type="button" className="ghost-link-button" onClick={() => clearProviderPlan(entry.id)}>
+                            {t("settings.tokens.plan.clear")}
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </SettingsCard>
+            ) : null}
             <SettingsCard title={<span className="settings-section-title"><span className="panel-title-emoji tone-green">🛡</span>{t("settings.tokens.section.automation")}</span>}>
               <ToggleRow
                 label={t("settings.tokens.parallel.agents")}

@@ -434,7 +434,7 @@ textarea:focus {
 .filter-chip-row {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 4px;
+  gap: 3px;
   margin-top: 8px;
 }
 
@@ -444,12 +444,12 @@ textarea:focus {
   min-width: 0;
   align-items: center;
   height: 24px;
-  padding: 0 4px;
+  padding: 0 3px;
   border: 1px solid #282828;
   border-radius: 5px;
   color: #707070;
   background: #171717;
-  font-size: 10px;
+  font-size: 9px;
   text-transform: uppercase;
 }
 
@@ -1368,8 +1368,8 @@ textarea:focus {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  width: min(200px, calc(100% - 32px));
-  max-width: min(200px, calc(100% - 32px));
+  width: min(260px, calc(100% - 32px));
+  max-width: min(260px, calc(100% - 32px));
   max-height: calc(100% - 28px);
   padding: 8px;
   border: 1px solid rgba(62, 72, 96, 0.82);
@@ -1383,8 +1383,8 @@ textarea:focus {
 .office-selection-panel.variant-compact {
   top: 10px;
   left: 10px;
-  width: min(200px, calc(100% - 20px));
-  max-width: min(200px, calc(100% - 20px));
+  width: min(260px, calc(100% - 20px));
+  max-width: min(260px, calc(100% - 20px));
 }
 
 .office-selection-panel.is-following {
@@ -1435,7 +1435,7 @@ textarea:focus {
   align-items: center;
   justify-content: center;
   min-height: 16px;
-  max-width: 76px;
+  max-width: 88px;
   padding: 0 6px;
   border: 1px solid rgba(55, 67, 92, 0.88);
   border-radius: 999px;
@@ -4359,8 +4359,11 @@ textarea:focus {
 
 .session-sheet-card {
   width: min(760px, calc(100vw - 48px));
-  max-height: min(860px, calc(100vh - 48px));
-  overflow: auto;
+  max-height: min(85vh, 860px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-clip: padding-box;
 }
 
 .sheet-form {
@@ -4376,6 +4379,8 @@ textarea:focus {
 }
 
 .session-sheet-form {
+  flex: 1;
+  min-height: 0;
   gap: 16px;
 }
 
@@ -4383,7 +4388,9 @@ textarea:focus {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 16px;
+  flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
 .session-sheet-main,
@@ -4395,6 +4402,18 @@ textarea:focus {
 
 .session-sheet-main {
   gap: 16px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.sheet-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding-top: 12px;
+  padding-bottom: 2px;
+  background: linear-gradient(180deg, rgba(17, 17, 17, 0), #111111 18px);
 }
 
 .session-config-section {
@@ -6742,7 +6761,7 @@ textarea:focus {
 .filter-chip {
   height: 26px;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
   text-transform: none;
   border-radius: 8px;
 }
@@ -6765,9 +6784,11 @@ textarea:focus {
 }
 
 .filter-chip-count {
+  flex: 0 0 auto;
   color: inherit;
   font-family: "Consolas", monospace;
-  font-size: 9px;
+  font-size: 8px;
+  line-height: 1;
 }
 
 .sidebar-panel-title {
@@ -7272,6 +7293,86 @@ textarea:focus {
   font-size: 11px;
 }
 
+.settings-notice-banner.muted {
+  border-color: rgba(120, 132, 148, 0.28);
+  background: rgba(120, 132, 148, 0.08);
+  color: #9aa8bb;
+}
+
+.provider-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.provider-plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #1d222c;
+  border-radius: 12px;
+  background: #12161d;
+}
+
+.provider-plan-header,
+.provider-plan-footer,
+.provider-plan-chip-row {
+  display: flex;
+  gap: 8px;
+}
+
+.provider-plan-header,
+.provider-plan-footer {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.provider-plan-header strong {
+  color: #edf2ff;
+}
+
+.provider-plan-header span,
+.provider-plan-footer span {
+  color: #9aa8bb;
+  font-size: 11px;
+}
+
+.provider-plan-chip-row {
+  flex-wrap: wrap;
+}
+
+.plan-chip {
+  display: flex;
+  min-width: 92px;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid #2b313d;
+  border-radius: 10px;
+  background: #0f141b;
+  color: #bfc8d9;
+  text-align: left;
+}
+
+.plan-chip strong {
+  color: inherit;
+  font-size: 11px;
+}
+
+.plan-chip span {
+  color: inherit;
+  opacity: 0.82;
+  font-size: 10px;
+}
+
+.plan-chip.is-active {
+  border-color: rgba(74, 163, 255, 0.45);
+  background: rgba(74, 163, 255, 0.14);
+  color: #d8ebff;
+}
+
 .accent-button {
   color: #d8ebff;
   border-color: rgba(50, 145, 255, 0.4);
@@ -7595,6 +7696,10 @@ textarea:focus {
   background: rgba(30, 41, 59, 0.22);
 }
 
+:root[data-theme-mode="light"] .sheet-actions {
+  background: linear-gradient(180deg, rgba(248, 251, 255, 0), #f8fbff 18px);
+}
+
 :root[data-theme-mode="light"] .sidebar-search-shell-compact,
 :root[data-theme-mode="light"] .sidebar-sort-inline-compact,
 :root[data-theme-mode="light"] .sidebar-action-button,
@@ -7700,6 +7805,19 @@ textarea:focus {
   background: #f8fbff;
   color: #102033;
   border-color: #d7e0eb;
+}
+
+:root[data-theme-mode="light"] .provider-plan-card,
+:root[data-theme-mode="light"] .plan-chip {
+  background: #ffffff;
+  border-color: #d7e0eb;
+  color: #516173;
+}
+
+:root[data-theme-mode="light"] .plan-chip.is-active {
+  background: #eef5ff;
+  border-color: rgba(50, 145, 255, 0.36);
+  color: #102033;
 }
 
 :root[data-theme-mode="light"] .grid-composer,

@@ -96,6 +96,13 @@ function loadUiState(): PersistedUiState {
   }
 }
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  const tagName = target.tagName.toLowerCase();
+  return tagName === "input" || tagName === "textarea" || tagName === "select";
+}
+
 function App() {
   const [persistedUiState] = useState(loadUiState);
   const [sessions, setSessions] = useState<SessionSnapshot[]>([]);
@@ -273,6 +280,12 @@ function App() {
         void refreshSnapshot();
         return;
       }
+      if ((event.key === "Delete" || event.key === "Backspace") && !isEditableTarget(event.target)) {
+        if (!selectedId) return;
+        event.preventDefault();
+        void removeSession(selectedId);
+        return;
+      }
       if (/^[1-9]$/.test(lower)) {
         const index = Number(lower) - 1;
         const session = sessions[index];
@@ -284,7 +297,7 @@ function App() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [sessions]);
+  }, [selectedId, sessions]);
 
   useEffect(() => {
     const persisted: PersistedUiState = {

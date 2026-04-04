@@ -301,6 +301,7 @@ export interface UpdateSessionConfigPayload {
 
 export interface DofficeBridge {
   bootstrap: () => Promise<BootstrapPayload>;
+  restartApp: () => Promise<void>;
   refreshCLIStatuses: () => Promise<CLIStatusPayload>;
   installCLI: (provider: AgentProvider) => Promise<CLIInstallResult>;
   getGitSnapshot: (projectPath: string, refName?: string) => Promise<GitPanelSnapshot>;

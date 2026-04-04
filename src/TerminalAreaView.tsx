@@ -99,6 +99,12 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
   const [draftPasteState, setDraftPasteState] = useState<Record<string, DraftPasteState>>({});
   const [attachedImage, setAttachedImage] = useState<ImageAttachment | null>(null);
   const [splitState, setSplitState] = useState<TerminalSplitState>(loadTerminalSplitState);
+  const effectiveTerminalViewMode =
+    terminalViewMode === "git" || terminalViewMode === "browser"
+      ? terminalViewMode
+      : sessions.length <= 1
+        ? "single"
+        : terminalViewMode;
 
   const selectedSessionStatus = selectedSession ? inferStatus(selectedSession) : null;
   const activeSingleModel = singleModelValue(selectedSession);
@@ -139,7 +145,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
   const selectedCommandCount = selectedSession ? selectedSession.blocks.filter((block) => block.kind === "toolUse").length : 0;
   const selectedSessionTokenLimit = selectedSession ? sessionTokenLimitForProvider(selectedSession.provider, workspacePreferences) : 0;
   const selectedSessionLimitMessage =
-    selectedSession && selectedSessionTokenLimit > 0 && workspacePreferences.tokenProtectionEnabled && selectedSession.tokensUsed >= selectedSessionTokenLimit
+    selectedSession && selectedSessionTokenLimit > 0 && selectedSession.tokensUsed >= selectedSessionTokenLimit
       ? tf(
           "settings.tokens.limit.reached",
           undefined,
@@ -285,7 +291,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
           {(["grid", "single", "git", "browser"] as TerminalViewMode[]).map((mode) => (
             <button
               key={mode}
-              className={`terminal-mode-button ${terminalViewMode === mode ? "is-active" : ""}`}
+              className={`terminal-mode-button ${effectiveTerminalViewMode === mode ? "is-active" : ""}`}
               onClick={() => setTerminalViewMode(mode)}
             >
               <span className="view-mode-icon">{terminalModeIcon(mode)}</span>
@@ -317,7 +323,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
           })}
         </div>
         <div className="terminal-topbar-actions">
-          {terminalViewMode === "single" && selectedSession ? (
+          {effectiveTerminalViewMode === "single" && selectedSession ? (
             <>
               <button
                 type="button"
@@ -350,15 +356,14 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
         </div>
       </div>
 
-      {terminalViewMode === "grid" ? (
+      {effectiveTerminalViewMode === "grid" ? (
         <div className="terminal-grid" style={terminalGridStyle}>
           {sessions.map((session) => {
             const status = inferStatus(session);
             const pinned = pinnedSessionIds.includes(session.id);
             const compactBlocks = condensedBlocks(session.blocks);
             const sessionTokenLimit = sessionTokenLimitForProvider(session.provider, workspacePreferences);
-            const sessionLimitReached =
-              workspacePreferences.tokenProtectionEnabled && sessionTokenLimit > 0 && session.tokensUsed >= sessionTokenLimit;
+            const sessionLimitReached = sessionTokenLimit > 0 && session.tokensUsed >= sessionTokenLimit;
             return (
               <article
                 key={session.id}
@@ -437,7 +442,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
         </div>
       ) : null}
 
-      {terminalViewMode === "single" ? (
+      {effectiveTerminalViewMode === "single" ? (
         selectedSession ? (
           splitState.enabled && secondarySession ? (
             <div className="terminal-single terminal-single-split">
@@ -746,8 +751,8 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
         )
       ) : null}
 
-      {terminalViewMode === "git" ? <GitPanelView selectedSession={selectedSession} /> : null}
-      {terminalViewMode === "browser" ? <BrowserPaneView selectedSession={selectedSession} /> : null}
+      {effectiveTerminalViewMode === "git" ? <GitPanelView selectedSession={selectedSession} /> : null}
+      {effectiveTerminalViewMode === "browser" ? <BrowserPaneView selectedSession={selectedSession} /> : null}
 
       {selectedSession?.pendingApproval ? (
         <div className="terminal-overlay-backdrop">
@@ -1040,8 +1045,7 @@ function SplitSessionPane(props: {
   const status = inferStatus(session);
   const recentBlocks = session.blocks.slice(-18);
   const sessionTokenLimit = sessionTokenLimitForProvider(session.provider, workspacePreferences);
-  const sessionLimitReached =
-    workspacePreferences.tokenProtectionEnabled && sessionTokenLimit > 0 && session.tokensUsed >= sessionTokenLimit;
+  const sessionLimitReached = sessionTokenLimit > 0 && session.tokensUsed >= sessionTokenLimit;
 
   return (
     <article className="terminal-split-pane">
