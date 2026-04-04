@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import type { AgentProvider, CLIInstallResult, CLIStatus, CLIStatusPayload, ReportReference, SessionSnapshot } from "./types";
+import type { AgentProvider, CLIInstallResult, CLIStatus, CLIStatusPayload, PluginInstallResult, ReportReference, SessionSnapshot } from "./types";
 import { t, tf } from "./localizationCatalog";
 import { relativeTime } from "./sessionUtils";
 import { pluginRegistry, type PluginRegistryEntry } from "./pluginRegistry";
+import { type InstalledPluginRecord, loadInstalledPlugins, saveInstalledPlugins } from "./pluginInstallState";
 import {
   accessoryCatalog,
   applyWorkspacePreferences,
@@ -98,6 +99,27 @@ const backgroundChoices = backgroundCatalog;
 
 const pluginMarketplace = pluginRegistry;
 
+type PluginEntryLike = Pick<PluginRegistryEntry, "id" | "name" | "author" | "version" | "tags">;
+
+function buildInstalledPluginRecord(
+  installed: PluginInstallResult,
+  registryEntry?: PluginEntryLike,
+  fallbackTitle?: string
+): InstalledPluginRecord {
+  return {
+    id: installed.id || `plugin-${Date.now()}`,
+    title: fallbackTitle ?? registryEntry?.name ?? installed.title,
+    source: installed.source,
+    localPath: installed.localPath,
+    enabled: true,
+    shared: false,
+    marketplaceId: registryEntry?.id ?? null,
+    author: registryEntry?.author ?? installed.author ?? "Unknown",
+    version: registryEntry?.version ?? installed.version ?? "",
+    tags: registryEntry?.tags ?? installed.tags ?? []
+  };
+}
+
 const defaultTemplateText: Record<WorkspacePreferences["workflowStyle"], string> = {
   planner: "요구사항을 개발 가능한 계획으로 정리하고 핵심 리스크를 먼저 적습니다.",
   designer: "UI/UX, 상호작용, 사용자 흐름 중심으로 정리합니다.",
@@ -111,67 +133,6 @@ const defaultTemplateText: Record<WorkspacePreferences["workflowStyle"], string>
 
 const templateStorageKey = "doffice.settings.templates";
 const shortcutStorageKey = "doffice.settings.shortcuts";
-const pluginInstallStorageKey = "doffice.settings.plugins.installed";
-
-interface InstalledPluginRecord {
-  id: string;
-  title: string;
-  source: string;
-  enabled: boolean;
-  shared: boolean;
-  marketplaceId: string | null;
-  author: string;
-  version: string;
-  tags: string[];
-}
-
-function defaultInstalledPlugins(): InstalledPluginRecord[] {
-  return pluginMarketplace.slice(0, 2).map((item, index) => ({
-    id: `plugin-seed-${index}`,
-    title: item.name,
-    source: item.downloadURL,
-    enabled: index === 0,
-    shared: false,
-    marketplaceId: item.id,
-    author: item.author,
-    version: item.version,
-    tags: item.tags
-  }));
-}
-
-function loadInstalledPlugins(): InstalledPluginRecord[] {
-  try {
-    const raw = window.localStorage.getItem(pluginInstallStorageKey);
-    if (!raw) return defaultInstalledPlugins();
-    const parsed = JSON.parse(raw) as Partial<InstalledPluginRecord>[];
-    if (!Array.isArray(parsed)) return defaultInstalledPlugins();
-    const normalized = parsed
-      .map((item, index) => {
-        const source = typeof item.source === "string" ? item.source.trim() : "";
-        const title = typeof item.title === "string" && item.title.trim() ? item.title.trim() : source.split("/").pop() || `plugin-${index + 1}`;
-        if (!source) return null;
-        return {
-          id: typeof item.id === "string" && item.id.trim() ? item.id : `plugin-${index}-${title}`,
-          title,
-          source,
-          enabled: typeof item.enabled === "boolean" ? item.enabled : true,
-          shared: typeof item.shared === "boolean" ? item.shared : false,
-          marketplaceId: typeof item.marketplaceId === "string" && item.marketplaceId.trim() ? item.marketplaceId : null,
-          author: typeof item.author === "string" ? item.author : "Unknown",
-          version: typeof item.version === "string" ? item.version : "1.0.0",
-          tags: Array.isArray(item.tags) ? item.tags.filter((value): value is string => typeof value === "string" && value.trim().length > 0) : []
-        } satisfies InstalledPluginRecord;
-      })
-      .filter((item): item is InstalledPluginRecord => item != null);
-    return normalized.length > 0 ? normalized : defaultInstalledPlugins();
-  } catch {
-    return defaultInstalledPlugins();
-  }
-}
-
-function saveInstalledPlugins(installedPlugins: InstalledPluginRecord[]) {
-  window.localStorage.setItem(pluginInstallStorageKey, JSON.stringify(installedPlugins));
-}
 
 function loadTemplateDrafts(): Record<WorkspacePreferences["workflowStyle"], string> {
   try {
@@ -437,6 +398,7 @@ function SettingsPanel(props: {
   const [pluginSearchText, setPluginSearchText] = useState("");
   const [pluginTagFilter, setPluginTagFilter] = useState<string>("");
   const [installedPlugins, setInstalledPlugins] = useState<InstalledPluginRecord[]>(loadInstalledPlugins);
+  const [pluginActionMessage, setPluginActionMessage] = useState("");
   const [cliActionState, setCliActionState] = useState<AgentProvider | "refresh" | null>(null);
   const [cliActionMessage, setCliActionMessage] = useState("");
 
@@ -619,31 +581,56 @@ function SettingsPanel(props: {
     }
   }
 
-  function installPlugin(source: string, options?: { title?: string; registryEntry?: PluginRegistryEntry }) {
+  async function installPlugin(source: string, options?: { title?: string; registryEntry?: PluginEntryLike }) {
     const trimmed = source.trim();
     if (!trimmed) return;
     const registryEntry = options?.registryEntry;
-    const nextTitle = options?.title ?? registryEntry?.name ?? trimmed.split("/").pop() ?? t("settings.plugins.new.plugin");
-    setInstalledPlugins((current) => {
-      if (current.some((item) => item.source === trimmed || item.title === nextTitle || (registryEntry && item.marketplaceId === registryEntry.id))) {
-        return current;
-      }
-      return [
-        {
-          id: `plugin-${Date.now()}`,
-          title: nextTitle,
-          source: trimmed,
-          enabled: true,
-          shared: false,
-          marketplaceId: registryEntry?.id ?? null,
-          author: registryEntry?.author ?? "Local",
-          version: registryEntry?.version ?? "1.0.0",
-          tags: registryEntry?.tags ?? []
-        },
-        ...current
-      ];
-    });
+    try {
+      const installed = await window.doffice.installPluginSource(trimmed);
+      const nextPlugin = buildInstalledPluginRecord(installed, registryEntry, options?.title);
+      setInstalledPlugins((current) => {
+        const alreadyInstalled = current.some(
+          (item) =>
+            item.marketplaceId === nextPlugin.marketplaceId ||
+            item.source === nextPlugin.source ||
+            item.localPath === nextPlugin.localPath
+        );
+        if (alreadyInstalled) {
+          return current.map((item) =>
+            item.marketplaceId === nextPlugin.marketplaceId ||
+            item.source === nextPlugin.source ||
+            item.localPath === nextPlugin.localPath
+              ? { ...item, ...nextPlugin, enabled: item.enabled }
+              : item
+          );
+        }
+        return [nextPlugin, ...current];
+      });
+      setPluginActionMessage(tf("settings.plugins.install.done", undefined, nextPlugin.title));
+    } catch (error) {
+      setPluginActionMessage(String(error instanceof Error ? error.message : error));
+    }
     setPluginSourceInput("");
+  }
+
+  async function handleInstallLocalFolder() {
+    const picked = await window.doffice.pickDirectory();
+    if (!picked) return;
+    await installPlugin(picked, { title: t("settings.plugins.local.plugin") });
+  }
+
+  async function handleCreatePluginTemplate() {
+    const parentDir = await window.doffice.pickDirectory();
+    if (!parentDir) return;
+    try {
+      const installed = await window.doffice.createPluginTemplate(parentDir);
+      const nextPlugin = buildInstalledPluginRecord(installed, undefined, t("settings.plugins.new.plugin"));
+      setInstalledPlugins((current) => [nextPlugin, ...current.filter((item) => item.localPath !== nextPlugin.localPath)]);
+      setPluginActionMessage(tf("settings.plugins.template.done", undefined, nextPlugin.localPath));
+      await window.doffice.revealPath(nextPlugin.localPath);
+    } catch (error) {
+      setPluginActionMessage(String(error instanceof Error ? error.message : error));
+    }
   }
 
   return (
@@ -1320,20 +1307,21 @@ function SettingsPanel(props: {
                   <span>{t("settings.plugins.source.label")}</span>
                   <div className="settings-inline-input-row">
                     <input value={pluginSourceInput} onChange={(event) => setPluginSourceInput(event.target.value)} placeholder={t("settings.plugins.source.placeholder")} />
-                    <button type="button" className="mini-action-button install-button" onClick={() => installPlugin(pluginSourceInput)}>
+                    <button type="button" className="mini-action-button install-button" onClick={() => void installPlugin(pluginSourceInput)}>
                       {t("settings.plugins.install")}
                     </button>
                   </div>
                 </label>
               </div>
               <div className="settings-action-row">
-                <button type="button" className="mini-action-button sky-button" onClick={() => installPlugin("~/plugins/local-plugin", { title: t("settings.plugins.local.plugin") })}>
+                <button type="button" className="mini-action-button sky-button" onClick={() => void handleInstallLocalFolder()}>
                   {`📁 ${t("settings.plugins.local.folder")}`}
                 </button>
-                <button type="button" className="mini-action-button green-button" onClick={() => installPlugin("~/plugins/new-plugin", { title: t("settings.plugins.new.plugin") })}>
+                <button type="button" className="mini-action-button green-button" onClick={() => void handleCreatePluginTemplate()}>
                   {`🔨 ${t("settings.plugins.new.plugin")}`}
                 </button>
               </div>
+              {pluginActionMessage ? <div className="settings-notice-banner muted">{pluginActionMessage}</div> : null}
               <div className="settings-format-hints">
                 <div className="settings-format-hint-row"><strong>brew formula</strong><span>formula-name</span></div>
                 <div className="settings-format-hint-row"><strong>brew tap</strong><span>user/tap/formula</span></div>
@@ -1357,7 +1345,8 @@ function SettingsPanel(props: {
                   <div key={item.id} className="marketplace-row">
                     <div className="marketplace-copy">
                       <strong>{item.title}</strong>
-                      <span className="path-ellipsis">{item.source}</span>
+                      <span className="path-ellipsis">{item.localPath || item.source}</span>
+                      {item.localPath && item.source && item.localPath !== item.source ? <small className="path-ellipsis">{item.source}</small> : null}
                       <small>{[item.author, item.version ? `v${item.version}` : null, item.tags.slice(0, 3).join(" · ")].filter(Boolean).join(" · ")}</small>
                     </div>
                     <div className="settings-inline-actions">
@@ -1371,7 +1360,8 @@ function SettingsPanel(props: {
                         <span className={`toggle-fake plugin-toggle-switch ${item.enabled ? "is-on" : ""}`} />
                       </button>
                       <button type="button" className="mini-action-button icon-action-button" onClick={() => setInstalledPlugins((current) => current.map((plugin) => plugin.id === item.id ? { ...plugin, shared: !plugin.shared } : plugin))}>⤴</button>
-                      <button type="button" className="mini-action-button icon-action-button" onClick={() => void window.doffice.copyText(item.source)}>📁</button>
+                      <button type="button" className="mini-action-button icon-action-button" onClick={() => void window.doffice.revealPath(item.localPath || item.source)}>📁</button>
+                      <button type="button" className="mini-action-button icon-action-button" onClick={() => void window.doffice.copyText(item.localPath || item.source)}>📄</button>
                       <button type="button" className="mini-action-button icon-action-button danger-text" onClick={() => setInstalledPlugins((current) => current.filter((plugin) => plugin.id !== item.id))}>🗑</button>
                     </div>
                   </div>
@@ -1410,7 +1400,7 @@ function SettingsPanel(props: {
                     <button
                       type="button"
                       className={`mini-action-button ${installedMarketplaceIds.has(item.id) ? "" : "install-button"}`}
-                      onClick={() => installPlugin(item.downloadURL, { title: item.name, registryEntry: item })}
+                      onClick={() => void installPlugin(item.downloadURL, { title: item.name, registryEntry: item })}
                       disabled={installedMarketplaceIds.has(item.id)}
                     >
                       {installedMarketplaceIds.has(item.id) ? t("settings.plugins.installed.badge") : t("settings.plugins.install")}

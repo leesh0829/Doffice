@@ -155,6 +155,198 @@ function sessionStorePath() {
   return path.join(app.getPath("userData"), "sessions.json");
 }
 
+function pluginInstallBasePath() {
+  return path.join(app.getPath("userData"), "plugins");
+}
+
+function expandHomePath(targetPath) {
+  if (typeof targetPath !== "string") return "";
+  if (targetPath === "~") return process.env.HOME || process.env.USERPROFILE || targetPath;
+  if (targetPath.startsWith("~/") || targetPath.startsWith("~\\")) {
+    const home = process.env.HOME || process.env.USERPROFILE;
+    if (home) return path.join(home, targetPath.slice(2));
+  }
+  return targetPath;
+}
+
+function sanitizePluginSlug(value) {
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || `plugin-${Date.now()}`;
+}
+
+async function ensureUniqueChildDir(parentDir, baseName) {
+  let candidate = path.join(parentDir, baseName);
+  let suffix = 2;
+  while (true) {
+    try {
+      await fs.access(candidate);
+      candidate = path.join(parentDir, `${baseName}-${suffix}`);
+      suffix += 1;
+    } catch {
+      return candidate;
+    }
+  }
+}
+
+async function readPluginManifest(pluginDir) {
+  const manifestPath = path.join(pluginDir, "plugin.json");
+  const raw = await fs.readFile(manifestPath, "utf8");
+  return { raw, manifest: JSON.parse(raw) };
+}
+
+function inferPluginTags(manifest) {
+  const contributes = manifest?.contributes ?? {};
+  const tags = new Set();
+  if (contributes.characters) tags.add("characters");
+  if (Array.isArray(contributes.themes) && contributes.themes.length > 0) tags.add("theme");
+  if (Array.isArray(contributes.furniture) && contributes.furniture.length > 0) tags.add("furniture");
+  if (Array.isArray(contributes.effects) && contributes.effects.length > 0) tags.add("effects");
+  if (Array.isArray(contributes.achievements) && contributes.achievements.length > 0) tags.add("achievements");
+  if (Array.isArray(contributes.officePresets) && contributes.officePresets.length > 0) tags.add("office-preset");
+  return [...tags];
+}
+
+function bundledPluginPathForSource(source) {
+  try {
+    const url = new URL(source);
+    const segments = url.pathname.split("/").filter(Boolean);
+    const pluginsIndex = segments.lastIndexOf("plugins");
+    const pluginId = pluginsIndex >= 0 ? segments[pluginsIndex + 1] : "";
+    if (!pluginId) return null;
+    return path.join(app.getAppPath(), "plugins", pluginId);
+  } catch {
+    return null;
+  }
+}
+
+async function installLocalPluginDirectory(source, originalSource = source) {
+  const resolvedSource = path.resolve(expandHomePath(source));
+  const { manifest } = await readPluginManifest(resolvedSource);
+  const slug = sanitizePluginSlug(manifest?.name || path.basename(resolvedSource));
+  const installDir = path.join(pluginInstallBasePath(), slug);
+  await fs.mkdir(pluginInstallBasePath(), { recursive: true });
+  await fs.rm(installDir, { recursive: true, force: true });
+  await fs.cp(resolvedSource, installDir, { recursive: true, force: true });
+  return {
+    id: slug,
+    title: String(manifest?.name || path.basename(resolvedSource)),
+    source: originalSource,
+    localPath: installDir,
+    author: String(manifest?.author || "Unknown"),
+    version: String(manifest?.version || ""),
+    tags: inferPluginTags(manifest)
+  };
+}
+
+async function maybeDownloadRelativeFile(baseUrl, installDir, relativePath) {
+  if (typeof relativePath !== "string" || !relativePath.trim()) return;
+  const response = await fetch(new URL(relativePath, baseUrl));
+  if (!response.ok) return;
+  const targetPath = path.join(installDir, relativePath);
+  await fs.mkdir(path.dirname(targetPath), { recursive: true });
+  await fs.writeFile(targetPath, await response.text(), "utf8");
+}
+
+async function installRemotePluginUrl(source) {
+  const bundledPath = bundledPluginPathForSource(source);
+  if (bundledPath) {
+    try {
+      return await installLocalPluginDirectory(bundledPath, source);
+    } catch {
+      // Fall back to remote download if local bundled assets are unavailable.
+    }
+  }
+
+  const response = await fetch(source);
+  if (!response.ok) {
+    throw new Error(`Plugin download failed: ${response.status} ${response.statusText}`);
+  }
+
+  const raw = await response.text();
+  const manifest = JSON.parse(raw);
+  const slug = sanitizePluginSlug(manifest?.name || path.basename(new URL(source).pathname, ".json"));
+  const installDir = path.join(pluginInstallBasePath(), slug);
+  await fs.mkdir(pluginInstallBasePath(), { recursive: true });
+  await fs.rm(installDir, { recursive: true, force: true });
+  await fs.mkdir(installDir, { recursive: true });
+  await fs.writeFile(path.join(installDir, "plugin.json"), raw, "utf8");
+
+  if (typeof manifest?.contributes?.characters === "string") {
+    await maybeDownloadRelativeFile(source, installDir, manifest.contributes.characters);
+  }
+  await maybeDownloadRelativeFile(source, installDir, "README.md");
+  await maybeDownloadRelativeFile(source, installDir, "package.json");
+
+  return {
+    id: slug,
+    title: String(manifest?.name || slug),
+    source,
+    localPath: installDir,
+    author: String(manifest?.author || "Unknown"),
+    version: String(manifest?.version || ""),
+    tags: inferPluginTags(manifest)
+  };
+}
+
+async function installPluginFromSource(source) {
+  const trimmed = String(source ?? "").trim();
+  if (!trimmed) {
+    throw new Error("Plugin source is required");
+  }
+  if (/^https?:\/\//i.test(trimmed)) {
+    return installRemotePluginUrl(trimmed);
+  }
+  return installLocalPluginDirectory(trimmed);
+}
+
+async function createPluginTemplate(parentDir) {
+  const resolvedParent = path.resolve(expandHomePath(String(parentDir ?? "").trim()));
+  if (!resolvedParent) {
+    throw new Error("Plugin parent directory is required");
+  }
+
+  await fs.mkdir(resolvedParent, { recursive: true });
+  const templateDir = await ensureUniqueChildDir(resolvedParent, "doffice-plugin");
+  const manifest = {
+    name: "New Doffice Plugin",
+    version: "0.1.0",
+    description: "Starter plugin template for Doffice Windows.",
+    author: "Doffice",
+    contributes: {
+      effects: []
+    }
+  };
+  const packageManifest = {
+    name: path.basename(templateDir),
+    version: "0.1.0",
+    description: "Starter plugin template for Doffice Windows."
+  };
+  const readme = [
+    "# New Doffice Plugin",
+    "",
+    "1. Edit `plugin.json` and add your contributions.",
+    "2. Re-enable or reinstall this plugin from Settings > Plugins after changes.",
+    "3. Add assets next to `plugin.json` as needed."
+  ].join("\n");
+
+  await fs.mkdir(templateDir, { recursive: true });
+  await fs.writeFile(path.join(templateDir, "plugin.json"), JSON.stringify(manifest, null, 2), "utf8");
+  await fs.writeFile(path.join(templateDir, "package.json"), JSON.stringify(packageManifest, null, 2), "utf8");
+  await fs.writeFile(path.join(templateDir, "README.md"), readme, "utf8");
+
+  return {
+    id: sanitizePluginSlug(path.basename(templateDir)),
+    title: manifest.name,
+    source: templateDir,
+    localPath: templateDir,
+    author: manifest.author,
+    version: manifest.version,
+    tags: ["starter"]
+  };
+}
+
 function normalizeProjectPaths(projectPaths = []) {
   const fromSessions = [...sessions.values()].map((session) => session.projectPath);
   return Array.from(
@@ -2401,6 +2593,8 @@ ipcMain.handle("app:restart", async () => {
     app.exit(0);
   }, 120);
 });
+ipcMain.handle("plugin:install", async (_event, source) => installPluginFromSource(source));
+ipcMain.handle("plugin:create-template", async (_event, parentDir) => createPluginTemplate(parentDir));
 ipcMain.handle("app:refresh-cli-status", async () => refreshCLIStatuses());
 ipcMain.handle("app:install-cli", async (_event, provider) => installCLI(provider));
 

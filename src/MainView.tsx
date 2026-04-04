@@ -5,6 +5,7 @@ import { OfficeSceneView } from "./OfficeSceneView";
 import { ActionCenterView, CommandPaletteView, SessionNotificationBannerStack, type SessionNotificationItem } from "./OverlayViews";
 import { PixelStripView } from "./PixelStripView";
 import { SessionLockOverlay, WorkspaceOverlayManager, type WorkspacePanelKind } from "./WorkspacePanels";
+import { OnboardingOverlay } from "./OnboardingOverlay";
 import type { AgentProvider, CLIInstallResult, CLIStatus, CLIStatusPayload, ImageAttachment, ReportReference, SessionSnapshot } from "./types";
 import type { AppViewMode, ProjectGroup, SessionStatusFilter, SidebarSortOption, TerminalViewMode } from "./uiModel";
 import type { NewSessionDraftState, NewSessionPresetId, NewSessionProjectRecord } from "./newSessionPreferences";
@@ -262,6 +263,7 @@ export function MainView(props: MainViewProps) {
   const officeHeight = officeExpanded ? 380 : 240;
   const [workspacePanel, setWorkspacePanel] = useState<WorkspacePanelKind | null>(null);
   const [showBugReport, setShowBugReport] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(() => !window.localStorage.getItem("doffice.onboarding.completed"));
   const [workspacePreferences, setWorkspacePreferences] = useState<WorkspacePreferences>(loadWorkspacePreferences);
   const [reportEntries, setReportEntries] = useState<ReportReference[]>([]);
   const [reportLoading, setReportLoading] = useState(false);
@@ -290,12 +292,22 @@ export function MainView(props: MainViewProps) {
     function handleShowTutorial() {
       setAppViewMode("split");
       setTerminalViewMode("grid");
-      setShowCreateDialog(true);
+      setShowOnboarding(true);
     }
 
     window.addEventListener("doffice:show-tutorial", handleShowTutorial);
     return () => window.removeEventListener("doffice:show-tutorial", handleShowTutorial);
-  }, [setAppViewMode, setShowCreateDialog, setTerminalViewMode]);
+  }, [setAppViewMode, setTerminalViewMode]);
+
+  function dismissOnboarding() {
+    window.localStorage.setItem("doffice.onboarding.completed", "1");
+    setShowOnboarding(false);
+  }
+
+  function completeOnboarding() {
+    dismissOnboarding();
+    setShowCreateDialog(true);
+  }
 
   async function refreshReports() {
     setReportLoading(true);
@@ -667,6 +679,12 @@ export function MainView(props: MainViewProps) {
       ) : null}
 
       {showBugReport ? <BugReportModal onClose={() => setShowBugReport(false)} /> : null}
+
+      <OnboardingOverlay
+        isOpen={showOnboarding}
+        onSkip={dismissOnboarding}
+        onFinish={completeOnboarding}
+      />
 
       <NewSessionSheet
         isOpen={showCreateDialog}

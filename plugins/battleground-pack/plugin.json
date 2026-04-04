@@ -2,7 +2,7 @@
   "name": "배틀그라운드 팩",
   "version": "1.0.0",
   "description": "사무실이 전장으로! 나무와 바위에 은신하며 코딩하는 배그 컨셉",
-  "author": "WorkMan",
+  "author": "Doffice",
   "contributes": {
     "characters": "characters.json",
     "themes": [

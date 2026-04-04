@@ -253,6 +253,16 @@ export interface CLIInstallResult extends CLIStatusPayload {
   message: string;
 }
 
+export interface PluginInstallResult {
+  id: string;
+  title: string;
+  source: string;
+  localPath: string;
+  author: string;
+  version: string;
+  tags: string[];
+}
+
 export interface CreateSessionPayload {
   projectPath: string;
   projectName?: string;
@@ -302,6 +312,8 @@ export interface UpdateSessionConfigPayload {
 export interface DofficeBridge {
   bootstrap: () => Promise<BootstrapPayload>;
   restartApp: () => Promise<void>;
+  installPluginSource: (source: string) => Promise<PluginInstallResult>;
+  createPluginTemplate: (parentDir: string) => Promise<PluginInstallResult>;
   refreshCLIStatuses: () => Promise<CLIStatusPayload>;
   installCLI: (provider: AgentProvider) => Promise<CLIInstallResult>;
   getGitSnapshot: (projectPath: string, refName?: string) => Promise<GitPanelSnapshot>;

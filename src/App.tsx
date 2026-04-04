@@ -16,6 +16,7 @@ import {
   saveRecentProjects,
   toggleFavoriteProject
 } from "./newSessionPreferences";
+import { enabledInstalledPluginDirs, loadInstalledPlugins } from "./pluginInstallState";
 import { compareGroups, compareSessions, groupSessions, inferStatus, sessionActivitySummary } from "./sessionUtils";
 
 const emptyCLIStatus: CLIStatus = {
@@ -463,6 +464,8 @@ function App() {
     setBusy(true);
     try {
       const parsedBudget = Number(newSessionDraft.maxBudget);
+      const autoInstalledPluginDirs = enabledInstalledPluginDirs(loadInstalledPlugins());
+      const pluginDirs = [...new Set([...autoInstalledPluginDirs, ...newSessionDraft.pluginDirs.map((value) => value.trim()).filter(Boolean)])];
       const created = await window.doffice.createSession({
         projectPath: newSessionDraft.projectPath.trim(),
         projectName: newSessionDraft.projectName.trim() || undefined,
@@ -474,7 +477,7 @@ function App() {
         permissionMode: newSessionDraft.permissionMode,
         codexSandboxMode: newSessionDraft.codexSandboxMode,
         codexApprovalPolicy: newSessionDraft.codexApprovalPolicy,
-        pluginDirs: newSessionDraft.pluginDirs,
+        pluginDirs,
         systemPrompt: newSessionDraft.systemPrompt.trim() || undefined,
         maxBudgetUSD: Number.isFinite(parsedBudget) && parsedBudget > 0 ? parsedBudget : undefined,
         allowedTools: newSessionDraft.allowedTools.trim() || undefined,
