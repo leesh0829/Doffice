@@ -6480,6 +6480,16 @@ textarea:focus {
   color: #e8edf7;
 }
 
+.composer-limit-note {
+  padding: 9px 10px;
+  border: 1px solid rgba(245, 166, 35, 0.28);
+  border-radius: 10px;
+  background: rgba(245, 166, 35, 0.1);
+  color: #ffd27a;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 .composer-actions {
   justify-content: flex-end;
 }
@@ -7715,6 +7725,12 @@ textarea:focus {
   background: #eef5ff;
   border-color: rgba(50, 145, 255, 0.2);
   color: #1f66c2;
+}
+
+:root[data-theme-mode="light"] .composer-limit-note {
+  border-color: rgba(191, 120, 27, 0.22);
+  background: rgba(191, 120, 27, 0.08);
+  color: #8a5300;
 }
 
 :root[data-theme-mode="light"] .workspace-tab-strip,

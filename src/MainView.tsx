@@ -504,6 +504,7 @@ export function MainView(props: MainViewProps) {
               <TerminalAreaView
                 sessions={sessions}
                 selectedSession={selectedSession}
+                workspacePreferences={workspacePreferences}
                 terminalViewMode={terminalViewMode}
                 setTerminalViewMode={setTerminalViewMode}
                 pinnedSessionIds={pinnedSessionIds}
@@ -544,6 +545,7 @@ export function MainView(props: MainViewProps) {
               <TerminalAreaView
                 sessions={sessions}
                 selectedSession={selectedSession}
+                workspacePreferences={workspacePreferences}
                 terminalViewMode={terminalViewMode}
                 setTerminalViewMode={setTerminalViewMode}
                 pinnedSessionIds={pinnedSessionIds}
@@ -568,6 +570,7 @@ export function MainView(props: MainViewProps) {
             <TerminalAreaView
               sessions={sessions}
               selectedSession={selectedSession}
+              workspacePreferences={workspacePreferences}
               terminalViewMode={terminalViewMode}
               setTerminalViewMode={setTerminalViewMode}
               pinnedSessionIds={pinnedSessionIds}

@@ -50,6 +50,10 @@ export interface WorkspacePreferences {
   automationRevisionLimit: number;
   dailyBudgetUSD: number;
   sessionBudgetUSD: number;
+  tokenProtectionEnabled: boolean;
+  claudeSessionTokenLimit: number;
+  codexSessionTokenLimit: number;
+  geminiSessionTokenLimit: number;
   warnAtBudgetThreshold: boolean;
   protectDangerousCommands: boolean;
   protectSensitiveFiles: boolean;
@@ -210,6 +214,10 @@ export const defaultWorkspacePreferences: WorkspacePreferences = {
   automationRevisionLimit: 2,
   dailyBudgetUSD: 0,
   sessionBudgetUSD: 0,
+  tokenProtectionEnabled: true,
+  claudeSessionTokenLimit: 0,
+  codexSessionTokenLimit: 0,
+  geminiSessionTokenLimit: 0,
   warnAtBudgetThreshold: true,
   protectDangerousCommands: true,
   protectSensitiveFiles: true,
@@ -332,6 +340,16 @@ export function loadWorkspacePreferences(): WorkspacePreferences {
           : defaultWorkspacePreferences.automationRevisionLimit,
       dailyBudgetUSD: typeof parsed.dailyBudgetUSD === "number" ? parsed.dailyBudgetUSD : defaultWorkspacePreferences.dailyBudgetUSD,
       sessionBudgetUSD: typeof parsed.sessionBudgetUSD === "number" ? parsed.sessionBudgetUSD : defaultWorkspacePreferences.sessionBudgetUSD,
+      tokenProtectionEnabled:
+        typeof parsed.tokenProtectionEnabled === "boolean"
+          ? parsed.tokenProtectionEnabled
+          : defaultWorkspacePreferences.tokenProtectionEnabled,
+      claudeSessionTokenLimit:
+        typeof parsed.claudeSessionTokenLimit === "number" ? parsed.claudeSessionTokenLimit : defaultWorkspacePreferences.claudeSessionTokenLimit,
+      codexSessionTokenLimit:
+        typeof parsed.codexSessionTokenLimit === "number" ? parsed.codexSessionTokenLimit : defaultWorkspacePreferences.codexSessionTokenLimit,
+      geminiSessionTokenLimit:
+        typeof parsed.geminiSessionTokenLimit === "number" ? parsed.geminiSessionTokenLimit : defaultWorkspacePreferences.geminiSessionTokenLimit,
       warnAtBudgetThreshold: typeof parsed.warnAtBudgetThreshold === "boolean" ? parsed.warnAtBudgetThreshold : defaultWorkspacePreferences.warnAtBudgetThreshold,
       protectDangerousCommands: typeof parsed.protectDangerousCommands === "boolean" ? parsed.protectDangerousCommands : defaultWorkspacePreferences.protectDangerousCommands,
       protectSensitiveFiles: typeof parsed.protectSensitiveFiles === "boolean" ? parsed.protectSensitiveFiles : defaultWorkspacePreferences.protectSensitiveFiles,

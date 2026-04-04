@@ -872,6 +872,46 @@ function SettingsPanel(props: {
                 </button>
               </div>
             </SettingsCard>
+            <SettingsCard title={<span className="settings-section-title"><span className="panel-title-emoji tone-green">🛡</span>{t("settings.tokens.protection.title")}</span>}>
+              <ToggleRow
+                label={t("settings.tokens.protection.enabled")}
+                enabled={preferences.tokenProtectionEnabled}
+                onToggle={() => updatePreferences({ tokenProtectionEnabled: !preferences.tokenProtectionEnabled })}
+              />
+              <div className="settings-card-note">
+                {preferences.tokenProtectionEnabled ? t("settings.tokens.protection.enabled.desc") : t("settings.tokens.protection.disabled.desc")}
+              </div>
+              <div className="settings-form-grid">
+                <label>
+                  <span>{t("settings.tokens.provider.claude")}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={preferences.claudeSessionTokenLimit}
+                    onChange={(event) => updatePreferences({ claudeSessionTokenLimit: Math.max(0, Number(event.target.value) || 0) })}
+                  />
+                </label>
+                <label>
+                  <span>{t("settings.tokens.provider.codex")}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={preferences.codexSessionTokenLimit}
+                    onChange={(event) => updatePreferences({ codexSessionTokenLimit: Math.max(0, Number(event.target.value) || 0) })}
+                  />
+                </label>
+                <label className="settings-form-grid-span">
+                  <span>{t("settings.tokens.provider.gemini")}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={preferences.geminiSessionTokenLimit}
+                    onChange={(event) => updatePreferences({ geminiSessionTokenLimit: Math.max(0, Number(event.target.value) || 0) })}
+                  />
+                </label>
+              </div>
+              <div className="settings-card-note">{t("settings.tokens.provider.limits")}</div>
+            </SettingsCard>
             <SettingsCard title={<span className="settings-section-title"><span className="panel-title-emoji tone-green">🛡</span>{t("settings.tokens.section.automation")}</span>}>
               <ToggleRow
                 label={t("settings.tokens.parallel.agents")}

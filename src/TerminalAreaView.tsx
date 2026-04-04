@@ -4,11 +4,13 @@ import { BrowserPaneView } from "./BrowserPaneView";
 import { t, tf } from "./localizationCatalog";
 import type { AgentProvider, ImageAttachment, SessionBlock, SessionSnapshot } from "./types";
 import type { TerminalViewMode } from "./uiModel";
-import { inferPendingApproval, inferStatus } from "./sessionUtils";
+import { formatTokens, inferPendingApproval, inferStatus } from "./sessionUtils";
+import type { WorkspacePreferences } from "./workspaceState";
 
 interface TerminalAreaViewProps {
   sessions: SessionSnapshot[];
   selectedSession: SessionSnapshot | null;
+  workspacePreferences: WorkspacePreferences;
   terminalViewMode: TerminalViewMode;
   setTerminalViewMode: (value: TerminalViewMode) => void;
   pinnedSessionIds: string[];
@@ -69,6 +71,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
   const {
     sessions,
     selectedSession,
+    workspacePreferences,
     terminalViewMode,
     setTerminalViewMode,
     pinnedSessionIds,
@@ -134,6 +137,17 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
     ? selectedSession.blocks.filter((block) => block.kind === "toolError" || block.kind === "error").length
     : 0;
   const selectedCommandCount = selectedSession ? selectedSession.blocks.filter((block) => block.kind === "toolUse").length : 0;
+  const selectedSessionTokenLimit = selectedSession ? sessionTokenLimitForProvider(selectedSession.provider, workspacePreferences) : 0;
+  const selectedSessionLimitMessage =
+    selectedSession && selectedSessionTokenLimit > 0 && workspacePreferences.tokenProtectionEnabled && selectedSession.tokensUsed >= selectedSessionTokenLimit
+      ? tf(
+          "settings.tokens.limit.reached",
+          undefined,
+          sessionProviderLabel(selectedSession.provider),
+          formatTokens(selectedSession.tokensUsed),
+          formatTokens(selectedSessionTokenLimit)
+        )
+      : null;
 
   useEffect(() => {
     setAttachedImage(null);
@@ -191,6 +205,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
   async function handleSingleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selectedSession) return;
+    if (selectedSessionLimitMessage) return;
     const expandedPrompt = expandPastedChunks(prompt, draftPasteState.__single__?.chunks ?? []);
     const nextPrompt = expandedPrompt.trim();
     if (!nextPrompt) return;
@@ -341,6 +356,9 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
             const status = inferStatus(session);
             const pinned = pinnedSessionIds.includes(session.id);
             const compactBlocks = condensedBlocks(session.blocks);
+            const sessionTokenLimit = sessionTokenLimitForProvider(session.provider, workspacePreferences);
+            const sessionLimitReached =
+              workspacePreferences.tokenProtectionEnabled && sessionTokenLimit > 0 && session.tokensUsed >= sessionTokenLimit;
             return (
               <article
                 key={session.id}
@@ -375,6 +393,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                   className="grid-composer"
                   onSubmit={async (event) => {
                     event.preventDefault();
+                    if (sessionLimitReached) return;
                     const nextPrompt = gridDrafts[session.id]?.trim();
                     const expandedPrompt = expandPastedChunks(gridDrafts[session.id] ?? "", draftPasteState[session.id]?.chunks ?? []).trim();
                     if (!expandedPrompt) return;
@@ -383,6 +402,17 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                     clearDraftPasteState(session.id);
                   }}
                 >
+                  {sessionLimitReached ? (
+                    <div className="composer-limit-note">
+                      {tf(
+                        "settings.tokens.limit.reached",
+                        undefined,
+                        sessionProviderLabel(session.provider),
+                        formatTokens(session.tokensUsed),
+                        formatTokens(sessionTokenLimit)
+                      )}
+                    </div>
+                  ) : null}
                   <textarea
                     value={gridDrafts[session.id] ?? ""}
                     onChange={(event) =>
@@ -397,7 +427,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                     placeholder={t("custom.direct.chat")}
                     rows={3}
                   />
-                  <button type="submit" className="primary-button" disabled={busy || !(gridDrafts[session.id] ?? "").trim()}>
+                  <button type="submit" className="primary-button" disabled={busy || sessionLimitReached || !(gridDrafts[session.id] ?? "").trim()}>
                     Send
                   </button>
                 </form>
@@ -415,6 +445,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                 <SplitSessionPane
                   session={selectedSession}
                   sessions={sessions}
+                  workspacePreferences={workspacePreferences}
                   draft={splitDrafts[selectedSession.id] ?? ""}
                   busy={busy}
                   onDraftChange={(value) => setSplitDrafts((current) => ({ ...current, [selectedSession.id]: value }))}
@@ -431,6 +462,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                 <SplitSessionPane
                   session={secondarySession}
                   sessions={sessions.filter((session) => session.id !== selectedSession.id)}
+                  workspacePreferences={workspacePreferences}
                   draft={splitDrafts[secondarySession.id] ?? ""}
                   busy={busy}
                   onDraftChange={(value) => setSplitDrafts((current) => ({ ...current, [secondarySession.id]: value }))}
@@ -681,6 +713,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                   </button>
                 </div>
               ) : null}
+              {selectedSessionLimitMessage ? <div className="composer-limit-note">{selectedSessionLimitMessage}</div> : null}
               <textarea
                 value={prompt}
                 onChange={(event) => updateDraftWithPaste("__single__", prompt, event.target.value, setPrompt)}
@@ -701,7 +734,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                     ☾
                   </button>
                 </div>
-                <button type="submit" className="primary-button" disabled={busy || !prompt.trim()}>
+                <button type="submit" className="primary-button" disabled={busy || Boolean(selectedSessionLimitMessage) || !prompt.trim()}>
                   Send
                 </button>
               </div>
@@ -996,15 +1029,19 @@ function terminalGridTemplate(count: number): string {
 function SplitSessionPane(props: {
   session: SessionSnapshot;
   sessions: SessionSnapshot[];
+  workspacePreferences: WorkspacePreferences;
   draft: string;
   busy: boolean;
   onDraftChange: (value: string) => void;
   onSubmit: () => Promise<void>;
   onSelectSession: ((sessionId: string) => void) | null;
 }) {
-  const { session, sessions, draft, busy, onDraftChange, onSubmit, onSelectSession } = props;
+  const { session, sessions, workspacePreferences, draft, busy, onDraftChange, onSubmit, onSelectSession } = props;
   const status = inferStatus(session);
   const recentBlocks = session.blocks.slice(-18);
+  const sessionTokenLimit = sessionTokenLimitForProvider(session.provider, workspacePreferences);
+  const sessionLimitReached =
+    workspacePreferences.tokenProtectionEnabled && sessionTokenLimit > 0 && session.tokensUsed >= sessionTokenLimit;
 
   return (
     <article className="terminal-split-pane">
@@ -1042,19 +1079,43 @@ function SplitSessionPane(props: {
         className="split-pane-composer"
         onSubmit={async (event) => {
           event.preventDefault();
+          if (sessionLimitReached) return;
           await onSubmit();
         }}
       >
+        {sessionLimitReached ? (
+          <div className="composer-limit-note">
+            {tf(
+              "settings.tokens.limit.reached",
+              undefined,
+              sessionProviderLabel(session.provider),
+              formatTokens(session.tokensUsed),
+              formatTokens(sessionTokenLimit)
+            )}
+          </div>
+        ) : null}
         <textarea
           value={draft}
           onChange={(event) => onDraftChange(event.target.value)}
           placeholder={t("custom.send.prompt.placeholder")}
           rows={3}
         />
-        <button type="submit" className="primary-button" disabled={busy || !draft.trim()}>
+        <button type="submit" className="primary-button" disabled={busy || sessionLimitReached || !draft.trim()}>
           Send
         </button>
       </form>
     </article>
   );
+}
+
+function sessionTokenLimitForProvider(provider: AgentProvider, preferences: WorkspacePreferences): number {
+  switch (provider) {
+    case "codex":
+      return Math.max(0, preferences.codexSessionTokenLimit);
+    case "gemini":
+      return Math.max(0, preferences.geminiSessionTokenLimit);
+    case "claude":
+    default:
+      return Math.max(0, preferences.claudeSessionTokenLimit);
+  }
 }
