@@ -1,0 +1,76 @@
+{
+  "name": "doffice-windows",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Doffice Windows desktop application",
+  "author": "Hygino",
+  "main": "dist-electron/electron/main.js",
+  "scripts": {
+    "ensure:rollup-native": "node ./scripts/ensure-rollup-native.js",
+    "build": "node ./node_modules/vite/bin/vite.js build && node ./node_modules/typescript/bin/tsc -p tsconfig.node.json",
+    "dist:win": "npm run build && node ./node_modules/electron-builder/cli.js --win nsis",
+    "pack:win": "npm run build && node ./node_modules/electron-builder/cli.js --win portable",
+    "start": "npm run build && node ./node_modules/electron/cli.js .",
+    "typecheck": "node ./node_modules/typescript/bin/tsc --noEmit && node ./node_modules/typescript/bin/tsc -p tsconfig.node.json --noEmit"
+  },
+  "build": {
+    "appId": "com.hygino.doffice.windows",
+    "productName": "Doffice",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "index.html",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "dist-electron/electron/main.js"
+    },
+    "win": {
+      "icon": "build/app-icon.ico",
+      "executableName": "Doffice",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/app-icon.ico",
+      "uninstallerIcon": "build/app-icon.ico",
+      "installerHeaderIcon": "build/app-icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "4.60.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^35.0.0",
+    "electron-builder": "^26.8.1",
+    "typescript": "^5.7.3",
+    "vite": "^6.2.0"
+  }
+}
