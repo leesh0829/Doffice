@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="build/app-icon.ico" width="96" height="96" alt="Doffice">
+  <img src="build/icon_256x256@2x.png" width="128" height="128" alt="Doffice">
 </p>
 
 <h1 align="center">Doffice</h1>
