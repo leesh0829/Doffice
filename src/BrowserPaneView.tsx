@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { SessionSnapshot } from "./types";
 import { t } from "./localizationCatalog";
 
@@ -12,6 +12,13 @@ interface BrowserTab {
   url: string;
   history: string[];
   historyIndex: number;
+  reloadToken: number;
+}
+
+interface BrowserWorkspaceState {
+  tabs: BrowserTab[];
+  activeTabId: string;
+  showBookmarks: boolean;
 }
 
 const defaultBookmarks = [
@@ -21,7 +28,10 @@ const defaultBookmarks = [
   { url: "http://localhost:4000", icon: "🍃" }
 ];
 
-const browserStorageKey = "doffice.browser-pane";
+const legacyBrowserStorageKey = "doffice.browser-pane";
+const browserBookmarksStorageKey = "doffice.browser-bookmarks";
+const browserWorkspaceKeyPrefix = "doffice.browser-pane";
+const browserWorkspaceCache = new Map<string, BrowserWorkspaceState>();
 const defaultBrowserURL = "https://www.google.com";
 
 function tabTitleForUrl(url: string): string {
@@ -31,13 +41,14 @@ function tabTitleForUrl(url: string): string {
   return url.replace(/^https?:\/\//, "");
 }
 
-function createBrowserTab(url = defaultBrowserURL, id = `tab-${Date.now()}`): BrowserTab {
+function createBrowserTab(url = defaultBrowserURL, id = `tab-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`): BrowserTab {
   return {
     id,
     title: tabTitleForUrl(url),
     url,
     history: [url],
-    historyIndex: 0
+    historyIndex: 0,
+    reloadToken: 0
   };
 }
 
@@ -88,26 +99,31 @@ function normalizeTab(raw: Partial<BrowserTab> | undefined, index: number): Brow
     title: typeof raw?.title === "string" && raw.title.trim() ? raw.title : tabTitleForUrl(url),
     url,
     history: safeHistory,
-    historyIndex
+    historyIndex,
+    reloadToken: typeof raw?.reloadToken === "number" && raw.reloadToken >= 0 ? raw.reloadToken : 0
   };
 }
 
-function loadBrowserState() {
+function createBrowserWorkspaceState(): BrowserWorkspaceState {
+  const tab = createBrowserTab();
+  return {
+    tabs: [tab],
+    activeTabId: tab.id,
+    showBookmarks: false
+  };
+}
+
+function browserWorkspaceKey(scope: string) {
+  return `${browserWorkspaceKeyPrefix}:${scope}`;
+}
+
+function loadLegacyBrowserState(): BrowserWorkspaceState | null {
   try {
-    const raw = window.localStorage.getItem(browserStorageKey);
-    if (!raw) {
-      const tab = createBrowserTab();
-      return {
-        tabs: [tab],
-        activeTabId: tab.id,
-        bookmarks: [],
-        showBookmarks: false
-      };
-    }
+    const raw = window.localStorage.getItem(legacyBrowserStorageKey);
+    if (!raw) return null;
     const parsed = JSON.parse(raw) as {
       tabs?: Partial<BrowserTab>[];
       activeTabId?: string;
-      bookmarks?: string[];
       showBookmarks?: boolean;
     };
     const tabs =
@@ -117,27 +133,84 @@ function loadBrowserState() {
     const activeTabId = typeof parsed.activeTabId === "string" && tabs.some((tab) => tab.id === parsed.activeTabId)
       ? parsed.activeTabId
       : tabs[0]?.id ?? "tab-0";
-    const bookmarks = Array.isArray(parsed.bookmarks)
+    return {
+      tabs,
+      activeTabId,
+      showBookmarks: typeof parsed.showBookmarks === "boolean" ? parsed.showBookmarks : false
+    };
+  } catch {
+    return null;
+  }
+}
+
+function loadBrowserWorkspace(scope: string): BrowserWorkspaceState {
+  const cached = browserWorkspaceCache.get(scope);
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(browserWorkspaceKey(scope));
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<BrowserWorkspaceState>;
+      const tabs =
+        Array.isArray(parsed.tabs) && parsed.tabs.length > 0
+          ? parsed.tabs.map((tab, index) => normalizeTab(tab, index))
+          : [createBrowserTab()];
+      const activeTabId =
+        typeof parsed.activeTabId === "string" && tabs.some((tab) => tab.id === parsed.activeTabId)
+          ? parsed.activeTabId
+          : tabs[0]?.id ?? "tab-0";
+      const state = {
+        tabs,
+        activeTabId,
+        showBookmarks: typeof parsed.showBookmarks === "boolean" ? parsed.showBookmarks : false
+      };
+      browserWorkspaceCache.set(scope, state);
+      return state;
+    }
+  } catch {}
+
+  const migrated = scope === "global" ? loadLegacyBrowserState() : null;
+  const fallback = migrated ?? createBrowserWorkspaceState();
+  browserWorkspaceCache.set(scope, fallback);
+  return fallback;
+}
+
+function saveBrowserWorkspace(scope: string, state: BrowserWorkspaceState) {
+  browserWorkspaceCache.set(scope, state);
+  window.localStorage.setItem(browserWorkspaceKey(scope), JSON.stringify(state));
+}
+
+function loadBrowserBookmarks() {
+  try {
+    const raw = window.localStorage.getItem(browserBookmarksStorageKey);
+    if (raw) {
+      const parsed = JSON.parse(raw) as string[];
+      return Array.isArray(parsed)
+        ? parsed
+            .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+            .map((value) => normalizeNavigationTarget(value))
+            .filter((value) => !defaultBookmarks.some((item) => item.url === value))
+        : [];
+    }
+
+    const legacy = window.localStorage.getItem(legacyBrowserStorageKey);
+    if (!legacy) return [];
+    const parsed = JSON.parse(legacy) as { bookmarks?: string[] };
+    return Array.isArray(parsed.bookmarks)
       ? parsed.bookmarks
           .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
           .map((value) => normalizeNavigationTarget(value))
           .filter((value) => !defaultBookmarks.some((item) => item.url === value))
       : [];
-    return {
-      tabs,
-      activeTabId,
-      bookmarks,
-      showBookmarks: typeof parsed.showBookmarks === "boolean" ? parsed.showBookmarks : false
-    };
   } catch {
-    const tab = createBrowserTab();
-    return {
-      tabs: [tab],
-      activeTabId: tab.id,
-      bookmarks: [],
-      showBookmarks: false
-    };
+    return [];
   }
+}
+
+function saveBrowserBookmarks(bookmarks: string[]) {
+  window.localStorage.setItem(browserBookmarksStorageKey, JSON.stringify(bookmarks));
 }
 
 function pushHistory(tab: BrowserTab, nextUrl: string): BrowserTab {
@@ -160,13 +233,15 @@ function pushHistory(tab: BrowserTab, nextUrl: string): BrowserTab {
 }
 
 export function BrowserPaneView(props: BrowserPaneViewProps) {
-  void props;
-  const [persistedState] = useState(loadBrowserState);
-  const [tabs, setTabs] = useState<BrowserTab[]>(persistedState.tabs);
-  const [activeTabId, setActiveTabId] = useState(persistedState.activeTabId);
-  const [savedBookmarks, setSavedBookmarks] = useState<string[]>(persistedState.bookmarks);
+  const browserScope = props.selectedSession?.id ?? "global";
+  const [workspaceState, setWorkspaceState] = useState<BrowserWorkspaceState>(() => loadBrowserWorkspace(browserScope));
+  const [savedBookmarks, setSavedBookmarks] = useState<string[]>(loadBrowserBookmarks);
   const [address, setAddress] = useState("");
-  const [showBookmarks, setShowBookmarks] = useState(persistedState.showBookmarks);
+  const addressInputRef = useRef<HTMLInputElement | null>(null);
+
+  const tabs = workspaceState.tabs;
+  const activeTabId = workspaceState.activeTabId;
+  const showBookmarks = workspaceState.showBookmarks;
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
   const bookmarks = useMemo(() => savedBookmarks.slice(0, 12), [savedBookmarks]);
@@ -174,36 +249,67 @@ export function BrowserPaneView(props: BrowserPaneViewProps) {
   const canGoForward = activeTab ? activeTab.historyIndex < activeTab.history.length - 1 : false;
 
   useEffect(() => {
+    setWorkspaceState(loadBrowserWorkspace(browserScope));
+  }, [browserScope]);
+
+  useEffect(() => {
     setAddress(displayAddress(activeTab?.url ?? ""));
   }, [activeTab]);
 
   useEffect(() => {
-    if (!tabs.some((tab) => tab.id === activeTabId)) {
-      setActiveTabId(tabs[0]?.id ?? "tab-0");
+    if (activeTabId && tabs.some((tab) => tab.id === activeTabId)) {
+      return;
     }
+    setWorkspaceState((current) => ({
+      ...current,
+      activeTabId: current.tabs[0]?.id ?? "tab-0"
+    }));
   }, [activeTabId, tabs]);
 
   useEffect(() => {
-    window.localStorage.setItem(browserStorageKey, JSON.stringify({ tabs, activeTabId, bookmarks: savedBookmarks, showBookmarks }));
-  }, [tabs, activeTabId, savedBookmarks, showBookmarks]);
+    saveBrowserWorkspace(browserScope, workspaceState);
+  }, [browserScope, workspaceState]);
+
+  useEffect(() => {
+    saveBrowserBookmarks(savedBookmarks);
+  }, [savedBookmarks]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      addressInputRef.current?.focus();
+      if (activeTab?.url === defaultBrowserURL) {
+        addressInputRef.current?.select();
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [browserScope, activeTab?.id, activeTab?.url]);
+
+  function updateWorkspaceState(update: (current: BrowserWorkspaceState) => BrowserWorkspaceState) {
+    setWorkspaceState((current) => update(current));
+  }
 
   function createTab(url = defaultBrowserURL) {
     const nextTab = createBrowserTab(url);
-    setTabs((current) => [...current, nextTab]);
-    setActiveTabId(nextTab.id);
+    updateWorkspaceState((current) => ({
+      ...current,
+      tabs: [...current.tabs, nextTab],
+      activeTabId: nextTab.id
+    }));
   }
 
   function navigate(nextInput: string) {
     const normalized = normalizeNavigationTarget(nextInput);
-    setTabs((current) =>
-      current.map((tab) => (tab.id === activeTabId ? pushHistory(tab, normalized) : tab))
-    );
+    updateWorkspaceState((current) => ({
+      ...current,
+      tabs: current.tabs.map((tab) => (tab.id === current.activeTabId ? pushHistory(tab, normalized) : tab))
+    }));
   }
 
   function stepHistory(direction: -1 | 1) {
-    setTabs((current) =>
-      current.map((tab) => {
-        if (tab.id !== activeTabId) return tab;
+    updateWorkspaceState((current) => ({
+      ...current,
+      tabs: current.tabs.map((tab) => {
+        if (tab.id !== current.activeTabId) return tab;
         const nextIndex = tab.historyIndex + direction;
         if (nextIndex < 0 || nextIndex >= tab.history.length) return tab;
         const nextUrl = tab.history[nextIndex] ?? tab.url;
@@ -214,43 +320,38 @@ export function BrowserPaneView(props: BrowserPaneViewProps) {
           historyIndex: nextIndex
         };
       })
-    );
+    }));
   }
 
   function reloadActiveTab() {
     if (!activeTab) return;
-    setTabs((current) =>
-      current.map((tab) =>
+    updateWorkspaceState((current) => ({
+      ...current,
+      tabs: current.tabs.map((tab) =>
         tab.id === activeTab.id
           ? {
               ...tab,
-              url: `${activeTab.url}${activeTab.url.includes("?") ? "&" : "?"}reload=${Date.now()}`
+              reloadToken: tab.reloadToken + 1
             }
           : tab
       )
-    );
-    window.setTimeout(() => {
-      setTabs((current) =>
-        current.map((tab) =>
-          tab.id === activeTab.id
-            ? {
-                ...tab,
-                url: activeTab.url
-              }
-            : tab
-        )
-      );
-    }, 30);
+    }));
   }
 
   function closeTab(tabId: string) {
-    setTabs((current) => {
-      const next = current.filter((tab) => tab.id !== tabId);
-      return next.length > 0 ? next : [createBrowserTab(defaultBrowserURL, "tab-0")];
+    updateWorkspaceState((current) => {
+      const nextTabs = current.tabs.filter((tab) => tab.id !== tabId);
+      const safeTabs = nextTabs.length > 0 ? nextTabs : [createBrowserTab(defaultBrowserURL, "tab-0")];
+      const nextActiveTabId =
+        current.activeTabId === tabId
+          ? safeTabs[Math.max(0, Math.min(current.tabs.findIndex((tab) => tab.id === tabId), safeTabs.length - 1))]?.id ?? "tab-0"
+          : current.activeTabId;
+      return {
+        ...current,
+        tabs: safeTabs,
+        activeTabId: nextActiveTabId
+      };
     });
-    if (activeTabId === tabId) {
-      setActiveTabId((current) => (current === tabId ? tabs.find((tab) => tab.id !== tabId)?.id ?? "tab-0" : current));
-    }
   }
 
   function toggleBookmark(url: string) {
@@ -267,7 +368,7 @@ export function BrowserPaneView(props: BrowserPaneViewProps) {
           <button
             type="button"
             className="browser-close-button"
-            onClick={() => setShowBookmarks((current) => !current)}
+            onClick={() => updateWorkspaceState((current) => ({ ...current, showBookmarks: !current.showBookmarks }))}
           >
             {showBookmarks ? "×" : "☰"}
           </button>
@@ -290,10 +391,10 @@ export function BrowserPaneView(props: BrowserPaneViewProps) {
                 ))}
               </div>
             )}
-            <div className="browser-bookmark-section">
-              <span className="browser-bookmark-title">{t("custom.browser.dev")}</span>
-              {defaultBookmarks.map((bookmark) => (
-                <button key={bookmark.url} type="button" className="browser-bookmark-row" onClick={() => navigate(bookmark.url)}>
+              <div className="browser-bookmark-section">
+                <span className="browser-bookmark-title">{t("custom.browser.dev")}</span>
+                {defaultBookmarks.map((bookmark) => (
+                  <button key={bookmark.url} type="button" className="browser-bookmark-row" onClick={() => navigate(bookmark.url)}>
                   <span className="browser-bookmark-icon">{bookmark.icon}</span>
                   <span>{displayAddress(bookmark.url)}</span>
                 </button>
@@ -310,7 +411,7 @@ export function BrowserPaneView(props: BrowserPaneViewProps) {
               key={tab.id}
               type="button"
               className={`browser-tab ${tab.id === activeTabId ? "is-active" : ""}`}
-              onClick={() => setActiveTabId(tab.id)}
+              onClick={() => updateWorkspaceState((current) => ({ ...current, activeTabId: tab.id }))}
             >
               <span>{tab.title}</span>
               {tabs.length > 1 ? (
@@ -348,7 +449,12 @@ export function BrowserPaneView(props: BrowserPaneViewProps) {
             }}
           >
             <span className="browser-lock-icon">⌂</span>
-            <input value={address} onChange={(event) => setAddress(event.target.value)} placeholder={t("custom.browser.search.placeholder")} />
+            <input
+              ref={addressInputRef}
+              value={address}
+              onChange={(event) => setAddress(event.target.value)}
+              placeholder={t("custom.browser.search.placeholder")}
+            />
           </form>
           <button type="button" className="browser-nav-button" onClick={() => void window.doffice.openExternal(activeTab?.url ?? defaultBrowserURL)}>
             ↗
@@ -358,7 +464,12 @@ export function BrowserPaneView(props: BrowserPaneViewProps) {
           </button>
         </div>
         <div className="browser-surface">
-          <iframe className="browser-iframe" src={activeTab?.url ?? defaultBrowserURL} title={activeTab?.title || t("custom.browser")} />
+          <iframe
+            key={`${activeTab?.id ?? "browser"}:${activeTab?.reloadToken ?? 0}`}
+            className="browser-iframe"
+            src={activeTab?.url ?? defaultBrowserURL}
+            title={activeTab?.title || t("custom.browser")}
+          />
         </div>
       </div>
     </section>

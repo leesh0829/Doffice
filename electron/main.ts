@@ -1448,6 +1448,17 @@ function appendBlock(session, kind, content, meta = {}) {
   emitSessions();
 }
 
+function markSessionRuntimeError(session, message, options = {}) {
+  session.child = null;
+  session.isProcessing = false;
+  session.isCompleted = false;
+  if (options.stopRunning) {
+    session.isRunning = false;
+  }
+  session.claudeActivity = "error";
+  appendBlock(session, "error", String(message ?? "Session failed"));
+}
+
 function summarizeToolUse(toolName, toolInput) {
   if (toolName === "Bash") {
     return String(toolInput.command ?? "").trim();
@@ -2028,7 +2039,7 @@ async function sendPrompt(payload) {
   const provider = normalizeProvider(session.provider ?? providerForModel(session.selectedModel));
   const activeStatus = cliStatusForProvider(provider);
   if (!activeStatus.isInstalled) {
-    appendBlock(session, "error", activeStatus.errorInfo);
+    markSessionRuntimeError(session, activeStatus.errorInfo, { stopRunning: true });
     return session;
   }
 
@@ -2044,125 +2055,234 @@ async function sendPrompt(payload) {
 
   const permissionMode = String(payload.permissionOverride ?? session.permissionMode);
   if (provider === "gemini") {
-    const args = [];
-    if (session.selectedModel && session.selectedModel !== "gemini-2.5-pro") {
-      args.push("--model", session.selectedModel);
-    }
-    if (permissionMode === "bypassPermissions") {
-      args.push("--yolo");
-    }
-
-    const child = spawn(activeStatus.path, args, {
-      cwd: session.projectPath,
-      env: process.env,
-      windowsHide: true,
-      shell: process.platform === "win32" && /\.(cmd|bat)$/i.test(activeStatus.path)
-    });
-    session.child = child;
-
-    let thoughtBlockId = "";
-    let stderrBuffer = "";
-
-    const appendGeminiOutput = (rawText) => {
-      const text = sanitizeText(String(rawText ?? "").replace(/^✦\s*/, ""));
-      if (!text || text === ">") {
-        return;
+    try {
+      const args = [];
+      if (session.selectedModel && session.selectedModel !== "gemini-2.5-pro") {
+        args.push("--model", session.selectedModel);
       }
-      session.claudeActivity = "writing";
-      session.lastResultText = session.lastResultText ? `${session.lastResultText}\n${text}` : text;
-      const lastBlock = session.blocks.at(-1);
-      if (lastBlock?.id === thoughtBlockId && lastBlock.kind === "thought") {
-        lastBlock.content = `${lastBlock.content}\n${text}`.trim();
-        lastBlock.timestamp = nowIso();
-      } else {
-        const block = createBlock("thought", text);
-        thoughtBlockId = block.id;
-        session.blocks.push(block);
+      if (permissionMode === "bypassPermissions") {
+        args.push("--yolo");
       }
-      emitSessions();
-    };
 
-    const stdoutReader = readline.createInterface({ input: child.stdout });
-    stdoutReader.on("line", (line) => {
-      appendGeminiOutput(line);
-    });
+      const child = spawn(activeStatus.path, args, {
+        cwd: session.projectPath,
+        env: process.env,
+        windowsHide: true,
+        shell: process.platform === "win32" && /\.(cmd|bat)$/i.test(activeStatus.path)
+      });
+      session.child = child;
 
-    child.stderr.on("data", (chunk) => {
-      const text = sanitizeText(chunk.toString("utf8"));
-      if (!text) {
-        return;
-      }
-      stderrBuffer = stderrBuffer ? `${stderrBuffer}\n${text}` : text;
-      appendBlock(session, "toolError", text);
-    });
+      let thoughtBlockId = "";
+      let stderrBuffer = "";
 
-    child.on("error", (error) => {
-      session.child = null;
-      session.isProcessing = false;
-      session.claudeActivity = "error";
-      appendBlock(session, "error", error.message);
-    });
-
-    child.stdin.write(prompt);
-    child.stdin.end();
-
-    child.on("close", (code) => {
-      session.child = null;
-      if (!session.isProcessing) {
+      const appendGeminiOutput = (rawText) => {
+        const text = sanitizeText(String(rawText ?? "").replace(/^✦\s*/, ""));
+        if (!text || text === ">") {
+          return;
+        }
+        session.claudeActivity = "writing";
+        session.lastResultText = session.lastResultText ? `${session.lastResultText}\n${text}` : text;
+        const lastBlock = session.blocks.at(-1);
+        if (lastBlock?.id === thoughtBlockId && lastBlock.kind === "thought") {
+          lastBlock.content = `${lastBlock.content}\n${text}`.trim();
+          lastBlock.timestamp = nowIso();
+        } else {
+          const block = createBlock("thought", text);
+          thoughtBlockId = block.id;
+          session.blocks.push(block);
+        }
         emitSessions();
-        return;
-      }
-      session.isProcessing = false;
-      if (code && code !== 0) {
-        session.claudeActivity = "error";
-        appendBlock(session, "error", stderrBuffer || `Gemini exited with code ${code}`);
-        emitSessions();
-        return;
-      }
-      session.completedPromptCount += 1;
-      session.isCompleted = true;
-      session.claudeActivity = "done";
-      appendBlock(session, "completion", lt("custom.completed"));
-      void finalizeSessionCompletion(session);
-    });
+      };
 
-    return session;
+      const stdoutReader = readline.createInterface({ input: child.stdout });
+      stdoutReader.on("line", (line) => {
+        appendGeminiOutput(line);
+      });
+
+      child.stderr.on("data", (chunk) => {
+        const text = sanitizeText(chunk.toString("utf8"));
+        if (!text) {
+          return;
+        }
+        stderrBuffer = stderrBuffer ? `${stderrBuffer}\n${text}` : text;
+        appendBlock(session, "toolError", text);
+      });
+
+      child.on("error", (error) => {
+        markSessionRuntimeError(session, error.message);
+      });
+
+      child.stdin.write(prompt);
+      child.stdin.end();
+
+      child.on("close", (code) => {
+        session.child = null;
+        if (!session.isProcessing) {
+          emitSessions();
+          return;
+        }
+        session.isProcessing = false;
+        if (code && code !== 0) {
+          session.claudeActivity = "error";
+          appendBlock(session, "error", stderrBuffer || `Gemini exited with code ${code}`);
+          emitSessions();
+          return;
+        }
+        session.completedPromptCount += 1;
+        session.isCompleted = true;
+        session.claudeActivity = "done";
+        appendBlock(session, "completion", lt("custom.completed"));
+        void finalizeSessionCompletion(session);
+      });
+
+      return session;
+    } catch (error) {
+      markSessionRuntimeError(session, error?.message ?? error);
+      return session;
+    }
   }
 
   if (provider === "codex") {
-    const args = session.sessionId
-      ? [
-          "exec",
-          "resume",
-          "--json",
-          "-c",
-          `sandbox_mode="${session.codexSandboxMode || "workspace-write"}"`,
-          "-c",
-          `approval_policy="${session.codexApprovalPolicy || "on-request"}"`,
-          "--skip-git-repo-check",
-          "-m",
-          session.selectedModel,
-          session.sessionId,
-          prompt
-        ]
-      : [
-          "exec",
-          "--json",
-          "-c",
-          `sandbox_mode="${session.codexSandboxMode || "workspace-write"}"`,
-          "-c",
-          `approval_policy="${session.codexApprovalPolicy || "on-request"}"`,
-          "--skip-git-repo-check",
-          "-m",
-          session.selectedModel,
-          prompt
-        ];
+    try {
+      const args = session.sessionId
+        ? [
+            "exec",
+            "resume",
+            "--json",
+            "-c",
+            `sandbox_mode="${session.codexSandboxMode || "workspace-write"}"`,
+            "-c",
+            `approval_policy="${session.codexApprovalPolicy || "on-request"}"`,
+            "--skip-git-repo-check",
+            "-m",
+            session.selectedModel,
+            session.sessionId,
+            prompt
+          ]
+        : [
+            "exec",
+            "--json",
+            "-c",
+            `sandbox_mode="${session.codexSandboxMode || "workspace-write"}"`,
+            "-c",
+            `approval_policy="${session.codexApprovalPolicy || "on-request"}"`,
+            "--skip-git-repo-check",
+            "-m",
+            session.selectedModel,
+            prompt
+          ];
 
-    for (const dir of session.additionalDirs ?? []) {
-      if (dir) {
-        args.splice(args.length - 1, 0, "--add-dir", dir);
+      for (const dir of session.additionalDirs ?? []) {
+        if (dir) {
+          args.splice(args.length - 1, 0, "--add-dir", dir);
+        }
+      }
+
+      const child = spawn(activeStatus.path, args, {
+        cwd: session.projectPath,
+        env: process.env,
+        windowsHide: true,
+        shell: process.platform === "win32" && /\.(cmd|bat)$/i.test(activeStatus.path)
+      });
+      session.child = child;
+
+      const stdoutReader = readline.createInterface({ input: child.stdout });
+      stdoutReader.on("line", (line) => {
+        const trimmedLine = String(line).trim();
+        if (!trimmedLine) return;
+        try {
+          handleCodexStreamEvent(session, JSON.parse(trimmedLine));
+        } catch {
+          const text = sanitizeText(trimmedLine);
+          if (text) {
+            appendBlock(session, "status", text);
+          }
+        }
+      });
+
+      child.stderr.on("data", (chunk) => {
+        const text = sanitizeText(chunk.toString("utf8"));
+        if (text && !text.startsWith("{")) {
+          appendBlock(session, "toolError", text);
+        }
+      });
+
+      child.on("error", (error) => {
+        markSessionRuntimeError(session, error.message);
+      });
+
+      child.on("close", (code) => {
+        session.child = null;
+        if (session.isProcessing) {
+          session.isProcessing = false;
+          if (code && code !== 0 && session.claudeActivity !== "error") {
+            session.claudeActivity = "error";
+            appendBlock(session, "error", `Codex exited with code ${code}`);
+          } else {
+            session.claudeActivity = "idle";
+          }
+        }
+        emitSessions();
+      });
+
+      return session;
+    } catch (error) {
+      markSessionRuntimeError(session, error?.message ?? error);
+      return session;
+    }
+  }
+
+  try {
+    const args = [
+      "-p",
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--permission-mode",
+      permissionMode,
+      "--model",
+      session.selectedModel,
+      "--effort",
+      session.effortLevel
+    ];
+
+    if (session.continueSession && !session.sessionId) {
+      args.push("--continue");
+    } else if (session.sessionId) {
+      args.push("--resume", session.sessionId);
+    }
+    if (session.sessionName.trim()) {
+      args.push("--name", session.sessionName.trim());
+    }
+
+    if (session.systemPrompt.trim()) {
+      args.push("--append-system-prompt", session.systemPrompt.trim());
+    }
+    if (session.maxBudgetUSD > 0) {
+      args.push("--max-budget-usd", session.maxBudgetUSD.toFixed(2));
+    }
+    if (session.fallbackModel.trim()) {
+      args.push("--fallback-model", session.fallbackModel.trim());
+    }
+    if (session.enableChrome) {
+      args.push("--chrome");
+    }
+    if (session.useWorktree) {
+      args.push("--worktree");
+    }
+    if (session.forkSession) {
+      args.push("--fork-session");
+    }
+    if (session.enableBrief) {
+      args.push("--brief");
+    }
+    for (const pluginDir of session.pluginDirs ?? []) {
+      if (pluginDir) {
+        args.push("--plugin-dir", pluginDir);
       }
     }
+
+    args.push("--", prompt);
 
     const child = spawn(activeStatus.path, args, {
       cwd: session.projectPath,
@@ -2175,9 +2295,11 @@ async function sendPrompt(payload) {
     const stdoutReader = readline.createInterface({ input: child.stdout });
     stdoutReader.on("line", (line) => {
       const trimmedLine = String(line).trim();
-      if (!trimmedLine) return;
+      if (!trimmedLine) {
+        return;
+      }
       try {
-        handleCodexStreamEvent(session, JSON.parse(trimmedLine));
+        handleStreamEvent(session, JSON.parse(trimmedLine));
       } catch {
         const text = sanitizeText(trimmedLine);
         if (text) {
@@ -2190,130 +2312,35 @@ async function sendPrompt(payload) {
       const text = sanitizeText(chunk.toString("utf8"));
       if (text && !text.startsWith("{")) {
         appendBlock(session, "toolError", text);
+        if (detectPermissionDenied(text)) {
+          presentPermissionApprovalIfNeeded(session, text);
+        }
       }
     });
 
     child.on("error", (error) => {
-      session.child = null;
-      session.isProcessing = false;
-      session.claudeActivity = "error";
-      appendBlock(session, "error", error.message);
+      markSessionRuntimeError(session, error.message);
     });
 
-    child.on("close", () => {
+    child.on("close", (code) => {
       session.child = null;
       if (session.isProcessing) {
         session.isProcessing = false;
-        session.claudeActivity = "idle";
+        if (code && code !== 0 && session.claudeActivity !== "error") {
+          session.claudeActivity = "error";
+          appendBlock(session, "error", `Claude exited with code ${code}`);
+        } else {
+          session.claudeActivity = "idle";
+        }
       }
       emitSessions();
     });
 
     return session;
+  } catch (error) {
+    markSessionRuntimeError(session, error?.message ?? error);
+    return session;
   }
-
-  const args = [
-    "-p",
-    "--output-format",
-    "stream-json",
-    "--verbose",
-    "--permission-mode",
-    permissionMode,
-    "--model",
-    session.selectedModel,
-    "--effort",
-    session.effortLevel
-  ];
-
-  if (session.continueSession && !session.sessionId) {
-    args.push("--continue");
-  } else if (session.sessionId) {
-    args.push("--resume", session.sessionId);
-  }
-  if (session.sessionName.trim()) {
-    args.push("--name", session.sessionName.trim());
-  }
-
-  if (session.systemPrompt.trim()) {
-    args.push("--append-system-prompt", session.systemPrompt.trim());
-  }
-  if (session.maxBudgetUSD > 0) {
-    args.push("--max-budget-usd", session.maxBudgetUSD.toFixed(2));
-  }
-  if (session.fallbackModel.trim()) {
-    args.push("--fallback-model", session.fallbackModel.trim());
-  }
-  if (session.enableChrome) {
-    args.push("--chrome");
-  }
-  if (session.useWorktree) {
-    args.push("--worktree");
-  }
-  if (session.forkSession) {
-    args.push("--fork-session");
-  }
-  if (session.enableBrief) {
-    args.push("--brief");
-  }
-  for (const pluginDir of session.pluginDirs ?? []) {
-    if (pluginDir) {
-      args.push("--plugin-dir", pluginDir);
-    }
-  }
-
-  args.push("--", prompt);
-
-  const child = spawn(activeStatus.path, args, {
-    cwd: session.projectPath,
-    env: process.env,
-    windowsHide: true,
-    shell: process.platform === "win32" && /\.(cmd|bat)$/i.test(activeStatus.path)
-  });
-  session.child = child;
-
-  const stdoutReader = readline.createInterface({ input: child.stdout });
-  stdoutReader.on("line", (line) => {
-    const trimmedLine = String(line).trim();
-    if (!trimmedLine) {
-      return;
-    }
-    try {
-      handleStreamEvent(session, JSON.parse(trimmedLine));
-    } catch {
-      const text = sanitizeText(trimmedLine);
-      if (text) {
-        appendBlock(session, "status", text);
-      }
-    }
-  });
-
-  child.stderr.on("data", (chunk) => {
-    const text = sanitizeText(chunk.toString("utf8"));
-    if (text && !text.startsWith("{")) {
-      appendBlock(session, "toolError", text);
-      if (detectPermissionDenied(text)) {
-        presentPermissionApprovalIfNeeded(session, text);
-      }
-    }
-  });
-
-  child.on("error", (error) => {
-    session.child = null;
-    session.isProcessing = false;
-    session.claudeActivity = "error";
-    appendBlock(session, "error", error.message);
-  });
-
-  child.on("close", () => {
-    session.child = null;
-    if (session.isProcessing) {
-      session.isProcessing = false;
-      session.claudeActivity = "idle";
-    }
-    emitSessions();
-  });
-
-  return session;
 }
 
 function createWindow() {
