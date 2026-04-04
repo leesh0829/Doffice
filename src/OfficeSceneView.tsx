@@ -541,71 +541,71 @@ export function OfficeSceneView(props: OfficeSceneViewProps) {
         <div className="office-aura office-aura-top" />
         <div className="office-aura office-aura-bottom" />
         <div className={`office-camera ${isFollowing ? "is-following" : ""}`} style={cameraStyle} onClick={clearFollowingIfNeeded}>
-        <div className="office-map">
-          <OfficeMapCanvas layout={officeLayout} themeId={backgroundTheme} activeDeskSlots={activeDeskSlots} visibleDecorItems={visibleDecorItems} />
+          <div className="office-map">
+            <OfficeMapCanvas layout={officeLayout} themeId={backgroundTheme} activeDeskSlots={activeDeskSlots} visibleDecorItems={visibleDecorItems} />
 
-          {placements.map((worker) => {
-            const selected = selectedSession?.id === worker.session.id;
-            const workerStyle: CSSProperties = tileStyle(worker.col, worker.row, {
-              ["--worker-color" as string]: worker.session.workerColorHex,
-              ["--worker-status" as string]: worker.status.tint,
-              ["--worker-transition" as string]: worker.pose === "typing" ? "160ms" : "72ms"
-            });
-            return (
-              <button
-                key={worker.session.id}
-                className={`office-worker-sprite pose-${worker.pose} ${selected ? "is-selected" : ""} status-${worker.status.category}`}
-                style={workerStyle}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleWorkerSelect(worker.session);
-                }}
+            {placements.map((worker) => {
+              const selected = selectedSession?.id === worker.session.id;
+              const workerStyle: CSSProperties = tileStyle(worker.col, worker.row, {
+                ["--worker-color" as string]: worker.session.workerColorHex,
+                ["--worker-status" as string]: worker.status.tint,
+                ["--worker-transition" as string]: worker.pose === "typing" ? "160ms" : "72ms"
+              });
+              return (
+                <button
+                  key={worker.session.id}
+                  className={`office-worker-sprite pose-${worker.pose} ${selected ? "is-selected" : ""} status-${worker.status.category}`}
+                  style={workerStyle}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleWorkerSelect(worker.session);
+                  }}
                 >
-                <span className="office-worker-project">{worker.projectName}</span>
-                <span className="office-worker-shadow" />
-                <span className="office-worker-body-wrap">
-                  <PixelCharacterSprite character={worker.character} className="office-worker-canvas" scale={2} walking={worker.pose === "roaming"} />
-                </span>
-                <span className="office-worker-badge">{workerBadge(worker.session)}</span>
-                <span className="office-worker-tag" style={{ color: worker.session.workerColorHex }}>{worker.session.workerName}</span>
-              </button>
-            );
-          })}
-        </div>
+                  <span className="office-worker-project">{worker.projectName}</span>
+                  <span className="office-worker-shadow" />
+                  <span className="office-worker-body-wrap">
+                    <PixelCharacterSprite character={worker.character} className="office-worker-canvas" scale={2} walking={worker.pose === "roaming"} />
+                  </span>
+                  <span className="office-worker-badge">{workerBadge(worker.session)}</span>
+                  <span className="office-worker-tag" style={{ color: worker.session.workerColorHex }}>{worker.session.workerName}</span>
+                </button>
+              );
+            })}
+
+            {selectedSession ? (
+              <div className={`office-selection-panel ${isFollowing ? "is-following" : ""} variant-${variant}`}>
+                <div className="office-selection-top">
+                  <span className="worker-dot office-selection-dot" style={{ backgroundColor: selectedSession.workerColorHex }} />
+                  <div className="office-selection-identity">
+                    <strong>{selectedSession.workerName}</strong>
+                    <span>{selectedSession.projectName}</span>
+                  </div>
+                  <div className="office-selection-meta">
+                    <span className="office-selection-chip role">{selectedRoleLabel}</span>
+                    <span className="office-selection-chip status" style={{ color: selectedStatus?.tint }}>
+                      {selectedStatus?.label}
+                    </span>
+                  </div>
+                </div>
+                <div className="office-selection-stats">
+                  <div className="office-stat-card">
+                    <span>{t("custom.activity")}</span>
+                    <strong>{statusLabel(selectedSession)}</strong>
+                  </div>
+                  <div className="office-stat-card">
+                    <span>{t("custom.token.usage")}</span>
+                    <strong>{formatTokens(selectedSession.tokensUsed)}</strong>
+                  </div>
+                  <div className="office-stat-card">
+                    <span>{t("custom.files")}</span>
+                    <strong>{selectedSession.fileChanges.length}</strong>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
-
-      {selectedSession ? (
-        <div className={`office-selection-panel ${isFollowing ? "is-following" : ""} variant-${variant}`}>
-          <div className="office-selection-top">
-            <span className="worker-dot" style={{ backgroundColor: selectedSession.workerColorHex }} />
-            <div className="office-selection-identity">
-              <strong>{selectedSession.workerName}</strong>
-              <span>{selectedSession.projectName}</span>
-            </div>
-            <div className="office-selection-meta">
-              <span className="office-selection-chip role">{selectedRoleLabel}</span>
-              <span className="office-selection-chip status" style={{ color: selectedStatus?.tint }}>
-                {selectedStatus?.label}
-              </span>
-            </div>
-          </div>
-          <div className="office-selection-stats">
-            <div className="office-stat-card">
-              <span>{t("custom.activity")}</span>
-              <strong>{statusLabel(selectedSession)}</strong>
-            </div>
-            <div className="office-stat-card">
-              <span>{t("custom.token.usage")}</span>
-              <strong>{formatTokens(selectedSession.tokensUsed)}</strong>
-            </div>
-            <div className="office-stat-card">
-              <span>{t("custom.files")}</span>
-              <strong>{selectedSession.fileChanges.length}</strong>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {isFollowing ? (
         <div className="office-follow-indicator">
