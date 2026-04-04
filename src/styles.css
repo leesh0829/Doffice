@@ -1422,16 +1422,42 @@ textarea:focus {
 }
 
 
-.office-selection-panel {
+.office-selection-anchor {
   position: absolute;
-  top: 14px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.office-selection-anchor > .office-selection-panel {
+  pointer-events: auto;
+}
+
+.office-selection-anchor.variant-full {
+  top: 16px;
   left: 16px;
+}
+
+.office-selection-anchor.variant-compact {
+  top: 12px;
+  left: 12px;
+}
+
+.office-selection-anchor.variant-compact.is-following,
+.office-selection-anchor.variant-full.is-following {
+  top: auto;
+  left: 14px;
+  right: auto;
+  bottom: 58px;
+}
+
+.office-selection-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  width: min(260px, calc(100% - 32px));
-  max-width: min(260px, calc(100% - 32px));
-  max-height: calc(100% - 28px);
+  width: min(260px, calc(100vw - 32px));
+  max-width: min(260px, calc(100vw - 32px));
+  max-height: min(220px, calc(100vh - 32px));
   padding: 8px;
   border: 1px solid rgba(62, 72, 96, 0.82);
   border-radius: 10px;
@@ -1442,15 +1468,14 @@ textarea:focus {
 }
 
 .office-selection-panel.variant-compact {
-  top: 10px;
-  left: 10px;
-  width: min(260px, calc(100% - 20px));
-  max-width: min(260px, calc(100% - 20px));
+  width: min(176px, calc(var(--office-stage-left) - 22px));
+  max-width: min(176px, calc(var(--office-stage-left) - 22px));
+  max-height: min(196px, calc(100% - 24px));
 }
 
 .office-selection-panel.is-following {
-  top: auto;
-  bottom: 14px;
+  width: min(220px, calc(100vw - 28px));
+  max-width: min(220px, calc(100vw - 28px));
 }
 
 .office-selection-top {
@@ -3281,7 +3306,8 @@ textarea:focus {
   gap: 10px;
   padding: 10px;
   background: #0f1319;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
 }
 
@@ -3299,6 +3325,7 @@ textarea:focus {
 .git-detail-card.grow {
   flex: 1;
   overflow: hidden;
+  min-height: 280px;
 }
 
 .git-detail-copy {
@@ -3310,13 +3337,16 @@ textarea:focus {
 .git-change-list-rich {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   min-height: 0;
   overflow: auto;
 }
 
 .git-change-row-rich {
-  gap: 10px;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  min-height: 58px;
 }
 
 .git-change-status-pill {
@@ -3332,7 +3362,7 @@ textarea:focus {
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .git-change-copy span {
@@ -6441,7 +6471,7 @@ textarea:focus {
 .git-working-dir {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -6452,13 +6482,14 @@ textarea:focus {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  gap: 8px;
 }
 
 .git-working-column-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 0;
   color: #9cb0c6;
   font-size: 11px;
   font-weight: 700;
@@ -6741,7 +6772,39 @@ textarea:focus {
 }
 
 .single-config-groups {
+  flex-wrap: nowrap;
+  gap: 4px;
   margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.single-config-groups .terminal-choice-group {
+  min-width: 0;
+  gap: 4px;
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+}
+
+.single-config-groups .terminal-choice-label {
+  min-width: auto;
+  flex: 0 0 auto;
+  font-size: 8px;
+  letter-spacing: -0.02em;
+}
+
+.single-config-groups .terminal-choice-row {
+  min-width: 0;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.single-config-groups .terminal-choice-chip {
+  min-width: 0;
+  min-height: 24px;
+  padding: 0 7px;
+  font-size: 10px;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
 .composer-attachment-row {

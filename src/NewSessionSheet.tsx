@@ -118,8 +118,6 @@ export function NewSessionSheet(props: NewSessionSheetProps) {
   const [showTrustPrompt, setShowTrustPrompt] = useState(false);
   const [trustedProjectPaths, setTrustedProjectPaths] = useState<string[]>(loadTrustedProjectPaths);
 
-  if (!isOpen) return null;
-
   useEffect(() => {
     if (!isOpen) {
       setShowTrustPrompt(false);
@@ -132,6 +130,8 @@ export function NewSessionSheet(props: NewSessionSheetProps) {
 
   const normalizedProjectPath = useMemo(() => normalizeTrustedProjectPath(draft.projectPath), [draft.projectPath]);
   const projectIsTrusted = normalizedProjectPath.length > 0 && trustedProjectPaths.includes(normalizedProjectPath);
+
+  if (!isOpen) return null;
 
   async function handleAddAdditionalDirectory() {
     const picked = await window.doffice.pickDirectory();

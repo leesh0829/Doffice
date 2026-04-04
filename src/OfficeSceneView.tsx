@@ -568,6 +568,7 @@ export function OfficeSceneView(props: OfficeSceneViewProps) {
   const visibleDecorItems = [...baseDecorItems, ...buildPluginDecorItems(enabledAccessoryIds)];
   const followedPlacement = followingSessionId ? placements.find((placement) => placement.session.id === followingSessionId) ?? null : null;
   const isFollowing = followedPlacement != null;
+  const selectionAnchorClassName = `office-selection-anchor variant-${variant} ${isFollowing ? "is-following" : ""}`.trim();
   const focusPlacement = officeCamera === "focus" ? followedPlacement ?? placements.find((placement) => placement.session.id === selectedSession?.id) ?? placements[0] ?? null : null;
   const baseZoom = officeCamera === "focus" ? Math.max(followZoom, 1.65) : 1;
   const cameraStyle: CSSProperties | undefined = followedPlacement
@@ -648,39 +649,41 @@ export function OfficeSceneView(props: OfficeSceneViewProps) {
               );
             })}
 
-            {selectedSession ? (
-              <div className={`office-selection-panel ${isFollowing ? "is-following" : ""} variant-${variant}`}>
-                <div className="office-selection-top">
-                  <span className="worker-dot office-selection-dot" style={{ backgroundColor: selectedSession.workerColorHex }} />
-                  <div className="office-selection-identity">
-                    <strong>{selectedSession.workerName}</strong>
-                    <span>{selectedSession.projectName}</span>
-                  </div>
-                  <div className="office-selection-meta">
-                    <span className="office-selection-chip role">{selectedRoleLabel}</span>
-                    <span className="office-selection-chip status" style={{ color: selectedStatus?.tint }}>
-                      {selectedStatus?.label}
-                    </span>
-                  </div>
-                </div>
-                <div className="office-selection-stats">
-                  <div className="office-stat-card">
-                    <span>{t("custom.activity")}</span>
-                    <strong>{statusLabel(selectedSession)}</strong>
-                  </div>
-                  <div className="office-stat-card">
-                    <span>{t("custom.token.usage")}</span>
-                    <strong>{formatTokens(selectedSession.tokensUsed)}</strong>
-                  </div>
-                  <div className="office-stat-card">
-                    <span>{t("custom.files")}</span>
-                    <strong>{selectedSession.fileChanges.length}</strong>
-                  </div>
-                </div>
-              </div>
-            ) : null}
           </div>
         </div>
+        {selectedSession ? (
+          <div className={selectionAnchorClassName}>
+            <div className={`office-selection-panel ${isFollowing ? "is-following" : ""} variant-${variant}`}>
+              <div className="office-selection-top">
+                <span className="worker-dot office-selection-dot" style={{ backgroundColor: selectedSession.workerColorHex }} />
+                <div className="office-selection-identity">
+                  <strong>{selectedSession.workerName}</strong>
+                  <span>{selectedSession.projectName}</span>
+                </div>
+                <div className="office-selection-meta">
+                  <span className="office-selection-chip role">{selectedRoleLabel}</span>
+                  <span className="office-selection-chip status" style={{ color: selectedStatus?.tint }}>
+                    {selectedStatus?.label}
+                  </span>
+                </div>
+              </div>
+              <div className="office-selection-stats">
+                <div className="office-stat-card">
+                  <span>{t("custom.activity")}</span>
+                  <strong>{statusLabel(selectedSession)}</strong>
+                </div>
+                <div className="office-stat-card">
+                  <span>{t("custom.token.usage")}</span>
+                  <strong>{formatTokens(selectedSession.tokensUsed)}</strong>
+                </div>
+                <div className="office-stat-card">
+                  <span>{t("custom.files")}</span>
+                  <strong>{selectedSession.fileChanges.length}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {isFollowing ? (

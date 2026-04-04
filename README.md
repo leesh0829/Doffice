@@ -1,77 +1,78 @@
 <p align="center">
-  <img src="build/icon_256x256@2x.png" width="128" height="128" alt="Doffice">
+  <img src="https://raw.githubusercontent.com/jjunhaa0211/Doffice/main/docs/hero.gif" width="160" alt="Doffice Character">
 </p>
 
-<h1 align="center">Doffice</h1>
+<h1 align="center">Doffice (도피스)</h1>
 
 <p align="center">
-  <strong>Claude Code 세션을 시각적으로 관리하는 Windows 데스크톱 앱</strong><br>
-  <sub>`dev` 브랜치는 Windows 개발 기준, `main` 브랜치는 macOS 원본 기준으로 유지합니다.</sub>
+  <strong>AI 코딩 어시스턴트를 위한 비주얼 워크스페이스</strong><br>
+  <sub>Claude · Codex · Gemini — 멀티 에이전트를 픽셀 아트 오피스에서 관리하세요</sub>
 </p>
 
 <p align="center">
+<a href="https://github.com/leesh0829/Doffice/releases/latest"><img src="https://img.shields.io/github/v/release/leesh0829/Doffice?style=flat-square&color=blue" alt="Release"></a>
   <img src="https://img.shields.io/badge/platform-Windows%2010%2B-lightgrey?style=flat-square" alt="Platform">
   <img src="https://img.shields.io/badge/electron-35-blue?style=flat-square" alt="Electron">
   <img src="https://img.shields.io/badge/react-18-61dafb?style=flat-square" alt="React">
   <img src="https://img.shields.io/badge/vite-6-8b5cf6?style=flat-square" alt="Vite">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License"></a>
 </p>
+
+---
+
+## 한눈에 보기
+
+> 여러 AI 에이전트가 동시에 코드를 작성하는 모습을 **픽셀 아트 오피스**에서 실시간으로 확인하세요.
+
+|             멀티 에이전트             |             픽셀 오피스              |          Git 클라이언트           |
+| :-----------------------------------: | :----------------------------------: | :-------------------------------: |
+| Claude, Codex, Gemini를 하나의 앱에서 | 세션마다 캐릭터가 일하는 가상 사무실 | 내장 Git — 커밋, 브랜치, diff까지 |
 
 ---
 
 ## 주요 기능
 
-### 멀티 세션 관리
+### 🤖 멀티 AI 에이전트
 
-- 동시에 여러 Claude Code 세션을 운영하고 실시간 모니터링
-- Grid / Single / Office / Strip **4가지 뷰 모드**
-- Shift+클릭으로 세션 다중 선택 & 비교
-- 세션 카드 우클릭 → Finder, 경로 복사, 터미널 열기
+Claude Code · OpenAI Codex · Gemini CLI를 **하나의 워크스페이스**에서 운영합니다. 프로젝트마다 다른 AI를 배정하고, 동시에 여러 세션을 실시간 모니터링하세요.
 
-### 픽셀 아트 오피스
+- Grid · Single · Office · Strip — **4가지 뷰 모드**
+- 세션별 모델·권한·예산 개별 설정
+- Shift+클릭 다중 선택 & 비교
 
-- 각 세션이 픽셀 캐릭터로 표현되는 가상 오피스
-- 개발자, QA, 기획자, 디자이너, 리뷰어, SRE 등 **직업 시스템**
-- 작업 상태에 따라 캐릭터가 자동으로 움직이고 행동
-- 81종 캐릭터 수집, 300개 도전과제 & 레벨 시스템
+### 🏢 픽셀 아트 오피스
 
-### Git 클라이언트
+각 AI 세션이 **픽셀 캐릭터**로 표현됩니다. 작업 상태에 따라 캐릭터가 움직이고, 생각하고, 코드를 작성합니다.
 
-- GitKraken 스타일 3패널 레이아웃 (사이드바 + 커밋 그래프 + 상세)
-- 커밋 그래프 시각화 (레인, 머지 곡선, 태그 노드)
-- stage / unstage / commit / branch / tag / stash
-- Diff 뷰어 (추가/삭제 하이라이팅, Hunk 구분)
+- 개발자 · QA · 기획자 · 디자이너 · SRE 등 **직업 시스템**
+- 81종 캐릭터 수집 · 300개 도전과제 · 레벨업
+- 가구 배치 & 오피스 커스터마이징
 
-### 커스텀 테마 엔진
+### 🔀 내장 Git 클라이언트
 
-- **Hex 코드**로 강조 색상 자유 설정
-- **그라데이션** 배경 지원 (시작/끝 색상)
-- 시스템 폰트 목록에서 **커스텀 폰트** 선택 + 크기 조절
-- JSON 파일로 테마 **내보내기/불러오기**
-- 배경 밝기 기반 **자동 텍스트 대비** 처리
+별도 Git 앱 없이 Doffice 안에서 모든 Git 작업을 수행합니다.
 
-### 커스텀 단축키
+- 커밋 그래프 시각화 (레인, 머지 곡선, 태그)
+- Stage · Commit · Branch · Tag · Stash · Diff
+- Blame · 파일 히스토리 · 충돌 해결 UI
 
-- 모든 주요 기능에 대한 **사용자 정의 단축키** 매핑
-- 키 레코더 UI — 원하는 키 조합을 직접 눌러서 캡처
-- **충돌 감지** — 다른 기능 및 macOS 시스템 단축키와의 중복 경고
-- 개별/전체 기본값 복원 및 할당 해제(Unassigned) 지원
+### ⏪ 프롬프트 히스토리
 
-### 실시간 추적 & 보안
+AI에게 보낸 모든 요청과 그로 인한 **파일 변경사항을 추적**합니다. 원하는 시점으로 되돌릴 수 있습니다.
 
-- 토큰 사용량 (일간/주간) 실시간 모니터링 & 비용 한도
-- 메뉴바 위젯으로 빠른 상태 확인
-- 다국어 지원 (한국어 / English / 日本語)
+- 프롬프트별 변경 파일 목록 & diff 확인
+- 원클릭 되돌리기 (git 기반 복원)
 
----
+### 🎨 커스텀 테마 & 단축키
 
-## 브랜치 운영
+- Hex 색상 · 그라데이션 · 커스텀 폰트 — JSON으로 내보내기/불러오기
+- 모든 기능에 **사용자 정의 단축키** 매핑 (충돌 감지 포함)
 
-- `dev`
-  Windows 버전 개발 브랜치입니다. 저장소 루트가 곧 실제 앱 루트입니다.
-- `main`
-  macOS 원본 기준 브랜치입니다. SwiftUI/Xcode 구현을 참고할 때만 전환해서 확인합니다.
+### 🔒 보안 & 모니터링
 
-즉 `dev`에서는 이 저장소 루트에서 바로 개발하고, mac 원본을 참고할 때만 `main`으로 전환합니다.
+- 토큰 사용량 (일간/주간) 실시간 추적 & 비용 한도 설정
+- 위험 명령어 감지 · 민감 파일 접근 경고
+- 메뉴바 위젯 · 다국어 (한국어 / English / 日本語)
 
 ---
 
@@ -118,7 +119,7 @@ npm run pack:win
 
 ### 수동 설치
 
-[최신 릴리스](https://github.com/leesh0829/Doffice/releases/latest)에서 `Doffice Setup 0.1.0.exe` 다운로드 → 설치 프로그램 실행 → 안내에 따라 설치
+[최신 릴리스](https://github.com/leesh0829/Doffice/releases/latest)에서 `Doffice Setup 0.1.1.exe` 다운로드 → 설치 프로그램 실행 → 안내에 따라 설치
 
 ### 소스에서 빌드
 
@@ -158,20 +159,92 @@ npm run pack:win
 
 > 모든 단축키는 **설정 → 단축키** 탭에서 자유롭게 변경할 수 있습니다.
 
-| 단축키 | 동작               |
-| ------ | ------------------ |
-| `⌘T`   | 새 세션            |
-| `⌘W`   | 세션 닫기          |
-| `⌘1~9` | 세션 전환          |
-| `⌘R`   | 세션 재시작        |
-| `⌘P`   | 커맨드 팔레트      |
-| `⌘J`   | 액션 센터          |
-| `⌘\`   | 분할 뷰 전환       |
-| `⌘⇧O`  | 오피스 뷰 전환     |
-| `⌘⇧T`  | 터미널 뷰 전환     |
-| `⌘⇧E`  | 세션 로그 내보내기 |
-| `⌘K`   | 터미널 지우기      |
-| `⌘.`   | 작업 취소          |
+| 단축키 | 동작        |      | 단축키        | 동작 | 단축키 | 동작 |
+| ------ | ----------- | ---- | ------------- | ---- | ------ | ---- |
+| `⌘T`   | 새 세션     | `⌘P` | 커맨드 팔레트 |
+| `⌘W`   | 세션 닫기   | `⌘J` | 액션 센터     |
+| `⌘1~9` | 세션 전환   | `⌘K` | 터미널 지우기 |
+| `⌘R`   | 세션 재시작 | `⌘.` | 작업 취소     |
+
+---
+
+## 플러그인
+
+Doffice는 JSON 기반 플러그인 시스템을 지원합니다. 캐릭터 · 테마 · 이펙트 · 가구를 추가할 수 있습니다.
+
+<details>
+<summary><strong>플러그인 개발 가이드</strong></summary>
+
+### 구조
+
+```
+my-plugin/
+├── plugin.json          # 매니페스트 (필수)
+├── characters.json      # 캐릭터 정의 (선택)
+├── panel/index.html     # 커스텀 패널 (선택)
+└── slash-commands/      # 슬래시 명령어 (선택)
+```
+
+### plugin.json
+
+```json
+{
+  "name": "My Plugin",
+  "version": "1.0.0",
+  "description": "플러그인 설명",
+  "author": "작성자",
+  "contributes": {
+    "characters": "characters.json",
+    "themes": [
+      {
+        "id": "my-theme",
+        "name": "My Theme",
+        "isDark": true,
+        "accentHex": "5b9cf6"
+      }
+    ],
+    "effects": [
+      { "id": "my-effect", "trigger": "onPromptSubmit", "type": "confetti" }
+    ],
+    "furniture": [
+      { "id": "my-desk", "name": "커스텀 책상", "width": 2, "height": 2 }
+    ]
+  }
+}
+```
+
+### 이펙트 타입
+
+| 타입                                 | 설명             |
+| ------------------------------------ | ---------------- |
+| `confetti`                           | 컨페티 효과      |
+| `particle-burst`                     | 이모지 파티클    |
+| `screen-shake`                       | 화면 흔들기      |
+| `combo-counter`                      | 타이핑 콤보      |
+| `flash` · `glow` · `toast` · `sound` | 시각/청각 피드백 |
+
+### 배포
+
+```bash
+# GitHub Release로 배포
+tar -czf my-plugin-v1.0.0.tar.gz -C . plugin.json characters.json
+gh release create v1.0.0 my-plugin-v1.0.0.tar.gz
+
+# Doffice 마켓플레이스 등록 → registry.json에 PR
+```
+
+사용자는 **설정 → 플러그인**에서 URL · 로컬 경로로 직접 설치할 수도 있습니다.
+
+</details>
+
+---
+
+## 버전 히스토리
+
+| 버전       | 주요 변경                                                |
+| ---------- | -------------------------------------------------------- |
+| **v0.1.1** | 브라우저 세션 복원, Provider별 토큰 계산기, 투명 창 수정 |
+| v0.1.0     | 최초 릴리즈                                              |
 
 ---
 
@@ -184,16 +257,12 @@ npm run pack:win
 
 ---
 
-## 기술 스택
-
-- Electron
-- React 18
-- Vite
-- TypeScript
-- Claude Code CLI 연동
-
----
-
 ## 라이선스
 
 MIT
+
+---
+
+<p align="center">
+  <sub>Built with SwiftUI · Powered by Claude Code, Codex & Gemini</sub>
+</p>

@@ -1094,7 +1094,7 @@ async function createPluginTemplate(parentDir) {
   const templateDir = await ensureUniqueChildDir(resolvedParent, "doffice-plugin");
   const manifest = {
     name: "New Doffice Plugin",
-    version: "0.1.0",
+    version: "0.1.1",
     description: "Starter plugin template for Doffice Windows.",
     author: "Doffice",
     contributes: {
@@ -1103,7 +1103,7 @@ async function createPluginTemplate(parentDir) {
   };
   const packageManifest = {
     name: path.basename(templateDir),
-    version: "0.1.0",
+    version: "0.1.1",
     description: "Starter plugin template for Doffice Windows."
   };
   const readme = [
