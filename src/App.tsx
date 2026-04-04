@@ -133,9 +133,13 @@ function App() {
   const [pluginFlash, setPluginFlash] = useState<{ id: number; color: string; durationMs: number } | null>(null);
   const [pluginShake, setPluginShake] = useState<{ id: number; intensity: number; durationMs: number } | null>(null);
   const [pluginConfettiBursts, setPluginConfettiBursts] = useState<Array<{ id: number; colors: string[]; count: number; durationMs: number }>>([]);
+  const [pluginCombo, setPluginCombo] = useState<{ id: number; count: number; label: string; color: string } | null>(null);
+  const [pluginParticleBursts, setPluginParticleBursts] = useState<Array<{ id: number; emojis: string[]; count: number; durationMs: number }>>([]);
   const hasSeededSessionStateRef = useRef(false);
   const sessionStateRef = useRef<Map<string, { status: string; completedPromptCount: number }>>(new Map());
   const notificationTimersRef = useRef<Map<string, number>>(new Map());
+  const comboDecayTimerRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   function applyCLIStatuses(payload: CLIStatusPayload) {
     setClaudeStatus(payload.claudeStatus);
@@ -157,6 +161,47 @@ function App() {
       notificationTimersRef.current.delete(notification.id);
     }, durationMs);
     notificationTimersRef.current.set(notification.id, timer);
+  }
+
+  function normalizeEffectColor(value: unknown, fallback: string) {
+    if (typeof value !== "string" || !value.trim()) return fallback;
+    return `#${String(value).replace(/^#/, "")}`;
+  }
+
+  function playPluginSound(config: Record<string, unknown>) {
+    const AudioCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtor) return;
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioCtor();
+    }
+    const context = audioContextRef.current;
+    void context.resume().catch(() => undefined);
+
+    const name = String(config.name || "pop").trim().toLowerCase();
+    const volume = Math.min(0.18, Math.max(0.03, Number(config.volume) || 0.07));
+    const duration = Math.min(1.2, Math.max(0.05, Number(config.duration) || (name.includes("level") ? 0.32 : 0.14)));
+    const primaryFrequency =
+      name.includes("error") ? 180 :
+      name.includes("level") ? 720 :
+      name.includes("click") ? 320 :
+      540;
+    const secondaryFrequency =
+      name.includes("error") ? 130 :
+      name.includes("level") ? 980 :
+      name.includes("click") ? 260 :
+      760;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = name.includes("error") ? "sawtooth" : name.includes("level") ? "triangle" : "sine";
+    oscillator.frequency.setValueAtTime(primaryFrequency, context.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(secondaryFrequency, context.currentTime + duration);
+    gain.gain.setValueAtTime(0.0001, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(volume, context.currentTime + Math.min(0.03, duration / 3));
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + duration);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + duration);
   }
 
   function triggerPluginEffects(trigger: string, session: SessionSnapshot | null) {
@@ -181,7 +226,7 @@ function App() {
       if (effect.type === "flash") {
         setPluginFlash({
           id: Date.now(),
-          color: typeof config.colorHex === "string" && config.colorHex ? `#${String(config.colorHex).replace(/^#/, "")}` : "#3291ff",
+          color: normalizeEffectColor(config.colorHex, "#3291ff"),
           durationMs: Math.max(120, Number(config.duration) > 0 ? Number(config.duration) * 1000 : 220)
         });
       }
@@ -204,6 +249,52 @@ function App() {
         window.setTimeout(() => {
           setPluginConfettiBursts((current) => current.filter((item) => item.id !== id));
         }, burst.durationMs + 400);
+      }
+      if (effect.type === "combo-counter") {
+        const decayMs = Math.max(400, Number(config.decaySeconds) > 0 ? Number(config.decaySeconds) * 1000 : 2400);
+        let nextCount = 1;
+        setPluginCombo((current) => {
+          nextCount = (current?.count ?? 0) + 1;
+          return {
+            id: Date.now() + Math.floor(Math.random() * 1000),
+            count: nextCount,
+            label: typeof config.label === "string" && config.label.trim() ? config.label.trim() : "Combo",
+            color: normalizeEffectColor(config.colorHex ?? config.tint, "#f5a623")
+          };
+        });
+        if (comboDecayTimerRef.current) {
+          window.clearTimeout(comboDecayTimerRef.current);
+        }
+        comboDecayTimerRef.current = window.setTimeout(() => {
+          setPluginCombo(null);
+          comboDecayTimerRef.current = null;
+        }, decayMs);
+        if (config.shakeOnMilestone && nextCount % 10 === 0) {
+          setPluginShake({
+            id: Date.now() + 1,
+            intensity: Math.max(3, Number(config.milestoneIntensity) || 7),
+            durationMs: Math.max(180, Number(config.milestoneDuration) > 0 ? Number(config.milestoneDuration) * 1000 : 360)
+          });
+        }
+      }
+      if (effect.type === "particle-burst") {
+        const id = Date.now() + Math.floor(Math.random() * 1000);
+        const burst = {
+          id,
+          emojis:
+            Array.isArray(config.emojis) && config.emojis.length > 0
+              ? config.emojis.map((value) => String(value)).filter(Boolean)
+              : ["⌨", "✨", "⚡", "💥"],
+          count: Math.max(3, Math.min(18, Number(config.count) || 6)),
+          durationMs: Math.max(420, Number(config.duration) > 0 ? Number(config.duration) * 1000 : 900)
+        };
+        setPluginParticleBursts((current) => [...current.slice(-4), burst]);
+        window.setTimeout(() => {
+          setPluginParticleBursts((current) => current.filter((item) => item.id !== id));
+        }, burst.durationMs + 240);
+      }
+      if (effect.type === "sound") {
+        playPluginSound(config);
       }
     }
   }
@@ -271,6 +362,12 @@ function App() {
     return () => {
       notificationTimersRef.current.forEach((timer) => window.clearTimeout(timer));
       notificationTimersRef.current.clear();
+      if (comboDecayTimerRef.current) {
+        window.clearTimeout(comboDecayTimerRef.current);
+      }
+      if (audioContextRef.current) {
+        void audioContextRef.current.close().catch(() => undefined);
+      }
     };
   }, []);
 
@@ -639,6 +736,32 @@ function App() {
     }
   }
 
+  function handlePromptKeyPress(sessionId: string, previousValue: string, nextValue: string) {
+    if (nextValue.length <= previousValue.length) return;
+    if (!nextValue.trim()) return;
+    const targetSession = sessions.find((session) => session.id === sessionId) ?? null;
+    triggerPluginEffects("onPromptKeyPress", targetSession);
+  }
+
+  function handleWorkspaceLevelUp() {
+    triggerPluginEffects("onLevelUp", selectedSession);
+  }
+
+  function handlePluginPanelNotify(pluginName: string, text: string) {
+    if (!text.trim()) return;
+    appendNotification(
+      {
+        id: `plugin-panel-notify-${pluginName}-${Date.now()}`,
+        sessionId: selectedSession?.id || "",
+        title: pluginName,
+        detail: text.trim(),
+        tint: "#5ccfff",
+        glyph: "▣"
+      },
+      5200
+    );
+  }
+
   async function executePluginCommand(scriptPath: string, title: string) {
     const result = await window.doffice.executePluginCommand(scriptPath, selectedSession?.projectPath);
     appendNotification({
@@ -775,6 +898,8 @@ function App() {
       pluginFlash={pluginFlash}
       pluginShake={pluginShake}
       pluginConfettiBursts={pluginConfettiBursts}
+      pluginCombo={pluginCombo}
+      pluginParticleBursts={pluginParticleBursts}
       isCurrentDraftFavorite={isCurrentDraftFavorite}
       chooseSuggestedProject={chooseSuggestedProject}
       toggleDraftFavorite={toggleDraftFavorite}
@@ -783,6 +908,9 @@ function App() {
       handleAddPluginDirectory={handleAddPluginDirectory}
       handleCreateSession={handleCreateSession}
       executePluginCommand={executePluginCommand}
+      notifyPluginMessage={handlePluginPanelNotify}
+      onWorkspaceLevelUp={handleWorkspaceLevelUp}
+      onPromptKeyPress={handlePromptKeyPress}
     />
   );
 }

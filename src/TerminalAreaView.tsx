@@ -27,6 +27,7 @@ interface TerminalAreaViewProps {
   selectSession: (sessionId: string) => void;
   removeSession: (sessionId: string) => void;
   openNewSession: () => void;
+  onPromptKeyPress: (sessionId: string, previousValue: string, nextValue: string) => void;
 }
 
 type TerminalSplitAxis = "horizontal" | "vertical";
@@ -88,7 +89,8 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
     dismissSensitiveWarning,
     selectSession,
     removeSession,
-    openNewSession
+    openNewSession,
+    onPromptKeyPress
   } = props;
   const [showFilterBar, setShowFilterBar] = useState(false);
   const [showFilePanel, setShowFilePanel] = useState(false);
@@ -429,14 +431,14 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                     ) : null}
                     <textarea
                       value={gridDrafts[session.id] ?? ""}
-                      onChange={(event) =>
-                        updateDraftWithPaste(
-                          session.id,
-                          gridDrafts[session.id] ?? "",
-                          event.target.value,
-                          (value) => setGridDrafts((current) => ({ ...current, [session.id]: value }))
-                        )
-                      }
+                      onChange={(event) => {
+                        const previousValue = gridDrafts[session.id] ?? "";
+                        const nextValue = event.target.value;
+                        onPromptKeyPress(session.id, previousValue, nextValue);
+                        updateDraftWithPaste(session.id, previousValue, nextValue, (value) =>
+                          setGridDrafts((current) => ({ ...current, [session.id]: value }))
+                        );
+                      }}
                       onKeyDown={submitTextareaOnEnter}
                       placeholder={t("custom.direct.chat")}
                       rows={3}
@@ -513,6 +515,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                     setSplitDrafts((current) => ({ ...current, [selectedSession.id]: "" }));
                     clearDraftPasteState(selectedSession.id);
                   }}
+                  onPromptKeyPress={onPromptKeyPress}
                   onSelectSession={null}
                 />
                 <SplitSessionPane
@@ -530,6 +533,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
                     setSplitDrafts((current) => ({ ...current, [secondarySession.id]: "" }));
                     clearDraftPasteState(secondarySession.id);
                   }}
+                  onPromptKeyPress={onPromptKeyPress}
                   onSelectSession={(sessionId) => setSplitState((current) => ({ ...current, secondarySessionId: sessionId }))}
                 />
               </div>
@@ -772,7 +776,11 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
               {selectedSessionLimitMessage ? <div className="composer-limit-note">{selectedSessionLimitMessage}</div> : null}
               <textarea
                 value={prompt}
-                onChange={(event) => updateDraftWithPaste("__single__", prompt, event.target.value, setPrompt)}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  onPromptKeyPress(selectedSession.id, prompt, nextValue);
+                  updateDraftWithPaste("__single__", prompt, nextValue, setPrompt);
+                }}
                 onKeyDown={submitTextareaOnEnter}
                 placeholder={t("custom.send.prompt.placeholder")}
                 rows={4}
@@ -1090,9 +1098,10 @@ function SplitSessionPane(props: {
   busy: boolean;
   onDraftChange: (value: string) => void;
   onSubmit: () => Promise<void>;
+  onPromptKeyPress: (sessionId: string, previousValue: string, nextValue: string) => void;
   onSelectSession: ((sessionId: string) => void) | null;
 }) {
-  const { session, sessions, workspacePreferences, draft, busy, onDraftChange, onSubmit, onSelectSession } = props;
+  const { session, sessions, workspacePreferences, draft, busy, onDraftChange, onSubmit, onPromptKeyPress, onSelectSession } = props;
   const status = inferStatus(session);
   const recentBlocks = session.blocks.slice(-18);
   const sessionTokenLimit = sessionTokenLimitForProvider(session.provider, workspacePreferences);
@@ -1151,7 +1160,10 @@ function SplitSessionPane(props: {
         ) : null}
         <textarea
           value={draft}
-          onChange={(event) => onDraftChange(event.target.value)}
+          onChange={(event) => {
+            onPromptKeyPress(session.id, draft, event.target.value);
+            onDraftChange(event.target.value);
+          }}
           placeholder={t("custom.send.prompt.placeholder")}
           rows={3}
         />

@@ -3771,6 +3771,24 @@ textarea:focus {
   z-index: 37;
 }
 
+.plugin-particle-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 36;
+}
+
+.plugin-particle-piece {
+  position: absolute;
+  bottom: 72px;
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.24));
+  animation: plugin-particle-burst var(--plugin-particle-duration, 900ms) ease-out forwards;
+}
+
 .plugin-confetti-piece {
   position: absolute;
   top: -12px;
@@ -3785,10 +3803,53 @@ textarea:focus {
   animation: plugin-screen-shake var(--plugin-shake-duration, 420ms) ease-in-out;
 }
 
+.plugin-combo-indicator {
+  position: absolute;
+  top: 72px;
+  right: 26px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--plugin-combo-color, #f5a623) 50%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--plugin-combo-color, #f5a623) 16%, rgba(8, 8, 8, 0.94));
+  color: #f6f6f6;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+  pointer-events: none;
+  z-index: 39;
+}
+
+.plugin-combo-indicator strong {
+  color: color-mix(in srgb, var(--plugin-combo-color, #f5a623) 88%, white 12%);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.plugin-combo-indicator span {
+  font-size: 18px;
+  font-weight: 700;
+}
+
 @keyframes plugin-flash {
   0% { opacity: 0; }
   14% { opacity: 1; }
   100% { opacity: 0; }
+}
+
+@keyframes plugin-particle-burst {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.7) rotate(0deg);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--plugin-particle-drift, 24px), -120px, 0) scale(1.18) rotate(14deg);
+    opacity: 0;
+  }
 }
 
 @keyframes plugin-confetti-fall {

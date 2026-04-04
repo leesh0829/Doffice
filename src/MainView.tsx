@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { SidebarView } from "./SidebarView";
 import { TerminalAreaView } from "./TerminalAreaView";
 import { OfficeSceneView } from "./OfficeSceneView";
@@ -95,6 +95,8 @@ interface MainViewProps {
   pluginFlash: { id: number; color: string; durationMs: number } | null;
   pluginShake: { id: number; intensity: number; durationMs: number } | null;
   pluginConfettiBursts: Array<{ id: number; colors: string[]; count: number; durationMs: number }>;
+  pluginCombo: { id: number; count: number; label: string; color: string } | null;
+  pluginParticleBursts: Array<{ id: number; emojis: string[]; count: number; durationMs: number }>;
   isCurrentDraftFavorite: boolean;
   chooseSuggestedProject: (project: NewSessionProjectRecord) => void;
   toggleDraftFavorite: () => void;
@@ -103,6 +105,9 @@ interface MainViewProps {
   handleAddPluginDirectory: () => void;
   handleCreateSession: () => void | Promise<void>;
   executePluginCommand: (scriptPath: string, title: string) => Promise<void>;
+  notifyPluginMessage: (pluginName: string, text: string) => void;
+  onWorkspaceLevelUp: (level: number) => void;
+  onPromptKeyPress: (sessionId: string, previousValue: string, nextValue: string) => void;
 }
 
 type PixelIconName =
@@ -261,6 +266,8 @@ export function MainView(props: MainViewProps) {
     pluginFlash,
     pluginShake,
     pluginConfettiBursts,
+    pluginCombo,
+    pluginParticleBursts,
     isCurrentDraftFavorite,
     chooseSuggestedProject,
     toggleDraftFavorite,
@@ -268,7 +275,10 @@ export function MainView(props: MainViewProps) {
     handlePickDirectory,
     handleAddPluginDirectory,
     handleCreateSession,
-    executePluginCommand
+    executePluginCommand,
+    notifyPluginMessage,
+    onWorkspaceLevelUp,
+    onPromptKeyPress
   } = props;
 
   const officeHeight = officeExpanded ? 380 : 240;
@@ -280,6 +290,7 @@ export function MainView(props: MainViewProps) {
   const [reportLoading, setReportLoading] = useState(false);
   const [openPluginPanel, setOpenPluginPanel] = useState<PluginRuntimePanel | null>(null);
   const [pluginStatusResults, setPluginStatusResults] = useState<Record<string, PluginStatusBarResult>>({});
+  const lastLevelRef = useRef<number | null>(null);
   const showOfficeSplitPane = appViewMode === "split";
   const pluginRuntime = getPluginRuntimeSnapshot();
   const pluginPanels = pluginRuntime.panels;
@@ -399,6 +410,17 @@ export function MainView(props: MainViewProps) {
     [pluginRuntimeVersion, progress, reportEntries.length, unlockedAchievements, workspacePreferences.enabledAccessoryIds.length, workspacePreferences.hiredCharacterIds.length]
   );
 
+  useEffect(() => {
+    if (lastLevelRef.current == null) {
+      lastLevelRef.current = progress.level;
+      return;
+    }
+    if (progress.level > lastLevelRef.current) {
+      onWorkspaceLevelUp(progress.level);
+    }
+    lastLevelRef.current = progress.level;
+  }, [onWorkspaceLevelUp, progress.level]);
+
   return (
     <div
       className={`window-frame ${pluginShake ? "plugin-screen-shake" : ""}`}
@@ -427,6 +449,29 @@ export function MainView(props: MainViewProps) {
           ))}
         </div>
       ))}
+      {pluginParticleBursts.map((burst) => (
+        <div key={burst.id} className="plugin-particle-overlay" style={{ ["--plugin-particle-duration" as string]: `${burst.durationMs}ms` } as CSSProperties}>
+          {Array.from({ length: Math.min(24, Math.max(3, burst.count)) }).map((_, index) => (
+            <span
+              key={`${burst.id}-particle-${index}`}
+              className="plugin-particle-piece"
+              style={{
+                left: `${14 + ((index * 7) % 72)}%`,
+                ["--plugin-particle-drift" as string]: `${((index % 2 === 0 ? -1 : 1) * (18 + (index % 5) * 7))}px`,
+                animationDelay: `${(index % 5) * 26}ms`
+              } as CSSProperties}
+            >
+              {burst.emojis[index % Math.max(1, burst.emojis.length)] || "✨"}
+            </span>
+          ))}
+        </div>
+      ))}
+      {pluginCombo ? (
+        <div key={pluginCombo.id} className="plugin-combo-indicator" style={{ ["--plugin-combo-color" as string]: pluginCombo.color } as CSSProperties}>
+          <strong>{pluginCombo.label}</strong>
+          <span>x{pluginCombo.count}</span>
+        </div>
+      ) : null}
       <header className="title-bar">
         <div className="title-bar-left">
           <div className="traffic-gap" />
@@ -601,6 +646,7 @@ export function MainView(props: MainViewProps) {
                 selectSession={selectSession}
                 removeSession={removeSession}
                 openNewSession={openNewSession}
+                onPromptKeyPress={onPromptKeyPress}
               />
             </div>
           ) : null}
@@ -642,6 +688,7 @@ export function MainView(props: MainViewProps) {
                 selectSession={selectSession}
                 removeSession={removeSession}
                 openNewSession={openNewSession}
+                onPromptKeyPress={onPromptKeyPress}
               />
             </div>
           ) : null}
@@ -667,6 +714,7 @@ export function MainView(props: MainViewProps) {
               selectSession={selectSession}
               removeSession={removeSession}
               openNewSession={openNewSession}
+              onPromptKeyPress={onPromptKeyPress}
             />
           ) : null}
         </main>
@@ -740,7 +788,14 @@ export function MainView(props: MainViewProps) {
         />
       ) : null}
 
-      {openPluginPanel ? <PluginPanelOverlay panel={openPluginPanel} onClose={() => setOpenPluginPanel(null)} /> : null}
+      {openPluginPanel ? (
+        <PluginPanelOverlay
+          panel={openPluginPanel}
+          selectedSession={selectedSession}
+          onClose={() => setOpenPluginPanel(null)}
+          onNotify={notifyPluginMessage}
+        />
+      ) : null}
 
       <WorkspaceOverlayManager
         kind={workspacePanel}

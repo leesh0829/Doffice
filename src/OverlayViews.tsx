@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { t } from "./localizationCatalog";
 import { Theme } from "./Theme";
 import { formatTokens, inferPendingApproval, inferStatus, relativeTime, sessionActivitySummary } from "./sessionUtils";
@@ -377,8 +377,100 @@ export function CommandPaletteView(props: CommandPaletteViewProps) {
   );
 }
 
-export function PluginPanelOverlay(props: { panel: PluginRuntimePanel; onClose: () => void }) {
-  const { panel, onClose } = props;
+export function PluginPanelOverlay(props: {
+  panel: PluginRuntimePanel;
+  selectedSession: SessionSnapshot | null;
+  onClose: () => void;
+  onNotify: (pluginName: string, text: string) => void;
+}) {
+  const { panel, selectedSession, onClose, onNotify } = props;
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const sessionInfo = useMemo(() => {
+    if (!selectedSession) return null;
+    const status = inferStatus(selectedSession);
+    return {
+      id: selectedSession.id,
+      projectName: selectedSession.projectName,
+      projectPath: selectedSession.projectPath,
+      workerName: selectedSession.workerName,
+      provider: selectedSession.provider,
+      branch: selectedSession.branch,
+      tokensUsed: selectedSession.tokensUsed,
+      completedPromptCount: selectedSession.completedPromptCount,
+      lastPromptText: selectedSession.lastPromptText,
+      lastResultText: selectedSession.lastResultText,
+      status: status.label,
+      statusCategory: status.category
+    };
+  }, [selectedSession]);
+
+  function postToPanel(type: string, payload: Record<string, unknown> = {}) {
+    iframeRef.current?.contentWindow?.postMessage(
+      {
+        source: "doffice-host",
+        type,
+        panel: {
+          id: panel.id,
+          title: panel.title,
+          pluginId: panel.pluginId,
+          pluginName: panel.pluginName
+        },
+        ...payload
+      },
+      "*"
+    );
+  }
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+      if (!event.data || typeof event.data !== "object") return;
+      const payload = event.data as Record<string, unknown>;
+      const rawType = typeof payload.type === "string" ? payload.type : typeof payload.action === "string" ? payload.action : "";
+      const action = rawType.replace(/^doffice:/, "");
+      if (action === "getSessionInfo") {
+        postToPanel("doffice:session-info", {
+          requestId: payload.requestId,
+          session: sessionInfo
+        });
+        return;
+      }
+      if (action === "notify") {
+        const text = typeof payload.text === "string" ? payload.text.trim() : "";
+        if (text) {
+          onNotify(panel.pluginName, text);
+        }
+        return;
+      }
+      if (action === "openExternal") {
+        const url = typeof payload.url === "string" ? payload.url.trim() : "";
+        if (url) {
+          void window.doffice.openExternal(url);
+        }
+        return;
+      }
+      if (action === "copyText") {
+        if (typeof payload.text === "string") {
+          void window.doffice.copyText(payload.text);
+        }
+        return;
+      }
+      if (action === "close") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [onClose, onNotify, panel.pluginName, sessionInfo]);
+
+  useEffect(() => {
+    postToPanel("doffice:host-ready", {
+      session: sessionInfo,
+      capabilities: ["getSessionInfo", "notify", "openExternal", "copyText", "close"]
+    });
+  }, [panel.id, panel.pluginId, panel.pluginName, panel.title, sessionInfo]);
+
   return (
     <div className="overlay-backdrop" onClick={onClose}>
       <div className="overlay-panel plugin-panel-overlay" onClick={(event) => event.stopPropagation()}>
@@ -393,7 +485,18 @@ export function PluginPanelOverlay(props: { panel: PluginRuntimePanel; onClose: 
           <button className="chrome-icon-button" onClick={onClose}>✕</button>
         </div>
         <div className="plugin-panel-frame-shell">
-          <iframe title={`${panel.pluginName}-${panel.title}`} src={panel.entry} className="plugin-panel-frame" />
+          <iframe
+            ref={iframeRef}
+            title={`${panel.pluginName}-${panel.title}`}
+            src={panel.entry}
+            className="plugin-panel-frame"
+            onLoad={() =>
+              postToPanel("doffice:host-ready", {
+                session: sessionInfo,
+                capabilities: ["getSessionInfo", "notify", "openExternal", "copyText", "close"]
+              })
+            }
+          />
         </div>
       </div>
     </div>
