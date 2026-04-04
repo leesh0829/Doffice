@@ -5,7 +5,7 @@ import { OfficeSceneView } from "./OfficeSceneView";
 import { ActionCenterView, CommandPaletteView, SessionNotificationBannerStack, type SessionNotificationItem } from "./OverlayViews";
 import { PixelStripView } from "./PixelStripView";
 import { SessionLockOverlay, WorkspaceOverlayManager, type WorkspacePanelKind } from "./WorkspacePanels";
-import type { CLIStatus, ImageAttachment, ReportReference, SessionSnapshot } from "./types";
+import type { AgentProvider, CLIInstallResult, CLIStatus, CLIStatusPayload, ImageAttachment, ReportReference, SessionSnapshot } from "./types";
 import type { AppViewMode, ProjectGroup, SessionStatusFilter, SidebarSortOption, TerminalViewMode } from "./uiModel";
 import type { NewSessionDraftState, NewSessionPresetId, NewSessionProjectRecord } from "./newSessionPreferences";
 import { t, tf } from "./localizationCatalog";
@@ -29,6 +29,8 @@ interface MainViewProps {
   claudeStatus: CLIStatus;
   codexStatus: CLIStatus;
   geminiStatus: CLIStatus;
+  refreshCLIStatuses: () => Promise<CLIStatusPayload>;
+  installCLI: (provider: AgentProvider) => Promise<CLIInstallResult>;
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (value: boolean | ((current: boolean) => boolean)) => void;
   appViewMode: AppViewMode;
@@ -200,6 +202,8 @@ export function MainView(props: MainViewProps) {
     claudeStatus,
     codexStatus,
     geminiStatus,
+    refreshCLIStatuses,
+    installCLI,
     sidebarCollapsed,
     setSidebarCollapsed,
     appViewMode,
@@ -637,6 +641,11 @@ export function MainView(props: MainViewProps) {
         onClose={() => setWorkspacePanel(null)}
         selectedSession={selectedSession}
         sessions={sessions}
+        claudeStatus={claudeStatus}
+        codexStatus={codexStatus}
+        geminiStatus={geminiStatus}
+        refreshCLIStatuses={refreshCLIStatuses}
+        installCLI={installCLI}
         totals={totals}
         preferences={workspacePreferences}
         updatePreferences={updateWorkspacePreferences}

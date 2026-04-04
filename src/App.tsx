@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { MainView } from "./MainView";
-import type { BootstrapPayload, CLIStatus, SessionSnapshot, SlashCommandPayload } from "./types";
+import type { AgentProvider, BootstrapPayload, CLIInstallResult, CLIStatus, CLIStatusPayload, SessionSnapshot, SlashCommandPayload } from "./types";
 import type { AppViewMode, ProjectGroup, SessionStatusFilter, SidebarSortOption, TerminalViewMode } from "./uiModel";
 import type { SessionNotificationItem } from "./OverlayViews";
 import type { NewSessionDraftState, NewSessionProjectRecord, NewSessionPresetId } from "./newSessionPreferences";
@@ -124,14 +124,18 @@ function App() {
   const sessionStateRef = useRef<Map<string, { status: string; completedPromptCount: number }>>(new Map());
   const notificationTimersRef = useRef<Map<string, number>>(new Map());
 
+  function applyCLIStatuses(payload: CLIStatusPayload) {
+    setClaudeStatus(payload.claudeStatus);
+    setCodexStatus(payload.codexStatus);
+    setGeminiStatus(payload.geminiStatus);
+  }
+
   useEffect(() => {
     let unsubscribe = () => {};
 
     void window.doffice.bootstrap().then((payload: BootstrapPayload) => {
       setSessions(payload.sessions);
-      setClaudeStatus(payload.claudeStatus);
-      setCodexStatus(payload.codexStatus);
-      setGeminiStatus(payload.geminiStatus);
+      applyCLIStatuses(payload);
       setSelectedId((current) => current || payload.sessions[0]?.id || "");
     });
 
@@ -375,9 +379,19 @@ function App() {
   async function refreshSnapshot() {
     const payload = await window.doffice.bootstrap();
     setSessions(payload.sessions);
-    setClaudeStatus(payload.claudeStatus);
-    setCodexStatus(payload.codexStatus);
-    setGeminiStatus(payload.geminiStatus);
+    applyCLIStatuses(payload);
+  }
+
+  async function refreshCLIStatuses() {
+    const payload = await window.doffice.refreshCLIStatuses();
+    applyCLIStatuses(payload);
+    return payload;
+  }
+
+  async function installCLI(provider: AgentProvider): Promise<CLIInstallResult> {
+    const result = await window.doffice.installCLI(provider);
+    applyCLIStatuses(result);
+    return result;
   }
 
   async function openNewSession() {
@@ -572,6 +586,8 @@ function App() {
       claudeStatus={claudeStatus}
       codexStatus={codexStatus}
       geminiStatus={geminiStatus}
+      refreshCLIStatuses={refreshCLIStatuses}
+      installCLI={installCLI}
       sidebarCollapsed={sidebarCollapsed}
       setSidebarCollapsed={setSidebarCollapsed}
       appViewMode={appViewMode}

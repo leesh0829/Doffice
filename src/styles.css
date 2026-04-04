@@ -5447,6 +5447,19 @@ textarea:focus {
   gap: 6px;
 }
 
+.cli-status-row {
+  align-items: flex-start;
+}
+
+.cli-status-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.cli-status-note {
+  margin-top: -4px;
+}
+
 .shortcut-row input {
   width: 120px;
   text-align: right;

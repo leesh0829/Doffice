@@ -23,7 +23,7 @@ let codexStatus = {
   isInstalled: false,
   version: "",
   path: "",
-  errorInfo: "Codex CLI not found. Install Codex Desktop or add the codex binary to PATH."
+  errorInfo: "Codex CLI not found. Install with: npm install -g @openai/codex"
 };
 let geminiStatus = {
   isInstalled: false,
@@ -34,6 +34,26 @@ let geminiStatus = {
 const claudeModels = ["opus", "sonnet", "haiku"];
 const codexModels = ["gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex", "gpt-5.2-codex", "gpt-5.2", "gpt-5.1-codex-max", "gpt-5.1-codex-mini"];
 const geminiModels = ["gemini-2.5-pro", "gemini-2.5-flash"];
+const cliDescriptors = {
+  claude: {
+    label: "Claude Code CLI",
+    executableName: "claude",
+    packageName: "@anthropic-ai/claude-code",
+    errorInfo: "Claude CLI not found. Install with: npm install -g @anthropic-ai/claude-code"
+  },
+  codex: {
+    label: "Codex CLI",
+    executableName: "codex",
+    packageName: "@openai/codex",
+    errorInfo: "Codex CLI not found. Install with: npm install -g @openai/codex"
+  },
+  gemini: {
+    label: "Gemini CLI",
+    executableName: "gemini",
+    packageName: "@google/gemini-cli",
+    errorInfo: "Gemini CLI not found. Install with: npm install -g @google/gemini-cli"
+  }
+};
 const dangerousPatterns = [
   { regex: /rm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+|.*--no-preserve-root)/i, severity: "Critical", description: "Force delete command" },
   { regex: /rm\s+-[a-zA-Z]*r[a-zA-Z]*\s+(\/|~|\$HOME)/i, severity: "Critical", description: "Recursive delete on root/home" },
@@ -957,6 +977,64 @@ function commandCandidates(executableName) {
   ].filter(Boolean);
 
   return [...new Set([...candidates, ...windowsCandidates])];
+}
+
+function currentCLIStatusPayload() {
+  return {
+    claudeStatus,
+    codexStatus,
+    geminiStatus
+  };
+}
+
+async function refreshCLIStatuses() {
+  [claudeStatus, codexStatus, geminiStatus] = await Promise.all([
+    resolveCLIStatus(cliDescriptors.claude.executableName, cliDescriptors.claude.errorInfo),
+    resolveCLIStatus(cliDescriptors.codex.executableName, cliDescriptors.codex.errorInfo),
+    resolveCLIStatus(cliDescriptors.gemini.executableName, cliDescriptors.gemini.errorInfo)
+  ]);
+  return currentCLIStatusPayload();
+}
+
+async function installCLI(providerValue) {
+  const provider = normalizeProvider(providerValue);
+  const descriptor = cliDescriptors[provider];
+  const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
+
+  try {
+    await execFileAsync(npmCommand, ["install", "-g", descriptor.packageName], {
+      windowsHide: true,
+      env: process.env,
+      shell: process.platform === "win32",
+      maxBuffer: 1024 * 1024 * 16
+    });
+  } catch (error) {
+    const stdout = sanitizeText(error?.stdout ?? "");
+    const stderr = sanitizeText(error?.stderr ?? "");
+    let statuses;
+    try {
+      statuses = await refreshCLIStatuses();
+    } catch {
+      statuses = currentCLIStatusPayload();
+    }
+    return {
+      ok: false,
+      provider,
+      message: stderr || stdout || String(error?.message ?? `${descriptor.label} install failed.`),
+      ...statuses
+    };
+  }
+
+  const statuses = await refreshCLIStatuses();
+  const status = cliStatusForProvider(provider);
+  return {
+    ok: status.isInstalled,
+    provider,
+    message: status.isInstalled
+      ? `${descriptor.label} installed successfully.`
+      : `${descriptor.label} install finished, but the executable was not detected yet.`,
+    ...statuses
+  };
 }
 
 async function refreshGitInfo(session) {
@@ -2258,11 +2336,7 @@ function createWindow() {
 
 app.whenReady().then(async () => {
   await loadPersistedSessions();
-  [claudeStatus, codexStatus, geminiStatus] = await Promise.all([
-    resolveCLIStatus("claude", "Claude CLI not found. Install with: npm install -g @anthropic-ai/claude-code"),
-    resolveCLIStatus("codex", "Codex CLI not found. Install Codex Desktop or add the codex binary to PATH."),
-    resolveCLIStatus("gemini", "Gemini CLI not found. Install with: npm install -g @google/gemini-cli")
-  ]);
+  await refreshCLIStatuses();
   await Promise.allSettled([...sessions.values()].map((session) => refreshGitInfo(session)));
   createWindow();
 
@@ -2292,10 +2366,10 @@ app.on("before-quit", (event) => {
 
 ipcMain.handle("app:bootstrap", async () => ({
   sessions: [...sessions.values()].sort((a, b) => a.tabOrder - b.tabOrder),
-  claudeStatus,
-  codexStatus,
-  geminiStatus
+  ...currentCLIStatusPayload()
 }));
+ipcMain.handle("app:refresh-cli-status", async () => refreshCLIStatuses());
+ipcMain.handle("app:install-cli", async (_event, provider) => installCLI(provider));
 
 ipcMain.handle("git:snapshot", async (_event, payload) => getGitPanelSnapshot(payload?.projectPath, payload?.refName));
 ipcMain.handle("git:execute", async (_event, payload) => executeGitAction(payload));

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import type { ReportReference, SessionSnapshot } from "./types";
+import type { AgentProvider, CLIInstallResult, CLIStatus, CLIStatusPayload, ReportReference, SessionSnapshot } from "./types";
 import { t, tf } from "./localizationCatalog";
 import { relativeTime } from "./sessionUtils";
 import { pluginRegistry, type PluginRegistryEntry } from "./pluginRegistry";
@@ -26,6 +26,11 @@ interface WorkspaceOverlayManagerProps {
   onClose: () => void;
   selectedSession: SessionSnapshot | null;
   sessions: SessionSnapshot[];
+  claudeStatus: CLIStatus;
+  codexStatus: CLIStatus;
+  geminiStatus: CLIStatus;
+  refreshCLIStatuses: () => Promise<CLIStatusPayload>;
+  installCLI: (provider: AgentProvider) => Promise<CLIInstallResult>;
   totals: {
     active: number;
     processing: number;
@@ -237,7 +242,25 @@ const defaultShortcutDrafts: Record<string, string> = {
 };
 
 export function WorkspaceOverlayManager(props: WorkspaceOverlayManagerProps) {
-  const { kind, onClose, selectedSession, sessions, totals, preferences, updatePreferences, reportEntries, reportLoading, refreshReports, achievements, progress } = props;
+  const {
+    kind,
+    onClose,
+    selectedSession,
+    sessions,
+    claudeStatus,
+    codexStatus,
+    geminiStatus,
+    refreshCLIStatuses,
+    installCLI,
+    totals,
+    preferences,
+    updatePreferences,
+    reportEntries,
+    reportLoading,
+    refreshReports,
+    achievements,
+    progress
+  } = props;
   if (!kind) return null;
 
   return (
@@ -247,6 +270,11 @@ export function WorkspaceOverlayManager(props: WorkspaceOverlayManagerProps) {
           <SettingsPanel
             selectedSession={selectedSession}
             sessions={sessions}
+            claudeStatus={claudeStatus}
+            codexStatus={codexStatus}
+            geminiStatus={geminiStatus}
+            refreshCLIStatuses={refreshCLIStatuses}
+            installCLI={installCLI}
             totals={totals}
             preferences={preferences}
             updatePreferences={updatePreferences}
@@ -349,6 +377,11 @@ export function SessionLockOverlay(props: { lockPin: string; onUnlock: () => voi
 function SettingsPanel(props: {
   selectedSession: SessionSnapshot | null;
   sessions: SessionSnapshot[];
+  claudeStatus: CLIStatus;
+  codexStatus: CLIStatus;
+  geminiStatus: CLIStatus;
+  refreshCLIStatuses: WorkspaceOverlayManagerProps["refreshCLIStatuses"];
+  installCLI: WorkspaceOverlayManagerProps["installCLI"];
   totals: WorkspaceOverlayManagerProps["totals"];
   preferences: WorkspacePreferences;
   updatePreferences: WorkspaceOverlayManagerProps["updatePreferences"];
@@ -357,7 +390,22 @@ function SettingsPanel(props: {
   onRefreshReports: () => Promise<void>;
   onClose: () => void;
 }) {
-  const { selectedSession, sessions, totals, preferences, updatePreferences, reportCount, progress, onRefreshReports, onClose } = props;
+  const {
+    selectedSession,
+    sessions,
+    claudeStatus,
+    codexStatus,
+    geminiStatus,
+    refreshCLIStatuses,
+    installCLI,
+    totals,
+    preferences,
+    updatePreferences,
+    reportCount,
+    progress,
+    onRefreshReports,
+    onClose
+  } = props;
   const [tab, setTab] = useState<SettingsTab>("general");
   const [pluginSection, setPluginSection] = useState<PluginSection>("installed");
   const [selectedTemplateKind, setSelectedTemplateKind] = useState<WorkspacePreferences["workflowStyle"]>(preferences.workflowStyle);
@@ -369,6 +417,8 @@ function SettingsPanel(props: {
   const [pluginSearchText, setPluginSearchText] = useState("");
   const [pluginTagFilter, setPluginTagFilter] = useState<string>("");
   const [installedPlugins, setInstalledPlugins] = useState<InstalledPluginRecord[]>(loadInstalledPlugins);
+  const [cliActionState, setCliActionState] = useState<AgentProvider | "refresh" | null>(null);
+  const [cliActionMessage, setCliActionMessage] = useState("");
 
   useEffect(() => {
     saveTemplateDrafts(templateDrafts);
@@ -410,6 +460,26 @@ function SettingsPanel(props: {
   const installedMarketplaceIds = new Set(installedPlugins.map((item) => item.marketplaceId).filter((value): value is string => Boolean(value)));
   const currentTemplate = templateDrafts[selectedTemplateKind];
   const selectedTemplateMeta = workflowChoices.find((choice) => choice.id === selectedTemplateKind) ?? workflowChoices[0];
+  const cliEntries = [
+    {
+      id: "claude" as const,
+      label: "Claude Code CLI",
+      status: claudeStatus,
+      installCommand: "npm install -g @anthropic-ai/claude-code"
+    },
+    {
+      id: "codex" as const,
+      label: "Codex CLI",
+      status: codexStatus,
+      installCommand: "npm install -g @openai/codex"
+    },
+    {
+      id: "gemini" as const,
+      label: "Gemini CLI",
+      status: geminiStatus,
+      installCommand: "npm install -g @google/gemini-cli"
+    }
+  ];
 
   function updateTemplateDraft(value: string) {
     setTemplateDrafts((current) => ({
@@ -429,6 +499,30 @@ function SettingsPanel(props: {
   function handleTabChange(nextTab: SettingsTab) {
     commitWorkspaceNameDraft();
     setTab(nextTab);
+  }
+
+  async function handleRefreshCLIStatuses() {
+    setCliActionState("refresh");
+    try {
+      await refreshCLIStatuses();
+      setCliActionMessage(t("settings.cli.refresh.done"));
+    } catch (error) {
+      setCliActionMessage(String(error instanceof Error ? error.message : error));
+    } finally {
+      setCliActionState(null);
+    }
+  }
+
+  async function handleInstallCLI(provider: AgentProvider) {
+    setCliActionState(provider);
+    try {
+      const result = await installCLI(provider);
+      setCliActionMessage(result.message);
+    } catch (error) {
+      setCliActionMessage(String(error instanceof Error ? error.message : error));
+    } finally {
+      setCliActionState(null);
+    }
   }
 
   function installPlugin(source: string, options?: { title?: string; registryEntry?: PluginRegistryEntry }) {
@@ -562,6 +656,50 @@ function SettingsPanel(props: {
                   </button>
                 </div>
               </div>
+            </SettingsCard>
+            <SettingsCard title={<span className="settings-section-title"><span className="panel-title-emoji tone-green">⚡</span>{t("settings.section.cli")}</span>}>
+              <div className="settings-action-row">
+                <span className="settings-card-note">{t("settings.cli.note")}</span>
+                <button
+                  type="button"
+                  className="mini-action-button"
+                  disabled={cliActionState !== null}
+                  onClick={() => void handleRefreshCLIStatuses()}
+                >
+                  {cliActionState === "refresh" ? t("settings.cli.refreshing") : t("settings.cli.refresh")}
+                </button>
+              </div>
+              <div className="marketplace-list">
+                {cliEntries.map((entry) => (
+                  <div key={entry.id} className="marketplace-row cli-status-row">
+                    <div className="marketplace-copy">
+                      <strong>{entry.label}</strong>
+                      <span>
+                        {entry.status.isInstalled
+                          ? tf("settings.cli.version.installed", undefined, entry.status.version || t("custom.none"))
+                          : entry.status.errorInfo || t("settings.cli.not.installed")}
+                      </span>
+                      <small className="path-ellipsis">{entry.status.path || entry.installCommand}</small>
+                    </div>
+                    <div className="settings-inline-actions cli-status-actions">
+                      <span className={`chrome-pill tone-${entry.status.isInstalled ? "green" : "red"}`}>
+                        {entry.status.isInstalled ? t("settings.cli.installed") : t("settings.cli.not.installed")}
+                      </span>
+                      {!entry.status.isInstalled ? (
+                        <button
+                          type="button"
+                          className="mini-action-button install-button"
+                          disabled={cliActionState !== null}
+                          onClick={() => void handleInstallCLI(entry.id)}
+                        >
+                          {cliActionState === entry.id ? t("settings.cli.installing") : t("settings.cli.install")}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {cliActionMessage ? <div className="settings-card-note cli-status-note">{cliActionMessage}</div> : null}
             </SettingsCard>
           </div>
         ) : null}

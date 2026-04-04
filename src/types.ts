@@ -237,11 +237,20 @@ export interface CLIStatus {
   errorInfo: string;
 }
 
-export interface BootstrapPayload {
-  sessions: SessionSnapshot[];
+export interface CLIStatusPayload {
   claudeStatus: CLIStatus;
   codexStatus: CLIStatus;
   geminiStatus: CLIStatus;
+}
+
+export interface BootstrapPayload extends CLIStatusPayload {
+  sessions: SessionSnapshot[];
+}
+
+export interface CLIInstallResult extends CLIStatusPayload {
+  ok: boolean;
+  provider: AgentProvider;
+  message: string;
 }
 
 export interface CreateSessionPayload {
@@ -292,6 +301,8 @@ export interface UpdateSessionConfigPayload {
 
 export interface DofficeBridge {
   bootstrap: () => Promise<BootstrapPayload>;
+  refreshCLIStatuses: () => Promise<CLIStatusPayload>;
+  installCLI: (provider: AgentProvider) => Promise<CLIInstallResult>;
   getGitSnapshot: (projectPath: string, refName?: string) => Promise<GitPanelSnapshot>;
   executeGitAction: (payload: GitActionPayload) => Promise<GitActionResult>;
   listReports: (projectPaths: string[]) => Promise<ReportReference[]>;

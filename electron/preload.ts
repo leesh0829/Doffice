@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("doffice", {
   bootstrap: () => ipcRenderer.invoke("app:bootstrap"),
+  refreshCLIStatuses: () => ipcRenderer.invoke("app:refresh-cli-status"),
+  installCLI: (provider: string) => ipcRenderer.invoke("app:install-cli", provider),
   getGitSnapshot: (projectPath: string, refName?: string) => ipcRenderer.invoke("git:snapshot", { projectPath, refName }),
   executeGitAction: (payload: unknown) => ipcRenderer.invoke("git:execute", payload),
   listReports: (projectPaths: string[]) => ipcRenderer.invoke("reports:list", projectPaths),
