@@ -77,6 +77,8 @@
 
 ## 개발 설치
 
+모든 명령은 저장소 루트에서 실행합니다.
+
 ```bash
 git switch dev
 npm install
@@ -106,6 +108,8 @@ npm run build
 npm run dist:win
 ```
 
+`npm run dist:win` 과 `npm run pack:win` 은 Windows PowerShell에서 실행하는 것을 기준으로 합니다.
+
 포터블 exe 패키징:
 
 ```bash
@@ -114,14 +118,27 @@ npm run pack:win
 
 ### 수동 설치
 
-[최신 릴리스](https://github.com/leesh0829/Doffice/releases/latest)에서 `Doffice Setup 0.1.0.exe` 다운로드 → 압축 해제 → `Doffice.exe` 실행
+[최신 릴리스](https://github.com/leesh0829/Doffice/releases/latest)에서 `Doffice Setup 0.1.0.exe` 다운로드 → 설치 프로그램 실행 → 안내에 따라 설치
 
 ### 소스에서 빌드
 
 ```bash
 git clone -b dev --single-branch https://github.com/leesh0829/Doffice.git
 cd Doffice
-Doffice.exe
+npm install
+npm run build
+```
+
+설치형 exe 생성:
+
+```bash
+npm run dist:win
+```
+
+포터블 exe 생성:
+
+```bash
+npm run pack:win
 ```
 
 ---
@@ -131,7 +148,7 @@ Doffice.exe
 | 항목            | 최소 사양                                  |
 | --------------- | ------------------------------------------ |
 | **macOS**       | 14.0 (Sonoma)                              |
-| **windowsOS**   | 10                                         |
+| **Windows**     | 10 +                                       |
 | **Claude Code** | `npm install -g @anthropic-ai/claude-code` |
 | **Codex**       | `npm install -g @openai/codex`             |
 
