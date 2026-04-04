@@ -30,6 +30,7 @@ interface TerminalAreaViewProps {
 }
 
 type TerminalSplitAxis = "horizontal" | "vertical";
+type GridBottomPanel = "none" | "history" | "browser";
 
 interface TerminalSplitState {
   enabled: boolean;
@@ -99,6 +100,7 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
   const [draftPasteState, setDraftPasteState] = useState<Record<string, DraftPasteState>>({});
   const [attachedImage, setAttachedImage] = useState<ImageAttachment | null>(null);
   const [splitState, setSplitState] = useState<TerminalSplitState>(loadTerminalSplitState);
+  const [gridBottomPanel, setGridBottomPanel] = useState<GridBottomPanel>("none");
   const effectiveTerminalViewMode =
     terminalViewMode === "git" || terminalViewMode === "browser"
       ? terminalViewMode
@@ -137,6 +139,13 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
       return true;
     });
   }, [onlyErrors, searchText, selectedSession, toolFilters]);
+  const recentActivitySessions = useMemo(
+    () =>
+      [...sessions]
+        .sort((lhs, rhs) => new Date(rhs.lastActivityTime).getTime() - new Date(lhs.lastActivityTime).getTime())
+        .slice(0, 12),
+    [sessions]
+  );
 
   const selectedFileCount = selectedSession ? new Set(selectedSession.fileChanges.map((change) => change.fileName)).size : 0;
   const selectedErrorCount = selectedSession
@@ -357,88 +366,130 @@ export function TerminalAreaView(props: TerminalAreaViewProps) {
       </div>
 
       {effectiveTerminalViewMode === "grid" ? (
-        <div className="terminal-grid" style={terminalGridStyle}>
-          {sessions.map((session) => {
-            const status = inferStatus(session);
-            const pinned = pinnedSessionIds.includes(session.id);
-            const compactBlocks = condensedBlocks(session.blocks);
-            const sessionTokenLimit = sessionTokenLimitForProvider(session.provider, workspacePreferences);
-            const sessionLimitReached = sessionTokenLimit > 0 && session.tokensUsed >= sessionTokenLimit;
-            return (
-              <article
-                key={session.id}
-                className={`terminal-grid-card ${selectedSession?.id === session.id ? "is-selected" : ""}`}
-                onContextMenu={(event) => {
-                  event.preventDefault();
-                  void window.doffice.showSessionContextMenu(session.id);
-                }}
-              >
-                <div className="terminal-grid-head">
-                  <button className="terminal-grid-title" onClick={() => selectSession(session.id)}>
-                    <span className="worker-dot" style={{ backgroundColor: session.workerColorHex }} />
-                    <strong>{session.projectName}</strong>
-                  </button>
-                  <button className={`pin-button ${pinned ? "is-active" : ""}`} onClick={() => togglePinnedSession(session.id)}>
-                    {pinned ? t("custom.unpin") : t("custom.pin")}
-                  </button>
-                </div>
-                <div className="terminal-grid-meta">
-                  <span>{session.workerName}</span>
-                  <span style={{ color: session.pendingApproval ? "#f5a623" : status.tint }}>
-                    {session.pendingApproval ? t("custom.approval") : status.label}
-                  </span>
-                </div>
-                <div className="terminal-grid-stream is-compact">
-                  {compactBlocks.length === 0 ? <div className="terminal-grid-empty">{latestText(session.blocks)}</div> : null}
-                  {compactBlocks.map((block) => (
-                    <EventBlock key={block.id} block={block} compact />
-                  ))}
-                </div>
-                <form
-                  className="grid-composer"
-                  onSubmit={async (event) => {
+        <div className="terminal-grid-shell">
+          <div className="terminal-grid" style={terminalGridStyle}>
+            {sessions.map((session) => {
+              const status = inferStatus(session);
+              const pinned = pinnedSessionIds.includes(session.id);
+              const compactBlocks = condensedBlocks(session.blocks);
+              const sessionTokenLimit = sessionTokenLimitForProvider(session.provider, workspacePreferences);
+              const sessionLimitReached = sessionTokenLimit > 0 && session.tokensUsed >= sessionTokenLimit;
+              return (
+                <article
+                  key={session.id}
+                  className={`terminal-grid-card ${selectedSession?.id === session.id ? "is-selected" : ""}`}
+                  onContextMenu={(event) => {
                     event.preventDefault();
-                    if (sessionLimitReached) return;
-                    const nextPrompt = gridDrafts[session.id]?.trim();
-                    const expandedPrompt = expandPastedChunks(gridDrafts[session.id] ?? "", draftPasteState[session.id]?.chunks ?? []).trim();
-                    if (!expandedPrompt) return;
-                    await sendPromptToSession(session.id, expandedPrompt);
-                    setGridDrafts((current) => ({ ...current, [session.id]: "" }));
-                    clearDraftPasteState(session.id);
+                    void window.doffice.showSessionContextMenu(session.id);
                   }}
                 >
-                  {sessionLimitReached ? (
-                    <div className="composer-limit-note">
-                      {tf(
-                        "settings.tokens.limit.reached",
-                        undefined,
-                        sessionProviderLabel(session.provider),
-                        formatTokens(session.tokensUsed),
-                        formatTokens(sessionTokenLimit)
-                      )}
-                    </div>
-                  ) : null}
-                  <textarea
-                    value={gridDrafts[session.id] ?? ""}
-                    onChange={(event) =>
-                      updateDraftWithPaste(
-                        session.id,
-                        gridDrafts[session.id] ?? "",
-                        event.target.value,
-                        (value) => setGridDrafts((current) => ({ ...current, [session.id]: value }))
-                      )
-                    }
-                    onKeyDown={submitTextareaOnEnter}
-                    placeholder={t("custom.direct.chat")}
-                    rows={3}
-                  />
-                  <button type="submit" className="primary-button" disabled={busy || sessionLimitReached || !(gridDrafts[session.id] ?? "").trim()}>
-                    Send
-                  </button>
-                </form>
-              </article>
-            );
-          })}
+                  <div className="terminal-grid-head">
+                    <button className="terminal-grid-title" onClick={() => selectSession(session.id)}>
+                      <span className="worker-dot" style={{ backgroundColor: session.workerColorHex }} />
+                      <strong>{session.projectName}</strong>
+                    </button>
+                    <button className={`pin-button ${pinned ? "is-active" : ""}`} onClick={() => togglePinnedSession(session.id)}>
+                      {pinned ? t("custom.unpin") : t("custom.pin")}
+                    </button>
+                  </div>
+                  <div className="terminal-grid-meta">
+                    <span>{session.workerName}</span>
+                    <span style={{ color: session.pendingApproval ? "#f5a623" : status.tint }}>
+                      {session.pendingApproval ? t("custom.approval") : status.label}
+                    </span>
+                  </div>
+                  <div className="terminal-grid-stream is-compact">
+                    {compactBlocks.length === 0 ? <div className="terminal-grid-empty">{latestText(session.blocks)}</div> : null}
+                    {compactBlocks.map((block) => (
+                      <EventBlock key={block.id} block={block} compact />
+                    ))}
+                  </div>
+                  <form
+                    className="grid-composer"
+                    onSubmit={async (event) => {
+                      event.preventDefault();
+                      if (sessionLimitReached) return;
+                      const expandedPrompt = expandPastedChunks(gridDrafts[session.id] ?? "", draftPasteState[session.id]?.chunks ?? []).trim();
+                      if (!expandedPrompt) return;
+                      await sendPromptToSession(session.id, expandedPrompt);
+                      setGridDrafts((current) => ({ ...current, [session.id]: "" }));
+                      clearDraftPasteState(session.id);
+                    }}
+                  >
+                    {sessionLimitReached ? (
+                      <div className="composer-limit-note">
+                        {tf(
+                          "settings.tokens.limit.reached",
+                          undefined,
+                          sessionProviderLabel(session.provider),
+                          formatTokens(session.tokensUsed),
+                          formatTokens(sessionTokenLimit)
+                        )}
+                      </div>
+                    ) : null}
+                    <textarea
+                      value={gridDrafts[session.id] ?? ""}
+                      onChange={(event) =>
+                        updateDraftWithPaste(
+                          session.id,
+                          gridDrafts[session.id] ?? "",
+                          event.target.value,
+                          (value) => setGridDrafts((current) => ({ ...current, [session.id]: value }))
+                        )
+                      }
+                      onKeyDown={submitTextareaOnEnter}
+                      placeholder={t("custom.direct.chat")}
+                      rows={3}
+                    />
+                    <button type="submit" className="primary-button" disabled={busy || sessionLimitReached || !(gridDrafts[session.id] ?? "").trim()}>
+                      Send
+                    </button>
+                  </form>
+                </article>
+              );
+            })}
+          </div>
+          <div className="terminal-grid-bottom-bar">
+            <div className="terminal-grid-bottom-actions">
+              <button
+                type="button"
+                className={`status-toggle ${gridBottomPanel === "history" ? "is-active" : ""}`}
+                onClick={() => setGridBottomPanel((current) => (current === "history" ? "none" : "history"))}
+              >
+                {t("custom.history")}
+              </button>
+              <button
+                type="button"
+                className={`status-toggle ${gridBottomPanel === "browser" ? "is-active" : ""}`}
+                onClick={() => setGridBottomPanel((current) => (current === "browser" ? "none" : "browser"))}
+              >
+                {t("custom.browser")}
+              </button>
+            </div>
+          </div>
+          {gridBottomPanel !== "none" ? (
+            <div className="terminal-grid-bottom-panel">
+              {gridBottomPanel === "history" ? (
+                <div className="terminal-grid-history-panel">
+                  {recentActivitySessions.length === 0 ? <div className="leaderboard-empty">{t("custom.no.recent.activity")}</div> : null}
+                  {recentActivitySessions.map((session) => {
+                    const status = inferStatus(session);
+                    return (
+                      <button key={session.id} type="button" className="history-row" onClick={() => selectSession(session.id)}>
+                        <div className="history-row-main">
+                          <strong>{session.projectName}</strong>
+                          <span>{`${session.workerName} · ${session.pendingApproval ? t("custom.approval") : status.label} · ${formatTokens(session.tokensUsed)}`}</span>
+                          <span>{latestText(session.blocks)}</span>
+                        </div>
+                        <span className="history-row-time">{relativeDuration(session.lastActivityTime)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+              {gridBottomPanel === "browser" ? <BrowserPaneView selectedSession={selectedSession} /> : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
 

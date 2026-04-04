@@ -208,6 +208,40 @@ function inferPluginTags(manifest) {
   return [...tags];
 }
 
+function normalizePluginRelativePath(value) {
+  if (typeof value !== "string") return "";
+  const normalized = value.replace(/\\/g, "/").trim();
+  if (!normalized || /^https?:\/\//i.test(normalized) || normalized.startsWith("/")) {
+    return "";
+  }
+  const safePath = path.posix.normalize(normalized);
+  if (!safePath || safePath === "." || safePath.startsWith("../") || safePath.includes("/../")) {
+    return "";
+  }
+  return safePath;
+}
+
+function collectPluginReferencedFiles(manifest) {
+  const contributes = manifest?.contributes ?? {};
+  const candidates = new Set(["README.md", "package.json"]);
+  const add = (value) => {
+    const nextValue = normalizePluginRelativePath(value);
+    if (nextValue) candidates.add(nextValue);
+  };
+
+  add(contributes.characters);
+  for (const panel of Array.isArray(contributes.panels) ? contributes.panels : []) {
+    add(panel?.entry);
+  }
+  for (const command of Array.isArray(contributes.commands) ? contributes.commands : []) {
+    add(command?.script);
+  }
+  for (const statusItem of Array.isArray(contributes.statusBar) ? contributes.statusBar : []) {
+    add(statusItem?.script);
+  }
+  return [...candidates];
+}
+
 function bundledPluginPathForSource(source) {
   try {
     const url = new URL(source);
@@ -224,6 +258,9 @@ function bundledPluginPathForSource(source) {
 async function installLocalPluginDirectory(source, originalSource = source) {
   const resolvedSource = path.resolve(expandHomePath(source));
   const { manifest } = await readPluginManifest(resolvedSource);
+  if (!manifest?.name) {
+    throw new Error("Invalid plugin manifest: missing name");
+  }
   const slug = sanitizePluginSlug(manifest?.name || path.basename(resolvedSource));
   const installDir = path.join(pluginInstallBasePath(), slug);
   await fs.mkdir(pluginInstallBasePath(), { recursive: true });
@@ -266,6 +303,9 @@ async function installRemotePluginUrl(source) {
 
   const raw = await response.text();
   const manifest = JSON.parse(raw);
+  if (!manifest?.name) {
+    throw new Error("Invalid plugin manifest: missing name");
+  }
   const slug = sanitizePluginSlug(manifest?.name || path.basename(new URL(source).pathname, ".json"));
   const installDir = path.join(pluginInstallBasePath(), slug);
   await fs.mkdir(pluginInstallBasePath(), { recursive: true });
@@ -273,11 +313,9 @@ async function installRemotePluginUrl(source) {
   await fs.mkdir(installDir, { recursive: true });
   await fs.writeFile(path.join(installDir, "plugin.json"), raw, "utf8");
 
-  if (typeof manifest?.contributes?.characters === "string") {
-    await maybeDownloadRelativeFile(source, installDir, manifest.contributes.characters);
+  for (const relativePath of collectPluginReferencedFiles(manifest)) {
+    await maybeDownloadRelativeFile(source, installDir, relativePath);
   }
-  await maybeDownloadRelativeFile(source, installDir, "README.md");
-  await maybeDownloadRelativeFile(source, installDir, "package.json");
 
   return {
     id: slug,

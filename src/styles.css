@@ -1912,6 +1912,13 @@ textarea:focus {
   overflow: auto;
 }
 
+.terminal-grid-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
 .terminal-grid-card {
   display: flex;
   flex-direction: column;
@@ -1993,6 +2000,38 @@ textarea:focus {
 
 .grid-composer .primary-button {
   align-self: flex-end;
+}
+
+.terminal-grid-bottom-bar {
+  display: flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px 10px;
+}
+
+.terminal-grid-bottom-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.terminal-grid-bottom-panel {
+  display: flex;
+  min-height: 220px;
+  max-height: 320px;
+  margin: 0 12px 12px;
+  border: 1px solid #1f2430;
+  border-radius: 12px;
+  background: #0f1319;
+  overflow: hidden;
+}
+
+.terminal-grid-history-panel {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  overflow: auto;
 }
 
 .terminal-single {
@@ -8003,6 +8042,11 @@ textarea:focus {
 :root[data-theme-mode="light"] .onboarding-note {
   background: rgba(255, 255, 255, 0.84);
   border-color: rgba(148, 163, 184, 0.2);
+}
+
+:root[data-theme-mode="light"] .terminal-grid-bottom-panel {
+  background: #ffffff;
+  border-color: #d7e0eb;
 }
 
 :root[data-theme-mode="light"] .sheet-actions {
