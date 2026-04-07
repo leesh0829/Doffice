@@ -871,7 +871,7 @@ textarea:focus {
   --office-stage-right: clamp(12px, 1.6vw, 24px);
   --office-stage-bottom: clamp(18px, 2.6vh, 34px);
   --office-stage-left: clamp(12px, 1.6vw, 24px);
-  --office-worker-scale: 0.58;
+  --office-worker-scale: 0.87;
 }
 
 .office-scene.office-scene-compact {
@@ -918,11 +918,13 @@ textarea:focus {
 .office-camera {
   position: absolute;
   inset: var(--office-stage-top) var(--office-stage-right) var(--office-stage-bottom) var(--office-stage-left);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
-  transition: width 260ms ease, height 260ms ease, left 260ms ease, top 260ms ease;
+}
+
+.office-map-shell {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
 }
 
 .office-scene-compact .office-backdrop {
@@ -955,23 +957,26 @@ textarea:focus {
 }
 
 .office-map {
-  position: relative;
-  flex: 0 0 auto;
-  width: auto;
-  height: 100%;
-  max-width: 100%;
-  max-height: 100%;
-  aspect-ratio: 42 / 20;
+  position: absolute;
   border: 1px solid rgba(51, 60, 89, 0.48);
   overflow: hidden;
   clip-path: inset(0 round 0);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  transition: width 260ms ease, height 260ms ease, left 260ms ease, top 260ms ease, transform 260ms ease;
 }
 
-.office-scene-full .office-map {
-  width: min(100%, calc(100% - 2px));
-  height: auto;
-  max-height: 100%;
+.office-camera-window {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  overflow: hidden;
+  border: 1px solid rgba(51, 60, 89, 0.48);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  transform: translate(-50%, -50%);
+}
+
+.office-camera-window.is-camera-tracked {
+  transition: width 260ms ease, height 260ms ease;
 }
 
 .office-map-canvas {
@@ -981,6 +986,10 @@ textarea:focus {
   height: 100%;
   display: block;
   image-rendering: pixelated;
+}
+
+.office-map-overlay-canvas {
+  pointer-events: none;
 }
 
 .office-zone,
@@ -1318,12 +1327,12 @@ textarea:focus {
 
 .office-worker-sprite {
   display: block;
-  width: 54px;
-  height: 74px;
+  width: calc((100% / 42) * 2.7 * var(--office-worker-scale));
+  height: calc((100% / 20) * 3.7 * var(--office-worker-scale));
   padding: 0;
   border: 0;
   background: transparent;
-  transform: translate(-50%, -68%) scale(var(--office-worker-scale));
+  transform: translate(-50%, -68%);
   transform-origin: center bottom;
   transition:
     left var(--worker-transition, 180ms) linear,
@@ -1331,6 +1340,10 @@ textarea:focus {
     filter 180ms ease,
     transform 180ms ease;
   overflow: visible;
+}
+
+.office-worker-sprite.pose-typing {
+  transform: translate(-50%, -68%);
 }
 
 .office-worker-sprite:hover,
@@ -1341,26 +1354,40 @@ textarea:focus {
 .office-worker-shadow {
   position: absolute;
   left: 50%;
-  bottom: 8px;
-  width: 22px;
-  height: 6px;
+  bottom: 10.8%;
+  width: 40.8%;
+  height: 8.1%;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.28);
   transform: translateX(-50%);
+  z-index: 0;
+}
+
+.office-worker-sprite.pose-typing .office-worker-shadow {
+  bottom: 10.8%;
+  width: 34%;
+  height: 5.4%;
+  background: rgba(0, 0, 0, 0.18);
 }
 
 .office-worker-body-wrap {
   position: absolute;
   left: 50%;
-  top: 13px;
-  width: 32px;
-  height: 44px;
+  top: 17.6%;
+  width: 59.2%;
+  height: 59.5%;
   transform: translateX(-50%);
+  z-index: 1;
+}
+
+.office-worker-sprite.pose-typing .office-worker-body-wrap {
+  top: 21.6%;
+  overflow: hidden;
 }
 
 .office-worker-canvas {
-  width: 32px;
-  height: 44px;
+  width: 100%;
+  height: 100%;
   display: block;
   image-rendering: pixelated;
 }
@@ -1388,6 +1415,7 @@ textarea:focus {
   font-size: 8px;
   text-align: center;
   transform: translate(calc(50% + 12px), -50%);
+  z-index: 4;
 }
 
 .office-worker-tag {
@@ -1402,6 +1430,7 @@ textarea:focus {
   white-space: nowrap;
   transform: translateX(-50%);
   text-shadow: 0 1px 2px rgba(7, 10, 16, 0.9);
+  z-index: 4;
 }
 
 .office-worker-project {
@@ -1419,6 +1448,7 @@ textarea:focus {
   white-space: nowrap;
   transform: translate(-50%, -100%);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  z-index: 4;
 }
 
 
@@ -3719,6 +3749,7 @@ textarea:focus {
   border: 1px solid rgba(40, 40, 40, 0.9);
   border-radius: 10px;
   background: rgba(17, 17, 17, 0.94);
+  color: #f5f7fb;
   backdrop-filter: blur(12px);
   box-shadow: 0 14px 44px rgba(0, 0, 0, 0.35);
   cursor: pointer;
@@ -3745,6 +3776,7 @@ textarea:focus {
 }
 
 .notification-copy strong {
+  color: inherit;
   font-size: 11px;
 }
 
@@ -3761,6 +3793,27 @@ textarea:focus {
   width: 18px;
   height: 18px;
   color: #707070;
+}
+
+:root[data-theme-mode="light"] .notification-card {
+  background: rgba(255, 255, 255, 0.94);
+  color: #111827;
+  box-shadow: 0 14px 36px rgba(83, 101, 129, 0.18);
+}
+
+:root[data-theme-mode="light"] .notification-copy span,
+:root[data-theme-mode="light"] .notification-dismiss {
+  color: #5b6473;
+}
+
+:root[data-theme-mode="light"] .plugin-combo-indicator {
+  background: color-mix(in srgb, var(--plugin-combo-color, #f5a623) 16%, rgba(255, 255, 255, 0.96));
+  color: #111827;
+  box-shadow: 0 10px 24px rgba(83, 101, 129, 0.18);
+}
+
+:root[data-theme-mode="light"] .plugin-combo-indicator strong {
+  color: color-mix(in srgb, var(--plugin-combo-color, #f5a623) 82%, #6b3f00 18%);
 }
 
 .plugin-panel-overlay {

@@ -46,6 +46,8 @@ interface WorkerPlacement {
 
 const OFFICE_COLS = 42;
 const OFFICE_ROWS = 20;
+const OFFICE_ASPECT_RATIO = OFFICE_COLS / OFFICE_ROWS;
+const SITTING_OFFSET_ROWS = 0;
 
 const deskSlots: DeskSlot[] = [
   { id: "desk_0", desk: { col: 3, row: 4, w: 3, h: 2 }, seat: { col: 4, row: 5 } },
@@ -200,6 +202,27 @@ function tileStyle(col: number, row: number, extra?: CSSProperties): CSSProperti
   };
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function measureCameraFrame(width: number, height: number): CameraFrame {
+  if (width <= 0 || height <= 0) {
+    return { stageWidth: 0, stageHeight: 0 };
+  }
+  const shellRatio = width / height;
+  if (shellRatio > OFFICE_ASPECT_RATIO) {
+    return {
+      stageWidth: height * OFFICE_ASPECT_RATIO,
+      stageHeight: height
+    };
+  }
+  return {
+    stageWidth: width,
+    stageHeight: width / OFFICE_ASPECT_RATIO
+  };
+}
+
 function hashValue(input: string): number {
   let hash = 0;
   for (let index = 0; index < input.length; index += 1) {
@@ -227,6 +250,11 @@ interface MotionEntry {
   pauseUntil: number;
   anchorIndex: number;
   lastTargetKey?: string;
+}
+
+interface CameraFrame {
+  stageWidth: number;
+  stageHeight: number;
 }
 
 const MOTION_TICK_MS = 48;
@@ -381,6 +409,8 @@ export function OfficeSceneView(props: OfficeSceneViewProps) {
   const [followingSessionId, setFollowingSessionId] = useState<string | null>(null);
   const [followZoom, setFollowZoom] = useState(1.85);
   const [motionEntries, setMotionEntries] = useState<Record<string, MotionEntry>>({});
+  const [cameraFrame, setCameraFrame] = useState<CameraFrame>({ stageWidth: 0, stageHeight: 0 });
+  const mapShellRef = useRef<HTMLDivElement | null>(null);
   const roamSeedRef = useRef(0);
 
   const orderedGroups = [...groupedSessions].sort((lhs, rhs) => {
@@ -538,11 +568,12 @@ export function OfficeSceneView(props: OfficeSceneViewProps) {
     const clamped = clampWorkerPosition(unclampedX, unclampedY);
     const seatDistance = seat && motion ? Math.hypot(seat.x - clamped.x, seat.y - clamped.y) : 0;
     const moving = motion ? Math.hypot((motion.targetX ?? clamped.x) - clamped.x, (motion.targetY ?? clamped.y) - clamped.y) > 0.06 : false;
+    const pose = seat ? (seatDistance > 0.12 ? "roaming" : "typing") : moving ? "roaming" : "idle";
     return {
       session,
-      pose: seat ? (seatDistance > 0.12 ? "roaming" : "typing") : moving ? "roaming" : "idle",
+      pose,
       col: clamped.x,
-      row: clamped.y,
+      row: clamped.y + (pose === "typing" ? SITTING_OFFSET_ROWS : 0),
       status: inferStatus(session),
       projectName: session.projectName,
       character: resolveCharacterForSession(session)
@@ -569,23 +600,62 @@ export function OfficeSceneView(props: OfficeSceneViewProps) {
   const followedPlacement = followingSessionId ? placements.find((placement) => placement.session.id === followingSessionId) ?? null : null;
   const isFollowing = followedPlacement != null;
   const selectionAnchorClassName = `office-selection-anchor variant-${variant} ${isFollowing ? "is-following" : ""}`.trim();
-  const focusPlacement = officeCamera === "focus" ? followedPlacement ?? placements.find((placement) => placement.session.id === selectedSession?.id) ?? placements[0] ?? null : null;
-  const baseZoom = officeCamera === "focus" ? Math.max(followZoom, 1.65) : 1;
-  const cameraStyle: CSSProperties | undefined = followedPlacement
-    ? {
-        width: `${baseZoom * 100}%`,
-        height: `${baseZoom * 100}%`,
-        left: `${50 - (((followedPlacement.col + 0.5) / OFFICE_COLS) * 100 * baseZoom)}%`,
-        top: `${50 - (((followedPlacement.row + 0.5) / OFFICE_ROWS) * 100 * baseZoom)}%`
-      }
-    : focusPlacement
-      ? {
-          width: `${baseZoom * 100}%`,
-          height: `${baseZoom * 100}%`,
-          left: `${50 - (((focusPlacement.col + 0.5) / OFFICE_COLS) * 100 * baseZoom)}%`,
-          top: `${50 - (((focusPlacement.row + 0.5) / OFFICE_ROWS) * 100 * baseZoom)}%`
-        }
-    : undefined;
+  const focusPlacement = officeCamera === "focus" ? placements.find((placement) => placement.session.id === selectedSession?.id) ?? placements[0] ?? null : null;
+  const cameraTarget = followedPlacement ?? focusPlacement;
+  const useTrackedCamera = cameraTarget != null;
+  const baseZoom = followedPlacement ? followZoom : officeCamera === "focus" ? Math.max(followZoom, 1.65) : 1;
+  const cameraWindowStyle = useMemo<CSSProperties | undefined>(() => {
+    if (!cameraFrame.stageWidth || !cameraFrame.stageHeight) {
+      return { inset: 0, left: 0, top: 0, transform: "none" };
+    }
+    return {
+      width: `${cameraFrame.stageWidth}px`,
+      height: `${cameraFrame.stageHeight}px`
+    };
+  }, [baseZoom, cameraFrame.stageHeight, cameraFrame.stageWidth]);
+  const mapStyle = useMemo<CSSProperties | undefined>(() => {
+    if (!cameraFrame.stageWidth || !cameraFrame.stageHeight) {
+      return { inset: 0 };
+    }
+
+    const tileWidth = cameraFrame.stageWidth / OFFICE_COLS;
+    const tileHeight = cameraFrame.stageHeight / OFFICE_ROWS;
+    const focusX = useTrackedCamera && cameraTarget ? (cameraTarget.col + 0.5) * tileWidth : cameraFrame.stageWidth / 2;
+    const focusY =
+      useTrackedCamera && cameraTarget
+        ? clamp(
+            (cameraTarget.row + 0.5 - (cameraTarget.pose === "typing" ? 0.95 : 1.1)) * tileHeight,
+            cameraFrame.stageHeight / (2 * baseZoom),
+            cameraFrame.stageHeight - cameraFrame.stageHeight / (2 * baseZoom)
+          )
+        : cameraFrame.stageHeight / 2;
+    const offsetX = clamp(cameraFrame.stageWidth / 2 - focusX * baseZoom, cameraFrame.stageWidth - cameraFrame.stageWidth * baseZoom, 0);
+    const offsetY = clamp(cameraFrame.stageHeight / 2 - focusY * baseZoom, cameraFrame.stageHeight - cameraFrame.stageHeight * baseZoom, 0);
+
+    return {
+      width: `${cameraFrame.stageWidth}px`,
+      height: `${cameraFrame.stageHeight}px`,
+      left: "0",
+      top: "0",
+      transform: `translate(${offsetX}px, ${offsetY}px) scale(${baseZoom})`,
+      transformOrigin: "top left"
+    };
+  }, [baseZoom, cameraFrame.stageHeight, cameraFrame.stageWidth, cameraTarget, useTrackedCamera]);
+
+  useEffect(() => {
+    const shell = mapShellRef.current;
+    if (!shell) return;
+
+    const update = () => {
+      const rect = shell.getBoundingClientRect();
+      setCameraFrame(measureCameraFrame(rect.width, rect.height));
+    };
+
+    update();
+    const observer = new ResizeObserver(() => update());
+    observer.observe(shell);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!selectedSession) {
@@ -617,8 +687,10 @@ export function OfficeSceneView(props: OfficeSceneViewProps) {
       <div className="office-backdrop">
         <div className="office-aura office-aura-top" />
         <div className="office-aura office-aura-bottom" />
-        <div className={`office-camera ${isFollowing ? "is-following" : ""}`} style={cameraStyle} onClick={clearFollowingIfNeeded}>
-          <div className="office-map">
+        <div className={`office-camera ${isFollowing ? "is-following" : ""}`} onClick={clearFollowingIfNeeded}>
+          <div className="office-map-shell" ref={mapShellRef}>
+          <div className={`office-camera-window ${useTrackedCamera ? "is-camera-tracked" : ""}`} style={cameraWindowStyle}>
+          <div className="office-map" style={mapStyle}>
             <OfficeMapCanvas layout={officeLayout} themeId={backgroundTheme} activeDeskSlots={activeDeskSlots} visibleDecorItems={visibleDecorItems} />
 
             {placements.map((worker) => {
@@ -641,14 +713,15 @@ export function OfficeSceneView(props: OfficeSceneViewProps) {
                   <span className="office-worker-project" style={{ minWidth: `${estimateDisplayUnits(worker.projectName) * 0.52 + 1.8}em` }}>{worker.projectName}</span>
                   <span className="office-worker-shadow" />
                   <span className="office-worker-body-wrap">
-                    <PixelCharacterSprite character={worker.character} className="office-worker-canvas" scale={2} walking={worker.pose === "roaming"} />
+                    <PixelCharacterSprite character={worker.character} className="office-worker-canvas" scale={2} pose={worker.pose} />
                   </span>
                   <span className="office-worker-badge">{workerBadge(worker.session)}</span>
                   <span className="office-worker-tag" style={{ color: worker.session.workerColorHex, minWidth: `${estimateDisplayUnits(worker.session.workerName) * 0.54 + 1}em` }}>{worker.session.workerName}</span>
                 </button>
               );
             })}
-
+          </div>
+          </div>
           </div>
         </div>
         {selectedSession ? (
@@ -689,11 +762,27 @@ export function OfficeSceneView(props: OfficeSceneViewProps) {
       {isFollowing ? (
         <div className="office-follow-indicator">
           <div className="office-follow-zoom">
-            <button type="button" className="chrome-icon-button compact" onClick={() => setFollowZoom((current) => Math.max(1.2, Number((current - 0.3).toFixed(2))))} disabled={followZoom <= 1.2}>
+            <button
+              type="button"
+              className="chrome-icon-button compact"
+              onClick={(event) => {
+                event.stopPropagation();
+                setFollowZoom((current) => Math.max(1.2, Number((current - 0.3).toFixed(2))));
+              }}
+              disabled={followZoom <= 1.2}
+            >
               −
             </button>
             <span>{Math.round(followZoom * 100)}%</span>
-            <button type="button" className="chrome-icon-button compact" onClick={() => setFollowZoom((current) => Math.min(3, Number((current + 0.3).toFixed(2))))} disabled={followZoom >= 3}>
+            <button
+              type="button"
+              className="chrome-icon-button compact"
+              onClick={(event) => {
+                event.stopPropagation();
+                setFollowZoom((current) => Math.min(3, Number((current + 0.3).toFixed(2))));
+              }}
+              disabled={followZoom >= 3}
+            >
               ＋
             </button>
           </div>

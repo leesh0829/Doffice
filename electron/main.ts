@@ -1657,6 +1657,34 @@ function cloneForPersistence(session) {
   return persisted;
 }
 
+function cloneRendererSafe(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function serializeSessionForRenderer(session) {
+  const { child, ...safeSession } = session;
+  return cloneRendererSafe({
+    ...safeSession,
+    pendingApproval:
+      safeSession.pendingApproval && typeof safeSession.pendingApproval === "object"
+        ? { ...safeSession.pendingApproval }
+        : null,
+    gitInfo: safeSession.gitInfo && typeof safeSession.gitInfo === "object" ? { ...safeSession.gitInfo } : null,
+    lastToolUse: safeSession.lastToolUse && typeof safeSession.lastToolUse === "object" ? { ...safeSession.lastToolUse } : null,
+    blocks: Array.isArray(safeSession.blocks)
+      ? safeSession.blocks.map((block) => ({
+          ...block,
+          meta: block?.meta && typeof block.meta === "object" ? cloneRendererSafe(block.meta) : {}
+        }))
+      : [],
+    fileChanges: Array.isArray(safeSession.fileChanges) ? safeSession.fileChanges.map((change) => ({ ...change })) : []
+  });
+}
+
+function sessionsForRenderer() {
+  return [...sessions.values()].sort((a, b) => a.tabOrder - b.tabOrder).map((session) => serializeSessionForRenderer(session));
+}
+
 function normalizeSession(raw) {
   const session = {
     ...raw,
@@ -1790,7 +1818,7 @@ function emitSessions() {
   if (!mainWindow || mainWindow.isDestroyed()) {
     return;
   }
-  mainWindow.webContents.send("sessions:updated", [...sessions.values()].sort((a, b) => a.tabOrder - b.tabOrder));
+  mainWindow.webContents.send("sessions:updated", sessionsForRenderer());
 }
 
 function automationSessionInfo(session) {
@@ -3626,7 +3654,7 @@ app.on("before-quit", (event) => {
 });
 
 ipcMain.handle("app:bootstrap", async () => ({
-  sessions: [...sessions.values()].sort((a, b) => a.tabOrder - b.tabOrder),
+  sessions: sessionsForRenderer(),
   ...currentCLIStatusPayload()
 }));
 ipcMain.handle("app:restart", async () => {
@@ -3673,7 +3701,7 @@ ipcMain.handle("session:create", async (_event, payload) => {
   if (payload.initialPrompt) {
     await sendPrompt({ sessionId: session.id, prompt: payload.initialPrompt });
   }
-  return session;
+  return serializeSessionForRenderer(session);
 });
 
 ipcMain.handle("session:prompt", async (_event, payload) => sendPrompt(payload));

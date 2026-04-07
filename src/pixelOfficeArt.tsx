@@ -20,6 +20,58 @@ export interface OfficeDecorItem extends TileRect {
   sprite?: string[][];
 }
 
+export type CharacterSpritePose = "typing" | "roaming" | "idle";
+
+const BACK_TYPING_TEMPLATE_0 = [
+  ".....HHHHHH.....",
+  "....HHHHHHHH....",
+  "...HHHHHHHHHH...",
+  "...HHHHHHHHHH...",
+  "...HHHHHHHHHH...",
+  "....HHHHHHHH....",
+  "....SSSSSSSS....",
+  "....SSSSSSSS....",
+  "....SSSSSSSS....",
+  "....TTTTTTTT....",
+  "...TTTTTTTTTT...",
+  "..SSTTTTTTTTSS..",
+  ".SS.TTTTTTTT.SS.",
+  "....TTTTTTTT....",
+  "...TTTTTTTTTT...",
+  "....TTTTTTTT....",
+  "....PPPPPPPP....",
+  "....PPP..PPP....",
+  "....PPP..PPP....",
+  "...PPPP..PPPP...",
+  "...WWWW..WWWW...",
+  "................"
+] as const;
+
+const BACK_TYPING_TEMPLATE_1 = [
+  ".....HHHHHH.....",
+  "....HHHHHHHH....",
+  "...HHHHHHHHHH...",
+  "...HHHHHHHHHH...",
+  "...HHHHHHHHHH...",
+  "....HHHHHHHH....",
+  "....SSSSSSSS....",
+  "....SSSSSSSS....",
+  "....SSSSSSSS....",
+  "....TTTTTTTT....",
+  "...TTTTTTTTTT...",
+  ".SS.TTTTTTTT.SS.",
+  "..SSTTTTTTTTSS..",
+  "....TTTTTTTT....",
+  "...TTTTTTTTTT...",
+  "....TTTTTTTT....",
+  "....PPPPPPPP....",
+  "....PPP..PPP....",
+  "....PPP..PPP....",
+  "...PPPP..PPPP...",
+  "...WWWW..WWWW...",
+  "................"
+] as const;
+
 const OFFICE_COLS = 42;
 const OFFICE_ROWS = 20;
 const CANVAS_WIDTH = 840;
@@ -110,7 +162,24 @@ function drawPixelRect(context: CanvasRenderingContext2D, x: number, y: number, 
   context.globalAlpha = 1;
 }
 
-function drawCharacterBase(context: CanvasRenderingContext2D, character: CharacterDefinition, scale: number, walkingFrame: 0 | 1 = 0) {
+function drawTemplateSprite(
+  context: CanvasRenderingContext2D,
+  template: readonly string[],
+  palette: Record<string, string>,
+  scale: number
+) {
+  for (let rowIndex = 0; rowIndex < template.length; rowIndex += 1) {
+    const row = template[rowIndex] ?? "";
+    for (let columnIndex = 0; columnIndex < row.length; columnIndex += 1) {
+      const token = row[columnIndex] ?? ".";
+      const color = palette[token];
+      if (!color) continue;
+      drawPixelRect(context, columnIndex, rowIndex, 1, 1, color, scale);
+    }
+  }
+}
+
+function drawStandingCharacterBase(context: CanvasRenderingContext2D, character: CharacterDefinition, scale: number, walkingFrame: 0 | 1 = 0) {
   const skin = `#${character.skinTone}`;
   const hair = `#${character.hairColor}`;
   const shirt = `#${character.shirtColor}`;
@@ -469,6 +538,114 @@ function drawCharacterBase(context: CanvasRenderingContext2D, character: Charact
   }
 }
 
+function drawSeatedCharacterBase(context: CanvasRenderingContext2D, character: CharacterDefinition, scale: number, typingFrame: 0 | 1) {
+  const hair = `#${character.hairColor}`;
+  const skin = `#${character.skinTone}`;
+  const shirt = `#${character.shirtColor}`;
+  const pants = `#${character.pantsColor}`;
+  const shoes = character.species === "robot" ? "#708090" : character.species === "penguin" ? "#f0c040" : "#4a5060";
+  const px = (x: number, y: number, w: number, h: number, color: string, alpha = 1) => drawPixelRect(context, x, y, w, h, color, scale, alpha);
+
+  drawTemplateSprite(
+    context,
+    typingFrame === 0 ? BACK_TYPING_TEMPLATE_0 : BACK_TYPING_TEMPLATE_1,
+    { H: hair, S: skin, T: shirt, P: pants, W: shoes },
+    scale
+  );
+
+  switch (character.species) {
+    case "cat":
+    case "fox":
+    case "bear":
+    case "owl":
+    case "panda":
+      px(3, 0, 3, 3, hair);
+      px(10, 0, 3, 3, hair);
+      break;
+    case "dog":
+      px(2, 2, 2, 4, hair);
+      px(12, 2, 2, 4, hair);
+      break;
+    case "rabbit":
+      px(5, -4, 2, 6, skin);
+      px(9, -4, 2, 6, skin);
+      px(5, -3, 1, 4, "#f0a0a0");
+      px(10, -3, 1, 4, "#f0a0a0");
+      break;
+    case "robot":
+      px(7, -3, 2, 3, "#8090a0");
+      px(6, -4, 4, 1, "#60f0a0");
+      px(3, 0, 10, 6, "#a0b0c0", 0.95);
+      px(4, 1, 8, 4, "#8090a0");
+      px(5, 3, 2, 1, "#60f0a0");
+      px(9, 3, 2, 1, "#60f0a0");
+      break;
+    case "penguin":
+      px(4, 0, 8, 5, "#2a2a3a");
+      px(5, 2, 6, 4, "#ffffff");
+      px(7, 6, 2, 1, "#f0c040");
+      px(4, 9, 8, 7, "#2a2a3a");
+      px(5, 10, 6, 5, "#ffffff");
+      break;
+    default:
+      break;
+  }
+
+  switch (character.hatType) {
+    case "beanie":
+      px(3, -1, 10, 3, "#4040a0");
+      break;
+    case "cap":
+      px(2, -1, 12, 2, "#c04040");
+      px(6, 1, 4, 1, "#a03030");
+      break;
+    case "hardhat":
+      px(3, -2, 10, 3, "#f0c040");
+      px(2, -1, 12, 1, "#f0c040");
+      break;
+    case "wizard":
+      px(5, -5, 6, 2, "#6040a0");
+      px(4, -3, 8, 2, "#6040a0");
+      px(3, -1, 10, 2, "#6040a0");
+      break;
+    case "crown":
+      px(4, -2, 8, 1, "#f0c040");
+      px(4, -3, 2, 1, "#f0c040");
+      px(7, -3, 2, 1, "#f0c040");
+      px(10, -3, 2, 1, "#f0c040");
+      break;
+    case "headphones":
+      px(2, 2, 2, 4, "#404040");
+      px(12, 2, 2, 4, "#404040");
+      px(3, 0, 10, 1, "#505050");
+      break;
+    case "beret":
+      px(3, -1, 11, 2, "#c04040");
+      px(3, -2, 8, 1, "#c04040");
+      break;
+    default:
+      break;
+  }
+
+  if (character.accessory === "scarf") {
+    px(4, 8, 8, 2, "#c04040");
+  }
+}
+
+function drawCharacterBase(
+  context: CanvasRenderingContext2D,
+  character: CharacterDefinition,
+  scale: number,
+  pose: CharacterSpritePose,
+  animationFrame: 0 | 1 = 0
+) {
+  if (pose === "typing") {
+    drawSeatedCharacterBase(context, character, scale, animationFrame);
+    return;
+  }
+  drawStandingCharacterBase(context, character, scale, pose === "roaming" ? animationFrame : 0);
+}
+
 const WINDOW_COLUMNS = [3, 4, 5, 9, 10, 11, 15, 16, 17, 21, 22, 23, 31, 32, 33, 37, 38, 39];
 
 function drawRelativeRect(
@@ -808,26 +985,42 @@ function drawOfficeMapScene(
   context.fillRect(tileW * 28, tileH * 14, tileW, 1);
 }
 
+function drawOfficeForegroundScene(context: CanvasRenderingContext2D, activeDeskSlots: DeskSlot[]) {
+  const tileW = CANVAS_WIDTH / OFFICE_COLS;
+  const tileH = CANVAS_HEIGHT / OFFICE_ROWS;
+
+  context.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  for (const slot of activeDeskSlots) {
+    const x = slot.desk.col * tileW;
+    const y = slot.desk.row * tileH;
+    const w = slot.desk.w * tileW;
+    const h = slot.desk.h * tileH;
+    drawOfficeDesk(context, x, y, w, h);
+    drawDeskChair(context, x + tileW * 0.85, y + tileH * 0.95, tileW * 0.9, tileH * 0.95);
+  }
+}
+
 export function PixelCharacterSprite(props: {
   character: CharacterDefinition;
   className?: string;
   scale?: number;
-  walking?: boolean;
+  pose?: CharacterSpritePose;
 }) {
-  const { character, className, scale = 3, walking = false } = props;
+  const { character, className, scale = 3, pose = "idle" } = props;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [walkingFrame, setWalkingFrame] = useState<0 | 1>(0);
+  const [animationFrame, setAnimationFrame] = useState<0 | 1>(0);
 
   useEffect(() => {
-    if (!walking) {
-      setWalkingFrame(0);
+    if (pose === "idle") {
+      setAnimationFrame(0);
       return;
     }
     const timer = window.setInterval(() => {
-      setWalkingFrame((current) => (current === 0 ? 1 : 0));
-    }, 150);
+      setAnimationFrame((current) => (current === 0 ? 1 : 0));
+    }, pose === "typing" ? 230 : 150);
     return () => window.clearInterval(timer);
-  }, [walking]);
+  }, [pose]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -840,8 +1033,8 @@ export function PixelCharacterSprite(props: {
     canvas.height = height;
     context.clearRect(0, 0, width, height);
     context.imageSmoothingEnabled = false;
-    drawCharacterBase(context, character, scale, walkingFrame);
-  }, [character, scale, walkingFrame]);
+    drawCharacterBase(context, character, scale, pose, animationFrame);
+  }, [animationFrame, character, pose, scale]);
 
   return <canvas ref={canvasRef} className={className} width={16 * scale} height={22 * scale} />;
 }
@@ -866,4 +1059,23 @@ export function OfficeMapCanvas(props: {
   }, [props.activeDeskSlots, props.layout, props.themeId, props.visibleDecorItems]);
 
   return <canvas ref={canvasRef} className="office-map-canvas" width={CANVAS_WIDTH} height={CANVAS_HEIGHT} />;
+}
+
+export function OfficeDeskOverlayCanvas(props: {
+  activeDeskSlots: DeskSlot[];
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
+    context.imageSmoothingEnabled = false;
+    drawOfficeForegroundScene(context, props.activeDeskSlots);
+  }, [props.activeDeskSlots]);
+
+  return <canvas ref={canvasRef} className="office-map-canvas office-map-overlay-canvas" width={CANVAS_WIDTH} height={CANVAS_HEIGHT} />;
 }

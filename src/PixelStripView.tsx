@@ -83,7 +83,7 @@ export function PixelStripView(props: { groupedSessions: ProjectGroup[]; backgro
                     character={group.character}
                     className="pixel-strip-group-character"
                     scale={2}
-                    walking={group.statusClass === "processing"}
+                    pose={group.statusClass === "processing" ? "roaming" : "idle"}
                   />
                 ) : null}
                 <span className="pixel-strip-group-worker" style={{ color: group.workerColor, minWidth: `${estimateDisplayUnits(group.workerName) * 0.52 + 1}em` }}>
