@@ -6160,6 +6160,7 @@ textarea:focus {
 :root[data-theme-mode="light"] .event-stream,
 :root[data-theme-mode="light"] .file-change-panel,
 :root[data-theme-mode="light"] .file-change-item,
+:root[data-theme-mode="light"] .project-suggestion-row,
 :root[data-theme-mode="light"] .composer,
 :root[data-theme-mode="light"] .grid-composer textarea,
 :root[data-theme-mode="light"] .composer textarea,

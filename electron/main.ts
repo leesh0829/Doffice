@@ -374,7 +374,7 @@ async function listTmuxSessions() {
     };
   } catch (error) {
     const message = `${error?.stderr ?? ""}${error?.stdout ?? ""}${error?.message ?? ""}`.toLowerCase();
-    if (message.includes("no server running")) {
+    if (message.includes("no server running") || message.includes("error connecting to /tmp/tmux")) {
       return {
         available: true,
         path: tmuxPath,
@@ -3704,8 +3704,8 @@ ipcMain.handle("session:create", async (_event, payload) => {
   return serializeSessionForRenderer(session);
 });
 
-ipcMain.handle("session:prompt", async (_event, payload) => sendPrompt(payload));
-ipcMain.handle("session:slash-command", async (_event, payload) => runSlashCommand(payload));
+ipcMain.handle("session:prompt", async (_event, payload) => serializeSessionForRenderer(await sendPrompt(payload)));
+ipcMain.handle("session:slash-command", async (_event, payload) => serializeSessionForRenderer(await runSlashCommand(payload)));
 ipcMain.handle("session:open-raw-terminal", async (_event, sessionId) => openRawTerminal(sessionId));
 ipcMain.handle("session:send-raw-input", async (_event, payload) => sendRawInput(payload));
 ipcMain.handle("session:update-config", async (_event, payload) => {
@@ -3771,7 +3771,7 @@ ipcMain.handle("session:update-config", async (_event, payload) => {
 
   replaceSessionStartBlock(session);
   emitSessions();
-  return session;
+  return serializeSessionForRenderer(session);
 });
 ipcMain.handle("session:approval-approve", async (_event, sessionId) => {
   const session = sessions.get(sessionId);
@@ -3780,15 +3780,17 @@ ipcMain.handle("session:approval-approve", async (_event, sessionId) => {
   }
   const approval = session.pendingApproval;
   if (!approval) {
-    return session;
+    return serializeSessionForRenderer(session);
   }
   clearPendingApproval(session);
   appendBlock(session, "status", "Permission approved. Retrying previous task.");
-  return sendPrompt({
+  return serializeSessionForRenderer(
+    await sendPrompt({
     sessionId,
     prompt: `Permission granted. Please continue the previous task.`,
     permissionOverride: approval.retryMode
-  });
+    })
+  );
 });
 ipcMain.handle("session:approval-deny", async (_event, sessionId) => {
   const session = sessions.get(sessionId);
@@ -3796,11 +3798,11 @@ ipcMain.handle("session:approval-deny", async (_event, sessionId) => {
     throw new Error("Session not found");
   }
   if (!session.pendingApproval) {
-    return session;
+    return serializeSessionForRenderer(session);
   }
   clearPendingApproval(session);
   appendBlock(session, "status", lt("custom.permission.denied"));
-  return session;
+  return serializeSessionForRenderer(session);
 });
 ipcMain.handle("session:dismiss-dangerous-warning", async (_event, sessionId) => {
   const session = sessions.get(sessionId);
@@ -3809,7 +3811,7 @@ ipcMain.handle("session:dismiss-dangerous-warning", async (_event, sessionId) =>
   }
   session.dangerousCommandWarning = null;
   emitSessions();
-  return session;
+  return serializeSessionForRenderer(session);
 });
 ipcMain.handle("session:dismiss-sensitive-warning", async (_event, sessionId) => {
   const session = sessions.get(sessionId);
@@ -3818,7 +3820,7 @@ ipcMain.handle("session:dismiss-sensitive-warning", async (_event, sessionId) =>
   }
   session.sensitiveFileWarning = null;
   emitSessions();
-  return session;
+  return serializeSessionForRenderer(session);
 });
 ipcMain.handle("session:stop", async (_event, sessionId) => {
   const session = sessions.get(sessionId);
@@ -3833,7 +3835,7 @@ ipcMain.handle("session:stop", async (_event, sessionId) => {
   session.isRunning = false;
   session.claudeActivity = "idle";
   appendBlock(session, "status", lt("custom.stopped"));
-  return session;
+  return serializeSessionForRenderer(session);
 });
 
 ipcMain.handle("session:remove", async (_event, sessionId) => {
